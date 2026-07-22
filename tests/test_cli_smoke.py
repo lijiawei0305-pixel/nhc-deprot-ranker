@@ -23,7 +23,7 @@ def test_audit_legacy_dry_run_is_nonwriting() -> None:
 
 
 def test_later_phase_command_fails_clearly() -> None:
-    assert run(["evaluate", "--dry-run"]) == 2
+    assert run(["score", "--dry-run"]) == 2
 
 
 def test_phase2_train_dry_run_is_nonwriting(tmp_path: Path) -> None:
@@ -60,6 +60,30 @@ def test_phase3_train_dry_run_dispatches_from_model_config(tmp_path: Path) -> No
                 "results/baselines_v001",
                 "--model-config",
                 "configs/model.yaml",
+                "--evaluation-config",
+                "configs/evaluation.yaml",
+                "--out",
+                str(output),
+                "--dry-run",
+            ]
+        )
+        == 0
+    )
+    assert not output.exists()
+
+
+def test_phase4_evaluate_dry_run_is_nonwriting(tmp_path: Path) -> None:
+    output = tmp_path / "decision_v001"
+    assert (
+        run(
+            [
+                "evaluate",
+                "--dataset",
+                "data/processed/v001",
+                "--baseline-results",
+                "results/baselines_v001",
+                "--hierarchical-results",
+                "results/hierarchical_v001",
                 "--evaluation-config",
                 "configs/evaluation.yaml",
                 "--out",

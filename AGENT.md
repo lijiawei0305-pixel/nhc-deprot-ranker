@@ -12,10 +12,10 @@
 
 ## 2. 当前阶段与阶段门禁
 
-- Phase 0、Phase 1 与 Phase 2 已完成并合并到 `main`；Phase 3 已在隔离分支完成并等待审查。
-- Phase 3 已交付 H1 加性部分池化、嵌套验证、family effect、bootstrap 不确定度、未知 family 回退和序列化。
-- 当前不得执行 H2/尺寸消融、Phase 4 最终晋级裁决、正式全库评分或选点，不运行 PySCF、xTB、Hessian，不提交 HPC 作业，也不生成虚构性能。
-- Phase 4 必须在 Phase 3 通过并获得用户明确确认后才能开始。
+- Phase 0、Phase 1、Phase 2 与 Phase 3 已完成并合并到 `main`；Phase 4 已在隔离分支完成并等待审查。
+- Phase 4 只读取冻结证据并裁定 `raw_xTB_wins`：B0 是生产排序默认，B1 是绝对能量校准 companion，H1 未晋级。
+- 当前不得改写 Phase 2/3/4 结果，不得重新拟合或调参，不得执行 H2/尺寸消融、Phase 5 全库评分或选点，不运行 PySCF、xTB、Hessian，不提交 HPC 作业，也不生成虚构性能。
+- Phase 5 必须在 Phase 4 通过、产生明确生产默认模型并获得用户明确确认后才能开始。
 - 每个 Phase 必须先写清范围、输入、输出、假设、风险、命令和验收门禁，再执行代码或数据操作。
 - 每个 Phase 完成后，按 `prompt.md` 第 23 节报告完成项、读取文件、改动文件、科学假设、数据质量、命令、测试、未执行事项、门禁结论和下一步。
 
@@ -120,3 +120,17 @@ dig +trace domain
 6. 2,000 次最终 bootstrap 使用固定且已记录的 nested-CV penalty，失败数和 family 稳定性完整报告；
 7. 模型保存/读取后预测逐位一致，秩亏/条件数/pseudoinverse 状态可审计；
 8. 未执行 H2、Phase 4 晋级、正式全库评分、量化计算或服务器写操作。
+
+## 13. Phase 4 停止条件
+
+只有以下事实均有证据且被记录后，才可建议 Phase 4 通过：
+
+1. Phase 1/2/3 evidence manifest、运行结果哈希、模型版本与共同 71-key 身份全部复核；
+2. B0/B1/H1 只在完全对齐的冻结 OOF 行上比较，未重新拟合、重新调参或读取全库候选排名；
+3. Spearman、Kendall、头部召回和 regret 的差值及置信区间按预注册 bootstrap 单元、种子和重复数生成；
+4. B1 对 B0 与 H1 对 B1 的每一条门禁均独立记录 pass/fail/not-applicable 和实际阈值；
+5. family collapse、held-out family 灾难性误差和 bootstrap offset 翻转使用写入 YAML 的明确规则，不按结果临时修改；
+6. 最终结果严格为 `raw_xTB_wins`、`global_affine_wins`、`hierarchical_wins` 或 `insufficient_evidence` 之一；
+7. `MODEL_CARD.md` 记录适用范围、失败模式、缺失 blind/size 验证、训练范围、哈希、裁决和禁止外推声明；
+8. Phase 4 结果目录不可覆盖，输入/输出/源码 SHA256 与独立读回完整；
+9. 未执行 H2、Phase 5 全库评分、量化计算、HPC 连接或服务器写操作。

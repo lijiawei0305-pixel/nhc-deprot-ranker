@@ -16,9 +16,10 @@ from nhc_deprot_ranker.data.build import build_dataset
 from nhc_deprot_ranker.legacy.audit import build_source_plan, validate_label_csv
 from nhc_deprot_ranker.models.train import train_baselines
 from nhc_deprot_ranker.models.train_hierarchical import train_hierarchical
+from nhc_deprot_ranker.validation.evaluate import evaluate_decision
 
 LOGGER = logging.getLogger(__name__)
-LATER_PHASE_COMMANDS = ("evaluate", "score", "acquire", "report")
+LATER_PHASE_COMMANDS = ("score", "acquire", "report")
 
 
 def _add_common_options(parser: argparse.ArgumentParser) -> None:
@@ -83,6 +84,31 @@ def build_parser() -> argparse.ArgumentParser:
     )
     train.add_argument("--out", type=Path, required=True)
     _add_common_options(train)
+
+    evaluate = subparsers.add_parser(
+        "evaluate", help="make an immutable Phase 4 decision from frozen model evidence"
+    )
+    evaluate.add_argument("--dataset", type=Path, required=True)
+    evaluate.add_argument("--baseline-results", type=Path, required=True)
+    evaluate.add_argument("--hierarchical-results", type=Path, required=True)
+    evaluate.add_argument("--evaluation-config", type=Path, default=Path("configs/evaluation.yaml"))
+    evaluate.add_argument(
+        "--dataset-evidence",
+        type=Path,
+        default=Path("docs/PROCESSED_V001_MANIFEST.json"),
+    )
+    evaluate.add_argument(
+        "--baseline-evidence",
+        type=Path,
+        default=Path("docs/BASELINES_V001_MANIFEST.json"),
+    )
+    evaluate.add_argument(
+        "--hierarchical-evidence",
+        type=Path,
+        default=Path("docs/HIERARCHICAL_V001_MANIFEST.json"),
+    )
+    evaluate.add_argument("--out", type=Path, required=True)
+    _add_common_options(evaluate)
 
     for command in LATER_PHASE_COMMANDS:
         later = subparsers.add_parser(command, help=f"reserved for a later phase: {command}")
@@ -182,6 +208,22 @@ def run(argv: Sequence[str] | None = None) -> int:
                 overwrite=args.overwrite,
             )
             _emit(hierarchical_result.payload, None, overwrite=False, dry_run=True)
+            return 0
+        if args.command == "evaluate":
+            decision_result = evaluate_decision(
+                dataset_dir=args.dataset,
+                baseline_results_dir=args.baseline_results,
+                hierarchical_results_dir=args.hierarchical_results,
+                evaluation_config_path=args.evaluation_config,
+                dataset_evidence_path=args.dataset_evidence,
+                baseline_evidence_path=args.baseline_evidence,
+                hierarchical_evidence_path=args.hierarchical_evidence,
+                output_dir=args.out,
+                seed=args.seed,
+                dry_run=args.dry_run,
+                overwrite=args.overwrite,
+            )
+            _emit(decision_result.payload, None, overwrite=False, dry_run=True)
             return 0
         LOGGER.error("%s is outside active Phase 1 and is not implemented", args.command)
         return 2

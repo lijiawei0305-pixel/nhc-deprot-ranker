@@ -221,12 +221,29 @@ def _make_fixture(tmp_path: Path) -> Phase3Fixture:
                     "ndcg_k": [3, 6],
                     "pairwise_tie_threshold_kcal": 0.1,
                 },
-                "bootstrap_ci": {"repeats": 10, "confidence": 0.95},
+                "bootstrap_ci": {"repeats": 10, "confidence": 0.95, "seed": 5},
                 "promotion": {
                     "min_spearman_delta": -0.01,
                     "min_kendall_delta": -0.02,
                     "max_regret_increase_kcal": 1.0,
                     "require_no_family_collapse": True,
+                    "primary_rank": {
+                        "min_delta": 0.0,
+                        "require_95_percent_lower_bound_nonnegative": True,
+                    },
+                    "family_collapse": {
+                        "max_heldout_mae_increase_kcal": 3.0,
+                        "max_heldout_mae_ratio": 2.0,
+                        "catastrophic_requires_both": True,
+                    },
+                    "family_offset_stability": {
+                        "minimum_support": 3,
+                        "min_conditional_sign_stability": 0.6,
+                    },
+                    "head_recall": {
+                        "min_delta": 0.0,
+                        "require_95_percent_lower_bound_nonnegative": True,
+                    },
                 },
                 "blind_holdout": {"status": "missing", "reason": "synthetic"},
             },
