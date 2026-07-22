@@ -1,0 +1,18 @@
+version: v001
+unknown_token: unknown
+skeleton:
+  source: explicit_source_metadata
+  current_value: imidazolium
+axis_a:
+  columns: [n1_frag, n3_frag]
+  canonicalization: sorted_pair
+axis_b:
+  columns: [c4_frag, c5_frag]
+  canonicalization: sorted_pair
+combined_family:
+  format: "{skeleton}::A={axis_a_family}::B={axis_b_family}"
+model_terms: [skeleton, axis_a_family, axis_b_family]
+exact_combined_family:
+  enabled: false
+  min_labels_per_family: 3
+unknown_family_policy: zero_effect

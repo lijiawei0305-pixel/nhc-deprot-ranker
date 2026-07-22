@@ -1,0 +1,50 @@
+dataset_version: v001
+processed_root: data/processed
+primary_key: inchikey
+lower_is_better: true
+
+candidate_columns:
+  inchikey: InChIKey
+  smiles_cation: SMILES_cation
+  smiles_neutral: SMILES_neutral
+  xtb_deprot_kcal: delta_e_deprot_kcal
+  n1_frag: N1_frag
+  n3_frag: N3_frag
+  c4_frag: C4_frag
+  c5_frag: C5_frag
+
+label_columns:
+  gold:
+    inchikey: InChIKey
+    e_cation_hartree: E_cation
+    e_neutral_hartree: E_neutral
+    stored_target: delta_e_deprot_dft_kcal
+  blind_round1:
+    inchikey: InChIKey
+    e_cation_hartree: E_cation
+    e_neutral_hartree: E_neutral
+    stored_target: real_dft_kcal
+  blind_round2:
+    inchikey: InChIKey
+    e_cation_hartree: E_cation
+    e_neutral_hartree: E_neutral
+    stored_target: dft_deprot_kcal
+
+validation:
+  formula_absolute_tolerance_kcal: 0.02
+  duplicate_target_tolerance_kcal: 0.02
+  reject_nonfinite: true
+  normalize_skipped_hessian_n_imaginary_to_null: true
+
+protocol:
+  method: B3LYP
+  basis: def2-SVP
+  dispersion: D3(BJ)
+  geometry_optimizer: geomeTRIC
+  cation_charge: 1
+  cation_multiplicity: 1
+  neutral_charge: 0
+  neutral_multiplicity: 1
+  proton_constant_kcal: -6.28
+  target_definition: electronic_deprotonation_energy
+  label_quality: electronic_energy_only

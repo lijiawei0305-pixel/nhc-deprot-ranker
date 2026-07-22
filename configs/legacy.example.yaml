@@ -1,0 +1,42 @@
+legacy_repo:
+  root: /path/to/nhc-predictor
+  expected_remote: https://github.com/lijiawei0305-pixel/nhc-predictor
+  expected_commit: null
+
+source_access:
+  mode: local
+  ssh_alias: null
+  remote_root: null
+  read_only: true
+
+candidates:
+  xtb_crude_csv:
+    location: legacy_repo
+    path: results/calculations/YYYYMMDD/imid_v4_crude/full_candidates.csv
+  xtb_reduced_csv:
+    location: legacy_repo
+    path: results/calculations/YYYYMMDD/imid_v4_crude/combined_m3.csv
+  v3_graph_csv:
+    location: legacy_repo
+    path: data/candidates/imid_lib_v3menu_graph_full.csv
+  v4_new_only_csv:
+    location: legacy_repo
+    path: results/calculations/YYYYMMDD/pubchem_v4_expansion/imid_v4_new_only.csv
+  descriptors_parquet:
+    location: legacy_repo
+    path: results/surrogate/part1/part1_descriptors.parquet
+
+labels:
+  sources:
+    - source_group: gold
+      location: legacy_repo
+      path: data/runs/mol_gold/gold_labels.csv
+      type: electronic_energy
+    - source_group: blind_round1
+      location: legacy_repo
+      path: reports/part1-dft-gold-validation/blind_test_comparison.csv
+      type: electronic_energy
+    - source_group: blind_round2
+      location: legacy_repo
+      path: reports/part1-blind-round2/deltaE_final.csv
+      type: electronic_energy

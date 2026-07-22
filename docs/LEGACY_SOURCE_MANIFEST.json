@@ -1,0 +1,116 @@
+{
+  "manifest_version": "phase0-v001",
+  "audit_date": "2026-07-22",
+  "legacy_code": {
+    "branch": "Vasp_on_the_fly",
+    "head_commit": "44a68bf70031bd75799f42c4a02adf71f1b99d31",
+    "remote": "https://github.com/lijiawei0305-pixel/nhc-predictor.git",
+    "working_tree_dirty": true,
+    "required_prompt_files_dirty": false
+  },
+  "server_deployment": {
+    "git_checkout": false,
+    "provenance_policy": "logical project-relative path plus SHA256"
+  },
+  "sources": [
+    {
+      "role": "xtb_full_candidates",
+      "location": "remote_root",
+      "path": "results/calculations/20260628/imid_v4_crude/imid_full_v4menu_crude_0618_method.csv",
+      "sha256": "327c00871fde7149b79e527de537dd98ea26686af641b87882a112e15a01617f",
+      "size_bytes": 144197747,
+      "rows": 401856,
+      "unique_inchikeys": 401856
+    },
+    {
+      "role": "xtb_reduced_projection",
+      "location": "remote_root",
+      "path": "results/calculations/20260628/imid_v4_crude/combined_m3.csv",
+      "sha256": "202941803d9351ca4d9d5d3cfa232d9bf1476cd36a4a72fb98d29c49bda70a16",
+      "size_bytes": 76309912,
+      "rows": 401856,
+      "unique_inchikeys": 401856
+    },
+    {
+      "role": "fragment_lookup_v3_graph",
+      "location": "remote_root",
+      "path": "data/candidates/imid_lib_v3menu_graph_full.csv",
+      "sha256": "30ad7d4479a4902f22856ae5e5838e368eaf47eab1f576ee68b352a2a03316ae",
+      "size_bytes": 5748441,
+      "rows": 36585,
+      "unique_inchikeys": 36585
+    },
+    {
+      "role": "fragment_lookup_v4_new_only",
+      "location": "remote_root",
+      "path": "results/calculations/20260627/pubchem_v4_expansion/pubchem_imid/imidazolium_graph_v4_new_only_pubchem_annotated.csv",
+      "sha256": "ff319a318ab3d954ea530e559ec90dca59e5f8c1d209b013e679a2a60f946747",
+      "size_bytes": 63205172,
+      "rows": 365271,
+      "unique_inchikeys": 365271
+    },
+    {
+      "role": "gold_labels",
+      "location": "remote_root",
+      "path": "data/runs/mol_gold/gold_labels.csv",
+      "sha256": "ba181ef3959bab52842fd396080ba1acf0f9111b59303a0f6050eadeba1e6d9e",
+      "size_bytes": 2086,
+      "rows": 24,
+      "unique_inchikeys": 24
+    },
+    {
+      "role": "gold_dft_summary",
+      "location": "remote_root",
+      "path": "data/runs/mol_gold/dft_gold.csv",
+      "sha256": "58c83f1ecbd9b30da90c4f5e1bcd4bf2c9b3c5402c8f4be97e9917fba8e5b659",
+      "size_bytes": 6250,
+      "rows": 24,
+      "unique_inchikeys": 24
+    },
+    {
+      "role": "blind_round1_raw_dft",
+      "location": "legacy_repo",
+      "path": "reports/part1-dft-gold-validation-2026-07-06/blind_test_dft_energies.csv",
+      "sha256": "03ad6bca9bbed414d64f6cc3609075924fd4c3041f856fd769f561d14d419367",
+      "size_bytes": 3210,
+      "rows": 12,
+      "unique_inchikeys": 12
+    },
+    {
+      "role": "blind_round1_labels",
+      "location": "legacy_repo",
+      "path": "reports/part1-dft-gold-validation-2026-07-06/blind_test_comparison.csv",
+      "sha256": "f353d3e9882a420c68595ee679869749026c166b1516bc13045963d74c204f62",
+      "size_bytes": 1820,
+      "rows": 12,
+      "unique_inchikeys": 12
+    },
+    {
+      "role": "blind_round2_labels",
+      "location": "legacy_repo",
+      "path": "reports/part1-blind-round2-2026-07-09/deltaE_final.csv",
+      "sha256": "4c457f12363c44698279f0dc43e85a6933bc3bae0c4a9a807a35398cfe84eb5b",
+      "size_bytes": 2686,
+      "rows": 35,
+      "unique_inchikeys": 35
+    },
+    {
+      "role": "historical_120_descriptors",
+      "location": "legacy_repo",
+      "path": "results/surrogate/part1/part1_descriptors.parquet",
+      "sha256": "b43060e3b9481aee5e012c33cdd24656c4d69981af3936bdab0df0e3f4a783d7",
+      "size_bytes": 110574,
+      "rows": 120,
+      "unique_inchikeys": 120
+    },
+    {
+      "role": "historical_full_d_deprot_output",
+      "location": "legacy_repo",
+      "path": "results/surrogate/target_a/D_deprot.csv",
+      "sha256": "105ae5d394b20c8d06929804422d9432bcc2ac77069ba84ac2f59bfc1a63dfd1",
+      "size_bytes": 19176154,
+      "rows": 401856,
+      "unique_inchikeys": 401856
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+protocols:
+  - loocv
+  - leave_axis_a_out
+  - leave_axis_b_out
+  - combined_family_holdout_if_supported
+  - size_extrapolation
+
+ranking:
+  lower_is_better: true
+  true_top_m: [5, 10, 20]
+  predicted_budget_k: [10, 20, 50]
+  ndcg_k: [10, 20, 50]
+  pairwise_tie_threshold_kcal: 1.0
+
+bootstrap_ci:
+  repeats: 2000
+  confidence: 0.95
+
+promotion:
+  min_spearman_delta: -0.01
+  min_kendall_delta: -0.02
+  max_regret_increase_kcal: 1.0
+  require_no_family_collapse: true
+
+blind_holdout:
+  status: missing
+  reason: Existing legacy blind rounds are revealed and cannot be reused as blind.

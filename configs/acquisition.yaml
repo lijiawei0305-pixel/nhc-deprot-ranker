@@ -1,0 +1,17 @@
+version: v001
+top_k: 50
+weights:
+  top: 1.0
+  uncertainty: 1.0
+  rank_shift: 0.75
+  family_novelty: 0.75
+  cutoff: 0.75
+  diversity: 0.75
+quotas:
+  predicted_top_region: 0.30
+  cutoff_region: 0.25
+  chemical_family_diversity: 0.25
+  uncertain_ood_conflict: 0.20
+exclude_already_labeled: true
+submit_hpc: false
+seed: 20260722
