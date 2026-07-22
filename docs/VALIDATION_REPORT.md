@@ -1,31 +1,23 @@
-# Validation Report
+# Validation and Production Decision Report
 
-## Phase 0 status
+## Final outcome
 
-No new model was trained or evaluated. This report records historical evidence needed to pre-specify later baselines; it is not a Phase 4 promotion decision.
+Phase 4 selected `raw_xTB_wins` from the frozen 71-label evidence. B0 raw xTB is the production ranking default, B1 is the absolute-scale affine companion, and H1 is not promoted.
 
-## Historical n=71 evidence
+## Evidence
 
-| Quantity | Result |
-| --- | ---: |
-| Raw xTB Spearman | 0.958954 |
-| Raw xTB Kendall | 0.825352 |
-| Full-data affine intercept | 196.178439 |
-| Full-data affine slope | 0.715701 |
-| Affine exact-LOO MAE | 2.7214 kcal/mol |
-| Affine exact-LOO RMSE | 3.5098 kcal/mol |
-| Affine R²_LOO | 0.90685 |
-| Affine OOF Spearman | 0.957076 |
-| Affine OOF Kendall | 0.821328 |
+All models were compared over identical InChIKeys under LOOCV, leave-axis-A-family-out, and leave-axis-B-family-out protocols. Phase 4 used 2,000 paired fixed-OOF bootstrap replicates per protocol, with zero failures and no model refitting or penalty retuning.
 
-A positive single affine transformation preserves the full-data xTB ranking, so its main historical benefit is energy-scale calibration. Fold-specific OOF fits cause the small OOF ranking difference.
+B1 did not improve Spearman or Kendall point estimates over B0 under any protocol, although it substantially improves absolute calibration. H1 improved several point rank correlations but failed required stable head recall, stable improvement over B0, one catastrophic held-out axis-B family (`Br|CF3`), and one supported-offset stability case (`Me|NO2`). No genuinely unused blind holdout or validated size extrapolation set exists.
 
-The historical size-extrapolation analysis reported raw/offset xTB ranking near Spearman 0.97 on 30 large molecules while offset-only MAE remained 5.629 kcal/mol. This supports the possibility that raw xTB is already sufficient for ranking, not a claim that it is universally sufficient.
+The complete comparisons, intervals, thresholds, and negative evidence are in `PHASE4_REPORT.md` and `DECISION_V001_MANIFEST.json`.
 
-## Blind status
+## Phase 5 production invariants
 
-Legacy 12- and 35-molecule holdouts were genuinely pre-registered when first run, but their labels have since been revealed and used in later analysis. They cannot be reused as a new-repository blind test. Current configuration therefore records `blind_test_missing` in substance.
+Full scoring verified 401,856/401,856 unique candidates, exact equality of stored xTB, production, and calibrated ranks, and zero nonzero rank shifts. All 2,000 B1 coefficient slopes are positive, so Top-10/50/100 membership is invariant in every replicate.
 
-## Decision
+Applicability is not inferred from finite output. There are 2,782 baseline extrapolations; all rows lack validated size; most families are unseen; and zero rows are called fully in-domain. Acquisition excludes all 71 labels, selects 50 unique keys with exact quotas, and exposes that all 50 proposed points are outside the labeled xTB range.
 
-Model promotion: **not evaluated**. Phase 2 must recompute B0/B1 OOF results under the new metric suite; Phase 3 must evaluate H1 with nested grouped validation. Historical results cannot promote H1.
+## Claims not supported
+
+The evidence does not establish DFT accuracy for the complete pool, Gibbs free energies, frequency-confirmed minima, experimental synthesis success, H1 family physics, or that the first-ranked candidate is chemically optimal. Phase 5 B1 intervals cover coefficient resampling only and are not total predictive intervals.

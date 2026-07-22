@@ -1,0 +1,55 @@
+{
+  "built_at_utc": "2026-07-22T09:54:26.971245+00:00",
+  "calibration_companion": "B1_global_affine",
+  "candidate_key_sha256": "c4dfb6313cf7fc953e259f87efc134762ccff6ba9ecdc35ef0eabfd20247cdb5",
+  "dataset_version": "v001",
+  "decision_manifest_sha256": "a12ddd334187051f21dd5a4223fb92b94c8cff711765be8b305f7c01593c0c05",
+  "gate_status": "passed",
+  "input_identity": {
+    "acquisition_config_sha256": "f58fcd476031dfdf311760c08798e0ed0d4e45e8eab855a3cae05240ae36786a",
+    "baseline_evidence_sha256": "13aeda852da21e678528d0380383be1be5a43bac50d0c03a536430088c2ad59e",
+    "dataset_evidence_sha256": "db6b390efda24b46056b2155805bcc3c4394470405c9c561156cbd72ec8bb862",
+    "decision_evidence_sha256": "c0677e71fd1396411c388f73e42518994e6b15d236079b4bab1120a711d3992f"
+  },
+  "output_sha256": {
+    "_SUCCESS": "9739519a85b4884c99df431874e86b8b41f4a162c8c744400412d82167a5023b",
+    "applicability_summary.json": "a373b498dc4d331a20555d8f14bbda74880fe87a0167e9a961e471a1cade10f5",
+    "figures/01_xtb_rank_distribution.png": "dcaf5b75b7cfe6ca52a0d14b9d39240d3a4972f563051b524f06d63dfbf9b0cc",
+    "figures/02_b1_interval_width_vs_xtb.png": "66c90d06a85b8c69f656dc57c1a4d0da88773e2c1462309de6e321570d1a26d0",
+    "figures/03_applicability_counts.png": "61fcac2096a91609f8f238ec5f6a2100d49f9a6e266e33979bfb211a78213998",
+    "figures/04_family_support_coverage.png": "5bd7489475078f6fba7f90bc33a7148dc813d4eb3c96847e9f59b06626b8f634",
+    "full_ranked_candidates.parquet": "dc560def31e2f6726404b3325ddf485aa065c782dfd205e17d90d310feb9d6ec",
+    "score_manifest.json": "c9c87b1597ed8d994b089595b9da7c93a21467dbee82d1e0256a0e3fce5dacf6",
+    "top_candidates.csv": "9521f4fdc3e6b28e2ea528c22dd06a6b5524ef77b18aad978b783290f58e7c3a"
+  },
+  "production_model_sha256": "0ac8783b9ab70b31b5a3b3c27b86ca702cb0dceaf2ec661bb9af32b25f96bb5b",
+  "ranking_model": "B0_raw_xTB",
+  "rows": 401856,
+  "score_version": "v001",
+  "source_tree_sha256": "429ef1d0d513eccbeb0f247139817c5f39ce725e7bd9b9c03fdf7246d779840a",
+  "summary": {
+    "B1_beta_0": 196.1773139187798,
+    "B1_bootstrap_repeats": 2000,
+    "B1_bootstrap_rho_max": 0.8064838280432208,
+    "B1_bootstrap_rho_min": 0.6259137861260365,
+    "B1_rho": 0.7157116718316903,
+    "baseline_extrapolation": 2782,
+    "baseline_training_range": [
+      57.34820497196201,
+      116.17169642812271
+    ],
+    "both_axes_seen": 2316,
+    "core_model_in_domain": 103,
+    "fully_in_domain": 0,
+    "high_uncertainty": 2097,
+    "high_uncertainty_interval_width_threshold_kcal": 2.7705286580403197,
+    "rank_shift_nonzero": 0,
+    "size_unavailable": 401856,
+    "sparse_family": 45750,
+    "uncertainty_scope": "B1_coefficient_bootstrap_only",
+    "unique_keys": 401856,
+    "unseen_axis_a": 373576,
+    "unseen_axis_b": 368992
+  },
+  "training_key_sha256": "e2333ea3e3b43fd3e7897a3a1e2169d8a90b9ecec12e17b60395538f396bf172"
+}

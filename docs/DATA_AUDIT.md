@@ -52,3 +52,11 @@ These counts establish severe sparsity and justify partial pooling plus unknown-
 ## Provenance
 
 Machine-readable source hashes and logical paths are in `LEGACY_SOURCE_MANIFEST.json`. Large legacy inputs remain outside this repository.
+
+## Phase 5 full-pool support
+
+The immutable Phase 5 readback reconfirmed all 401,856 candidate keys exactly once, zero missing/non-finite xTB scores, and exact stable B0 ranks. It found 2,782 rows outside the labeled xTB range, 373,576 with unseen axis A, 368,992 with unseen axis B, 45,750 with sparse support on at least one seen axis, and only 2,316 with both axes seen.
+
+`n_heavy_atoms` and `n_electrons` are both missing for all 401,856 rows. Phase 5 records this as 100% `size_unavailable` and does not derive replacement values. Seventy-one labeled keys were excluded from acquisition, leaving 401,785 eligible rows. The selected 50 contain 50 unique keys, zero label overlap, and 46 unique combined families.
+
+Exact full-score and acquisition hashes are in `SCORING_V001_MANIFEST.json` and `ACQUISITION_V001_MANIFEST.json`; the large local artifacts remain ignored.

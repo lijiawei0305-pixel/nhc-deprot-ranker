@@ -12,10 +12,12 @@
 
 ## 2. 当前阶段与阶段门禁
 
-- Phase 0、Phase 1、Phase 2 与 Phase 3 已完成并合并到 `main`；Phase 4 已在隔离分支完成并等待审查。
-- Phase 4 只读取冻结证据并裁定 `raw_xTB_wins`：B0 是生产排序默认，B1 是绝对能量校准 companion，H1 未晋级。
-- 当前不得改写 Phase 2/3/4 结果，不得重新拟合或调参，不得执行 H2/尺寸消融、Phase 5 全库评分或选点，不运行 PySCF、xTB、Hessian，不提交 HPC 作业，也不生成虚构性能。
+- Phase 0 至 Phase 5 已完成；当前阶段门禁关闭，除发布/审查现有结果外，不得默认启动新的真实计算阶段。
+- Phase 4 裁定 `raw_xTB_wins`：B0 是生产排序默认，B1 只能作为绝对能量校准 companion，H1 不得用于正式全库排序。
+- Phase 5 只读取不可变的 `data/processed/v001`、B0/B1/Phase 4 决策及其 manifest；不得改写 Phase 1/2/3/4 结果，不得重新拟合或调参。
+- Phase 5 可生成本地评分表、适用域审计、候选建议与无 Hessian DFT 互操作 manifest；不得运行 PySCF、xTB、Hessian，不得连接或写入 HPC，不得提交作业。
 - Phase 5 必须在 Phase 4 通过、产生明确生产默认模型并获得用户明确确认后才能开始。
+- Phase 5 已按用户确认的 B0/B1 双轨语义、Top-100 和 50 条 `15/13/12/10` 配额完成；任何真实高保真计算、上传服务器或提交作业都属于新阶段，仍需重新文档先行和明确授权。
 - 每个 Phase 必须先写清范围、输入、输出、假设、风险、命令和验收门禁，再执行代码或数据操作。
 - 每个 Phase 完成后，按 `prompt.md` 第 23 节报告完成项、读取文件、改动文件、科学假设、数据质量、命令、测试、未执行事项、门禁结论和下一步。
 
@@ -134,3 +136,18 @@ dig +trace domain
 7. `MODEL_CARD.md` 记录适用范围、失败模式、缺失 blind/size 验证、训练范围、哈希、裁决和禁止外推声明；
 8. Phase 4 结果目录不可覆盖，输入/输出/源码 SHA256 与独立读回完整；
 9. 未执行 H2、Phase 5 全库评分、量化计算、HPC 连接或服务器写操作。
+
+## 14. Phase 5 停止条件
+
+只有以下事实均有证据且被记录后，才可建议 Phase 5 通过：
+
+1. 只用 Phase 4 晋级的 B0 生成正式排序；B1 校准字段与参数 bootstrap 不得被包装成新的排名模型；
+2. 全量评分恰好覆盖 401,856 个唯一 InChIKey，排序方向为 lower-is-better，B0 排名与 v001 `xtb_rank` 逐行一致；
+3. B1 校准、区间和 Top-K 概率明确标记为 companion/参数不确定度，并验证所有 bootstrap 斜率为正时排名不变；
+4. baseline range、family seen/support、稀疏 family、bootstrap uncertainty、size 缺失和外推状态均逐行可审计；不得因预测有限而自动标记 `in_domain`；
+5. `n_heavy_atoms`/`n_electrons` 全缺失时输出 `size_unavailable`，不得伪造尺寸或 size extrapolation 结论；
+6. acquisition 排除全部 71 个已标注 key，无重复，批量大小、权重、配额、舍入、候选池和 tie-break 均来自 YAML 或明确规范；
+7. 选点兼顾头部、截止线、family 多样性和 uncertain/OOD，记录 reason codes；rank shift 恒为零时不得虚构冲突收益；
+8. `high_fidelity_batch_manifest.json` 只描述建议与电子能协议，明确 `submit_hpc=false`，不得触发外部动作；
+9. 评分与选点结果不可覆盖，输入/输出/源码 SHA256、行数、排序、配额和独立读回完整；
+10. 未运行量化计算、Hessian、HPC 连接、服务器写操作或作业提交。

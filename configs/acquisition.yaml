@@ -1,5 +1,24 @@
 version: v001
+dataset_version: v001
 top_k: 50
+score_top_n: 100
+acquisition_batch_size: 50
+probability_top_k: [10, 50, 100]
+sparse_family_min_support: 3
+high_uncertainty_quantile: 0.95
+bootstrap_chunk_rows: 4096
+cutoff_rank: 50
+cutoff_window: 50
+top_region_max_rank: 500
+quota_rounding: largest_remainder_config_order
+diversity_fields:
+  - combined_family
+  - axis_a_family
+  - axis_b_family
+  - n1_frag
+  - n3_frag
+  - c4_frag
+  - c5_frag
 weights:
   top: 1.0
   uncertainty: 1.0
