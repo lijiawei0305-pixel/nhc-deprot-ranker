@@ -11,6 +11,7 @@ from nhc_deprot_ranker.config import (
     load_data_config,
     load_evaluation_config,
     load_families_config,
+    load_hierarchical_model_config,
     load_legacy_config,
 )
 from nhc_deprot_ranker.legacy.audit import build_source_plan
@@ -42,6 +43,14 @@ def test_phase2_configs_load() -> None:
     assert baselines.bootstrap.final_repeats == 2000
     assert evaluation.ranking.lower_is_better is True
     assert evaluation.blind_holdout.status == "missing"
+
+
+def test_phase3_config_loads() -> None:
+    model = load_hierarchical_model_config(Path("configs/model.yaml"))
+    assert model.model_name == "hierarchical_linear"
+    assert model.expected_label_rows == 71
+    assert model.skeleton_policy == "inactive_if_single_level"
+    assert model.bootstrap.regularization_policy == "fixed_from_nested_cv"
 
 
 def test_writable_legacy_access_is_rejected() -> None:

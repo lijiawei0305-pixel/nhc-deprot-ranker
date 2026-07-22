@@ -1,6 +1,6 @@
 # Model Specification
 
-Status: B0/B1 implemented and validated in Phase 2; H1/H2 remain specification-only until Phase 3 or later.
+Status: B0/B1 and H1 are implemented and validated; production selection is deferred to Phase 4; H2 remains out of scope.
 
 ## B0 — raw xTB
 
@@ -29,6 +29,8 @@ y_i = beta_0 + rho*x_i
 ```
 
 The penalized objective is the weighted residual sum of squares plus separate L2 group penalties. The intercept is unpenalized; the slope penalty defaults to zero. Unknown categories contribute zero.
+
+For dataset v001, all 71 labels have the single `imidazolium` skeleton. Its coefficient is therefore non-identifiable separately from the intercept and is fixed to exactly zero with status `inactive_single_level`. This is an identifiability rule, not a physical claim.
 
 The estimator interface is:
 

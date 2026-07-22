@@ -2,7 +2,7 @@
 
 Independent, provenance-first ranking calibration for gas-phase NHC precursor deprotonation electronic energies.
 
-The project combines a complete GFN2-xTB candidate ranking with a small set of B3LYP-D3(BJ)/def2-SVP electronic-energy labels. Future phases will compare raw xTB, a free-slope global affine calibration, and a partially pooled additive family calibration. A more complex model is promoted only when honest ranking validation supports it.
+The project combines a complete GFN2-xTB candidate ranking with a small set of B3LYP-D3(BJ)/def2-SVP electronic-energy labels. It compares raw xTB, a free-slope global affine calibration, and a partially pooled additive family calibration. A more complex model is promoted only when honest ranking validation supports it.
 
 ## Scientific boundary
 
@@ -16,7 +16,7 @@ It is an electronic-energy label, not a complete Gibbs free energy. Lower is bet
 
 ## Current status
 
-Phase 0, Phase 1, and Phase 2 are complete. The immutable processed dataset `v001` passed with 401,856 candidates and 71 labels; B0/B1 baselines now have leakage-checked LOOCV and axis-family validation. B1 reproduces the historical free slope and strongly improves absolute calibration, but does not improve baseline ranking, so no production-model promotion has occurred. No full-pool prediction or quantum-chemistry calculation has run. See [Phase Status](PHASE_STATUS.md), [Phase 2 Report](docs/PHASE2_REPORT.md), and [Phase 1 Report](docs/PHASE1_REPORT.md).
+Phase 0 through Phase 3 are complete. The immutable processed dataset `v001` passed with 401,856 candidates and 71 labels. B0/B1 and the H1 partially pooled model now have leakage-checked LOOCV and axis-family validation. H1 improves LOOCV ranking and Axis-A aggregate error, but its Axis-B MAE is slightly worse than B1 and most individual family-effect intervals cross zero. Model promotion is therefore explicitly deferred to Phase 4. No full-pool prediction or quantum-chemistry calculation has run. See [Phase Status](PHASE_STATUS.md), [Phase 3 Report](docs/PHASE3_REPORT.md), and [Phase 2 Report](docs/PHASE2_REPORT.md).
 
 ## Source policy
 
@@ -62,13 +62,25 @@ nhc-deprot train \
   --dry-run
 ```
 
+Phase 3 hierarchical dry-run:
+
+```bash
+nhc-deprot train \
+  --dataset data/processed/v001 \
+  --baseline-results results/baselines_v001 \
+  --model-config configs/model.yaml \
+  --evaluation-config configs/evaluation.yaml \
+  --out results/hierarchical_v001 \
+  --dry-run
+```
+
 ## Repository map
 
 - `configs/`: portable specifications plus an ignored real-location file;
 - `docs/`: science, data, family, model, validation, acquisition, audit, and reporting contracts;
-- `src/nhc_deprot_ranker/`: audit utilities and the Phase 1 streaming importer;
+- `src/nhc_deprot_ranker/`: audit, import, baseline, hierarchical-model, validation, and reporting code;
 - `scripts/`: direct audit and label-formula entry points;
-- `tests/`: synthetic, HPC-independent Phase 0/1 tests;
+- `tests/`: synthetic, HPC-independent tests for Phases 0–3;
 - `data/`, `models/`, `results/`: ignored runtime roots with tracked placeholders.
 
 ## License
