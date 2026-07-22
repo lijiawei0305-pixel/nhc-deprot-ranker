@@ -12,10 +12,11 @@ from typing import Any
 
 from nhc_deprot_ranker.config import load_legacy_config
 from nhc_deprot_ranker.constants import LABEL_FORMULA_ATOL_KCAL_MOL
+from nhc_deprot_ranker.data.build import build_dataset
 from nhc_deprot_ranker.legacy.audit import build_source_plan, validate_label_csv
 
 LOGGER = logging.getLogger(__name__)
-LATER_PHASE_COMMANDS = ("build-dataset", "train", "evaluate", "score", "acquire", "report")
+LATER_PHASE_COMMANDS = ("train", "evaluate", "score", "acquire", "report")
 
 
 def _add_common_options(parser: argparse.ArgumentParser) -> None:
@@ -51,6 +52,15 @@ def build_parser() -> argparse.ArgumentParser:
     labels.add_argument("--tolerance-kcal", type=float, default=LABEL_FORMULA_ATOL_KCAL_MOL)
     labels.add_argument("--out", type=Path)
     _add_common_options(labels)
+
+    build = subparsers.add_parser(
+        "build-dataset", help="build one immutable Phase 1 processed dataset"
+    )
+    build.add_argument("--legacy-config", type=Path, required=True)
+    build.add_argument("--data-config", type=Path, required=True)
+    build.add_argument("--families-config", type=Path, default=Path("configs/families.yaml"))
+    build.add_argument("--out", type=Path, required=True)
+    _add_common_options(build)
 
     for command in LATER_PHASE_COMMANDS:
         later = subparsers.add_parser(command, help=f"reserved for a later phase: {command}")
@@ -109,9 +119,20 @@ def run(argv: Sequence[str] | None = None) -> int:
             )
             _emit(payload, args.out, overwrite=args.overwrite, dry_run=args.dry_run)
             return 1 if payload["formula_failures"] else 0
-        LOGGER.error("%s is outside Phase 0 and is not implemented", args.command)
+        if args.command == "build-dataset":
+            result = build_dataset(
+                legacy_config_path=args.legacy_config,
+                data_config_path=args.data_config,
+                families_config_path=args.families_config,
+                output_dir=args.out,
+                dry_run=args.dry_run,
+                overwrite=args.overwrite,
+            )
+            _emit(result.payload, None, overwrite=False, dry_run=True)
+            return 0
+        LOGGER.error("%s is outside active Phase 1 and is not implemented", args.command)
         return 2
-    except (FileExistsError, FileNotFoundError, ValueError) as exc:
+    except (FileExistsError, FileNotFoundError, RuntimeError, ValueError) as exc:
         LOGGER.error("%s", exc)
         return 2
 
