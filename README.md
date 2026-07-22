@@ -16,7 +16,7 @@ It is an electronic-energy label, not a complete Gibbs free energy. Lower is bet
 
 ## Current status
 
-Phase 0 and Phase 1 are complete. The legacy repository and HPC-only tables were read and audited without modification, and the immutable processed dataset `v001` has passed its production gate with 401,856 candidates and 71 high-fidelity labels. No model has been trained, no full-pool prediction has run, and no quantum-chemistry calculation has been submitted. See [Phase Status](PHASE_STATUS.md), [Phase 1 Report](docs/PHASE1_REPORT.md), and [Legacy Audit](docs/LEGACY_AUDIT.md).
+Phase 0, Phase 1, and Phase 2 are complete. The immutable processed dataset `v001` passed with 401,856 candidates and 71 labels; B0/B1 baselines now have leakage-checked LOOCV and axis-family validation. B1 reproduces the historical free slope and strongly improves absolute calibration, but does not improve baseline ranking, so no production-model promotion has occurred. No full-pool prediction or quantum-chemistry calculation has run. See [Phase Status](PHASE_STATUS.md), [Phase 2 Report](docs/PHASE2_REPORT.md), and [Phase 1 Report](docs/PHASE1_REPORT.md).
 
 ## Source policy
 
@@ -50,6 +50,17 @@ nhc-deprot build-dataset \
 ```
 
 Remove `--dry-run` only after reviewing the source plan. Existing processed versions are never overwritten. Commands for later phases report that their phase is not implemented; they do not silently create outputs.
+
+Phase 2 baseline dry-run:
+
+```bash
+nhc-deprot train \
+  --dataset data/processed/v001 \
+  --model-config configs/baselines.yaml \
+  --evaluation-config configs/evaluation.yaml \
+  --out results/baselines_v001 \
+  --dry-run
+```
 
 ## Repository map
 

@@ -13,7 +13,7 @@
 - Pydantic 2.12.5, PyYAML 6.0.3, pytest 9.0.3.
 - The legacy declared molecular environment uses Python 3.11.
 
-Phase 0/1 utilities use no quantum-chemistry package. Phase 1 additionally uses pandas and PyArrow for normalized Parquet output.
+Phase 0/1/2 utilities use no quantum-chemistry package. Phase 1 uses pandas and PyArrow for normalized Parquet output; Phase 2 adds SciPy statistics, joblib serialization, and headless Matplotlib reports.
 
 ## Commands
 
@@ -42,6 +42,19 @@ PYTHONPATH=src python -m nhc_deprot_ranker.cli build-dataset \
   --data-config configs/data.yaml \
   --families-config configs/families.yaml \
   --out data/processed/v001
+
+PYTHONPATH=src python -m nhc_deprot_ranker.cli train \
+  --dataset data/processed/v001 \
+  --model-config configs/baselines.yaml \
+  --evaluation-config configs/evaluation.yaml \
+  --out results/baselines_v001 \
+  --dry-run
+
+PYTHONPATH=src python -m nhc_deprot_ranker.cli train \
+  --dataset data/processed/v001 \
+  --model-config configs/baselines.yaml \
+  --evaluation-config configs/evaluation.yaml \
+  --out results/baselines_v001
 ```
 
 The approved server audit used direct, read-only SSH and an stdin-fed standard-library Python scanner. It printed only aggregate metadata and hashes. The exact allowed/prohibited operation classes and completion record are in `SERVER_READONLY_PLAN.md`.
@@ -59,4 +72,4 @@ The approved server audit used direct, read-only SSH and an stdin-fed standard-l
 
 ## Phase 1 evidence
 
-The large processed artifacts are intentionally ignored. Their row counts, source hashes, output hashes, protocol ID, and gate outcome are recorded in `PROCESSED_V001_MANIFEST.json` and `PHASE1_REPORT.md`. Model and prediction hashes remain unavailable because Phase 2 has not started.
+The large processed and baseline-result artifacts are intentionally ignored. Phase 1 evidence is recorded in `PROCESSED_V001_MANIFEST.json`; B0/B1 model, OOF, split, metric, bootstrap, and figure hashes are recorded in `BASELINES_V001_MANIFEST.json`. H1 and full-pool prediction hashes remain unavailable because later phases have not started.

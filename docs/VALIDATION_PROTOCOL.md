@@ -1,6 +1,6 @@
 # Validation Protocol
 
-Status: pre-specified; Phase 0 reports no new model performance.
+Status: the B0/B1 subset was implemented in Phase 2 without changing these rules; H1 nested validation remains pending.
 
 ## 1. Leakage boundary
 
