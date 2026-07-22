@@ -9,7 +9,8 @@ Updated: 2026-07-22
 | Phase 2 — baselines | Complete and merged to `main` | Passed 2026-07-22 |
 | Phase 3 — hierarchical model | Complete and merged to `main` | Passed 2026-07-22 |
 | Phase 4 — model decision | Complete and merged to `main` | Passed 2026-07-22; `raw_xTB_wins` |
-| Phase 5 — full scoring/acquisition | Complete | Passed 2026-07-22 |
+| Phase 5 — full scoring/acquisition | Complete and merged to `main` | Passed 2026-07-22 |
+| Phase 6 — local DFT execution plan | Complete locally on `agent/phase6-local-dft-prep` | Local plan passed 2026-07-22; geometry/execution blocked |
 
 ## Current completed work
 
@@ -52,11 +53,16 @@ Updated: 2026-07-22
 - Built and independently verified `results/scoring_v001`: 401,856 unique ranked candidates, exact B0/calibrated rank identity, zero rank shifts, 2,782 baseline extrapolations, explicit size-unavailable status on every row, and no fully in-domain claims.
 - Built and independently verified `results/acquisition_v001`: 50 unique unlabeled candidates, zero overlap with 71 labels, exact quotas with no fill, 46 combined families, and a local-only high-fidelity manifest with `submit_hpc=false`.
 - Passed 87 pytest tests, Ruff, strict mypy, real output/hash readback, and visual QA; no quantum-chemistry or server/HPC action occurred.
+- Authorized Phase 6 only as local planning: audited the legacy no-Hessian interface, confirmed no complete cation/neutral XYZ pair exists for the selected 50, and identified the legacy runner's additional ωB97X-D single-point steps as an execution blocker.
+- Implemented strict Phase 6 configuration, upstream evidence/runtime/`_SUCCESS` hash-chain validation, exact 5×10 allocation, four-bucket smoke selection, safe immutable text-only output, CLI, and synthetic failure-path tests.
+- Built and independently verified `results/dft_input_plan_v001`: 50/50 unique candidates, zero overlap with 71 labels, exact `15/13/12/10` totals, five ten-row batches, four smoke rows, 15 files, six directories, and zero geometry/executable/symlink artifacts.
+- Recorded `geometry_generated=false`, `quantum_chemistry_run=false`, `hessian_computed=false`, `execution_ready=false`, `server_write_authorized=false`, and `submit_hpc=false` throughout the package.
+- Preserved both required blockers, `blocked_no_xyz` and `blocked_runner_extra_steps`, and published complete checked-in evidence in `docs/DFT_INPUT_PLAN_V001_MANIFEST.json`.
 
 ## Current boundary
 
-Phase 0–5 are complete. Large runtime data/models/results remain ignored; checked-in manifests preserve their exact identities. No quantum-chemistry calculation, HPC connection, server write, file transfer, or job submission occurred.
+Phase 0–6 local planning is complete. The frozen 50-row acquisition now has an immutable, non-executable 5×10 handoff plan. Large runtime data/models/results remain ignored; checked-in manifests preserve their exact identities. No geometry generation, quantum-chemistry calculation, HPC connection, server write, file transfer, or job submission has occurred.
 
 ## Next action
 
-Any real high-fidelity calculation campaign requires a separately documented and explicitly authorized new phase. The current 50-row acquisition result remains a local suggestion only.
+Pause before any new implementation or external action. Ask the user to choose the uniform initial-geometry source and whether to develop a dedicated two-endpoint B3LYP-D3(BJ)/def2-SVP runner (recommended) or explicitly accept the legacy runner's additional single-point calculations.

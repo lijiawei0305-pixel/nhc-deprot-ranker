@@ -1,0 +1,94 @@
+{
+  "acquisition_version": "v001",
+  "built_at_utc": "2026-07-22T10:48:33.702184+00:00",
+  "dataset_version": "v001",
+  "gate_status": "passed",
+  "input_sha256": {
+    "acquisition/_SUCCESS": "469c00897d72c4b00cc6403ccd607a90a210dcdb842d7b5e6c14c9e41625123e",
+    "acquisition/acquisition_candidates.csv": "5a0680c583dc583cbbc00bb4e58a95cd8e5f892e015eeb8786a7877de870462a",
+    "acquisition/acquisition_manifest.json": "ee243360640299a0819f5ccf51a20ee30c31f56f581c4dbaa59c7522e2f1e94b",
+    "acquisition/acquisition_summary.json": "09b25c198e7387bc0e811c3cf07f9dd01655118aa0c8e52b7ec504067e6ec601",
+    "acquisition/figures/01_acquisition_buckets.png": "315e9b9a86f5cf53fe6955275e2839870d1a332290d2dafd72519a2762e926ae",
+    "acquisition/figures/02_selected_rank_vs_uncertainty.png": "217d622fe010690d78be93b9752c3503c6f0584e8abbf35ad62de4ae09fa0348",
+    "acquisition/figures/03_selected_family_coverage.png": "4a13b1ce7121e609089e83b052a78ea576889693b15a2d32d3e1b2c0e7c151d2",
+    "acquisition/figures/04_selected_applicability.png": "ce18fa242f09e2f9a73848711cab9ee08b52c47bb1f057341bf8479028dc3f1a",
+    "acquisition/high_fidelity_batch_manifest.json": "43d8388ef2e3385ef01a19485d0bc1d30524059bffdd92843ba27148e57907ea",
+    "acquisition_evidence": "085ef4d95b64858d2be23b32bc4354da96ae80c0202b736c0f82f058540a617a",
+    "dataset/candidates.parquet": "28367af13a0c47c2386632871ac1d1c1067c414f0cdb4c3a7e7cccf5d7d42e3e",
+    "dataset/data_quality.json": "c30890b8ffb5d86a3cbe22e819ae7bf671a30cacab58efee4bef212c203f3301",
+    "dataset/label_source_membership.csv": "f3e2802733600b48e029294a618866b5211ff05c98d2acccd4415ad929276ca2",
+    "dataset/labels.parquet": "f6651a97955a98a091a664cf8b1671108e2891f23eb88d4ec7b8ce69d3990656",
+    "dataset/protocol_manifest.json": "c4beda4bf14739a7394c09f6e1e5a90b472746afd0462a0dcc12fd243bd8b026",
+    "dataset/source_manifest.json": "e419fd1273505e2b5dc013113e028595901ce76e06e5c4db5df2b6bc06dd5e70",
+    "dataset_evidence": "db6b390efda24b46056b2155805bcc3c4394470405c9c561156cbd72ec8bb862",
+    "dft_plan_config": "ccedd4b85e1c03c0932986ab860869a33698a570e8f80bf1f40b031e9b1bd231"
+  },
+  "legacy_compatibility": [
+    "blocked_no_xyz",
+    "blocked_runner_extra_steps"
+  ],
+  "no_action": {
+    "execution_ready": false,
+    "geometry_generated": false,
+    "hessian_computed": false,
+    "hpc_connection": false,
+    "quantum_chemistry_run": false,
+    "server_write_authorized": false,
+    "submit_hpc": false
+  },
+  "output_sha256": {
+    "HANDOFF.md": "8fa4f851cd7de77e195214fa9a77cf9c74e010704e9a0c5826682c22cfe714d1",
+    "_LOCAL_PLAN_SUCCESS": "8b53b102e09f7b7af31a22261dd4f146d6889188002d2248cc9463f804cc38a5",
+    "batch_plan.csv": "5c260b5e4ca1a26da2b65f97aac5d1b346787bbbd2e416a39c8e074d6febaf38",
+    "batches/batch_01/screen.csv": "bae444399708a327f1e1fedba86b6af4fb9a0fe0369cc77fae4533f5ea9e2450",
+    "batches/batch_02/screen.csv": "ea02485e92d5c179bb1548ab844b8ae99a4694b0f790a554d6512f17165a95d0",
+    "batches/batch_03/screen.csv": "d31dc826c531441a39edfb4f4aeca1778757a28486c84bb96e881bb8947fd33c",
+    "batches/batch_04/screen.csv": "2dc354bd2ccff3c6ccabbc73674d68f364d3f5127c5b457a99000e0ef708a8a7",
+    "batches/batch_05/screen.csv": "45c230b754bb09cfc4bf1cb7b3f6088636dcd933438aea3250134dd96215c325",
+    "candidates.csv": "18459553187ff9decb24a657405e76149c08800429acb0ec8d8e61af2d0ddef9",
+    "expected_outputs.csv": "5c77790e71a639d63fdd2dde5f547d2485243e63aacbe6cbb3982f41bc203765",
+    "package_manifest.json": "e7524307d6e6d3822b67982a8553ea85b2702554f79eccc9adf2cff4e3205d5e",
+    "protocol_manifest.json": "e51e05fcaaf3dd2e62c7dad7b5b06bf36d1e542c2bfae6de72eee9216517ab25",
+    "screen_full.csv": "ffbe09dc6813e566b9279ba584a9f9a7a518d09d49257fbd1c765605c9a12453",
+    "smoke.csv": "0b55988527a239ec6b8e83c8879b14ca59e5c3fda457480a5f2acbb329292362",
+    "validation_report.json": "885154f02e2b9074f263b764cfdae5140fd3f0420a24b2acfba02426e426e1ee"
+  },
+  "package_manifest_sha256": "e7524307d6e6d3822b67982a8553ea85b2702554f79eccc9adf2cff4e3205d5e",
+  "plan_version": "v001",
+  "protocol": {
+    "basis": "def2-SVP",
+    "dispersion": "D3(BJ)",
+    "geometry_optimizer": "geomeTRIC",
+    "label_protocol_id": "2d03e2dc62c94cbf2bb6aaa1a40b842bb1369427c9df10b742441ef7227850fd",
+    "label_quality": "electronic_energy_only",
+    "method": "B3LYP",
+    "phase": "gas"
+  },
+  "source_tree_sha256": "6383232bb2efabf730ba4bd88b79dc7dcb3fe375c9ffd008fcba577de3f41d5b",
+  "summary": {
+    "batch_sizes": {
+      "batch_01": 10,
+      "batch_02": 10,
+      "batch_03": 10,
+      "batch_04": 10,
+      "batch_05": 10
+    },
+    "bucket_counts": {
+      "chemical_family_diversity": 12,
+      "cutoff_region": 13,
+      "predicted_top_region": 15,
+      "uncertain_ood_conflict": 10
+    },
+    "candidate_key_order_sha256": "af62a059eb2d6398bbbd6804587a36f58c73a48e08e5748e14e0841456830a85",
+    "candidate_key_set_sha256": "0bc6c8ee72192db82743a695f73f8118ab0459c4e07dc2edfff70505969b97e5",
+    "candidate_rows": 50,
+    "directories": 6,
+    "files": 15,
+    "geometry_files": 0,
+    "labeled_keys": 71,
+    "labeled_overlap": 0,
+    "planned_key_order_sha256": "02d1b8ec3a6bb7527030c6eb21ea290c0f069d883d5538705f9013d2fae2e1ad",
+    "smoke_rows": 4,
+    "unique_keys": 50
+  }
+}

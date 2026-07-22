@@ -1,8 +1,13 @@
 """Phase 0 CLI smoke tests."""
 
 from pathlib import Path
+from typing import Any
 
+import pytest
+
+import nhc_deprot_ranker.cli as cli_module
 from nhc_deprot_ranker.cli import run
+from nhc_deprot_ranker.preparation.dft_plan import DFTPlanResult
 
 
 def test_audit_legacy_dry_run_is_nonwriting() -> None:
@@ -136,3 +141,41 @@ def test_phase5_acquire_dry_run_is_nonwriting(tmp_path: Path) -> None:
         == 0
     )
     assert not output.exists()
+
+
+def test_phase6_prepare_dft_plan_dry_run_is_nonwriting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "dft_input_plan_v001"
+    called: dict[str, Any] = {}
+
+    def fake_prepare_dft_plan(**kwargs: Any) -> DFTPlanResult:
+        called.update(kwargs)
+        return DFTPlanResult(
+            payload={
+                "command": "prepare-dft-plan",
+                "dry_run": True,
+                "input_validated": True,
+                "execution_ready": False,
+            }
+        )
+
+    monkeypatch.setattr(cli_module, "prepare_dft_plan", fake_prepare_dft_plan)
+    assert (
+        run(
+            [
+                "prepare-dft-plan",
+                "--dataset",
+                "data/processed/v001",
+                "--acquisition-results",
+                "results/acquisition_v001",
+                "--out",
+                str(output),
+                "--dry-run",
+            ]
+        )
+        == 0
+    )
+    assert not output.exists()
+    assert called["dry_run"] is True
+    assert called["output_dir"] == output

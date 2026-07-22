@@ -16,7 +16,7 @@ It is an electronic-energy label, not a complete Gibbs free energy. Lower is bet
 
 ## Current status
 
-Phase 0 through Phase 5 are complete locally. The immutable processed dataset `v001` contains 401,856 candidates and 71 labels. Phase 4 selected `raw_xTB_wins`: B0 is the production ranking, B1 is only the absolute-calibration/parameter-uncertainty companion, and H1 is not promoted. Phase 5 scored all 401,856 candidates and produced a 50-candidate local acquisition suggestion with exact `15/13/12/10` quotas. No quantum-chemistry calculation, server write, or HPC submission ran. See [Phase Status](PHASE_STATUS.md), [Phase 5 Report](docs/PHASE5_REPORT.md), and [Model Card](docs/MODEL_CARD.md).
+Phase 0 through Phase 6 local planning are complete. The immutable processed dataset `v001` contains 401,856 candidates and 71 labels. Phase 4 selected `raw_xTB_wins`: B0 is the production ranking, B1 is only the absolute-calibration/parameter-uncertainty companion, and H1 is not promoted. Phase 5 scored all 401,856 candidates and produced a 50-candidate acquisition suggestion with exact `15/13/12/10` quotas. Phase 6 converted those frozen candidates into a checked, non-executable 5×10 DFT handoff plan with no geometry. No quantum-chemistry calculation, server write, or HPC submission ran. See [Phase Status](PHASE_STATUS.md), [Phase 6 Report](docs/PHASE6_REPORT.md), and [Model Card](docs/MODEL_CARD.md).
 
 ## Source policy
 
@@ -83,7 +83,7 @@ nhc-deprot evaluate \
   --hierarchical-results results/hierarchical_v001 \
   --evaluation-config configs/evaluation.yaml \
   --out results/decision_v001 \
-    --dry-run
+  --dry-run
 ```
 
 Phase 5 full-score and local acquisition dry-runs:
@@ -107,13 +107,29 @@ nhc-deprot acquire \
 
 The acquisition command only writes a local suggestion manifest. It never connects to a server or submits a calculation.
 
+Phase 6 local DFT-plan dry-run:
+
+```bash
+nhc-deprot prepare-dft-plan \
+  --dataset data/processed/v001 \
+  --acquisition-results results/acquisition_v001 \
+  --plan-config configs/dft_plan.yaml \
+  --dataset-evidence docs/PROCESSED_V001_MANIFEST.json \
+  --acquisition-evidence docs/ACQUISITION_V001_MANIFEST.json \
+  --out results/dft_input_plan_v001 \
+  --seed 20260722 \
+  --dry-run
+```
+
+This command validates every registered input before returning. Removing `--dry-run` creates only the immutable local plan; it does not generate XYZ files, run DFT, connect to HPC, transfer files, or submit jobs.
+
 ## Repository map
 
 - `configs/`: portable specifications plus an ignored real-location file;
 - `docs/`: science, data, family, model, validation, acquisition, audit, and reporting contracts;
-- `src/nhc_deprot_ranker/`: audit, import, modeling, validation, full scoring, acquisition, and reporting code;
+- `src/nhc_deprot_ranker/`: audit, import, modeling, validation, full scoring, acquisition, and local preparation code;
 - `scripts/`: direct audit and label-formula entry points;
-- `tests/`: synthetic, HPC-independent tests for Phases 0–5;
+- `tests/`: synthetic, HPC-independent tests for Phases 0–6;
 - `data/`, `models/`, `results/`: ignored runtime roots with tracked placeholders.
 
 ## License

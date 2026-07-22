@@ -48,3 +48,9 @@ These warnings are why the result is an information-gathering proposal, not a cl
 - four audit figures covering quotas, rank/uncertainty, family coverage, and applicability.
 
 The interoperability manifest records `hessian_computed=false`, `submit_hpc=false`, and `server_write_authorized=false`. Generating or reviewing it does not authorize a calculation campaign.
+
+## Phase 6 local handoff
+
+Phase 6 freezes these same 50 rows into `results/dft_input_plan_v001` without rescoring or reselection. The plan preserves exact candidate order and SMILES, partitions the four acquisition buckets into five registered ten-row batches, and chooses one batch-01 smoke row per bucket.
+
+`candidates.csv` uses the legacy M2 column names, but the plan is not M4 execution-ready: no complete cation/neutral XYZ pairs exist, and the audited legacy no-Hessian runner would perform extra ωB97X-D/def2-TZVP single points. The checked-in evidence therefore retains `blocked_no_xyz` and `blocked_runner_extra_steps`, with every execution/server flag false. See `PHASE6_REPORT.md` and `DFT_INPUT_PLAN_V001_MANIFEST.json`.

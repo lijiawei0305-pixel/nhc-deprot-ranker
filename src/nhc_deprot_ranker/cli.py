@@ -18,6 +18,7 @@ from nhc_deprot_ranker.data.build import build_dataset
 from nhc_deprot_ranker.legacy.audit import build_source_plan, validate_label_csv
 from nhc_deprot_ranker.models.train import train_baselines
 from nhc_deprot_ranker.models.train_hierarchical import train_hierarchical
+from nhc_deprot_ranker.preparation.dft_plan import prepare_dft_plan
 from nhc_deprot_ranker.validation.evaluate import evaluate_decision
 
 LOGGER = logging.getLogger(__name__)
@@ -150,6 +151,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     acquire.add_argument("--out", type=Path, required=True)
     _add_common_options(acquire)
+
+    prepare_dft = subparsers.add_parser(
+        "prepare-dft-plan",
+        help="create a non-executable local DFT handoff plan without geometry",
+    )
+    prepare_dft.add_argument("--dataset", type=Path, required=True)
+    prepare_dft.add_argument("--acquisition-results", type=Path, required=True)
+    prepare_dft.add_argument("--plan-config", type=Path, default=Path("configs/dft_plan.yaml"))
+    prepare_dft.add_argument(
+        "--dataset-evidence",
+        type=Path,
+        default=Path("docs/PROCESSED_V001_MANIFEST.json"),
+    )
+    prepare_dft.add_argument(
+        "--acquisition-evidence",
+        type=Path,
+        default=Path("docs/ACQUISITION_V001_MANIFEST.json"),
+    )
+    prepare_dft.add_argument("--out", type=Path, required=True)
+    _add_common_options(prepare_dft)
 
     for command in LATER_PHASE_COMMANDS:
         later = subparsers.add_parser(command, help=f"reserved for a later phase: {command}")
@@ -294,6 +315,20 @@ def run(argv: Sequence[str] | None = None) -> int:
                 overwrite=args.overwrite,
             )
             _emit(acquisition_result.payload, None, overwrite=False, dry_run=True)
+            return 0
+        if args.command == "prepare-dft-plan":
+            plan_result = prepare_dft_plan(
+                dataset_dir=args.dataset,
+                acquisition_results_dir=args.acquisition_results,
+                plan_config_path=args.plan_config,
+                dataset_evidence_path=args.dataset_evidence,
+                acquisition_evidence_path=args.acquisition_evidence,
+                output_dir=args.out,
+                seed=args.seed,
+                dry_run=args.dry_run,
+                overwrite=args.overwrite,
+            )
+            _emit(plan_result.payload, None, overwrite=False, dry_run=True)
             return 0
         LOGGER.error("%s is outside active Phase 1 and is not implemented", args.command)
         return 2
