@@ -1,0 +1,30 @@
+model_name: baseline_suite
+model_version: v001
+dataset_version: v001
+target_column: dft_deprot_electronic_kcal
+baseline_column: xtb_deprot_kcal
+lower_is_better: true
+
+affine:
+  min_samples: 3
+  condition_number_threshold: 1.0e12
+
+bootstrap:
+  development_repeats: 200
+  final_repeats: 2000
+  confidence: 0.95
+  seed: 20260722
+
+historical_reference:
+  enforce: true
+  intercept: 196.178439
+  slope: 0.715701
+  loocv_mae: 2.7214
+  loocv_rmse: 3.5098
+  loocv_spearman: 0.957076
+  loocv_kendall: 0.821328
+  raw_spearman: 0.958954
+  raw_kendall: 0.825352
+  intercept_absolute_tolerance: 0.002
+  slope_absolute_tolerance: 2.0e-5
+  metric_absolute_tolerance: 5.0e-4

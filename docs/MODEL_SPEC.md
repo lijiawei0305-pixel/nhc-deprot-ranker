@@ -1,6 +1,6 @@
 # Model Specification
 
-Status: specification only; Phase 0 does not train a model.
+Status: B0/B1 implemented and validated in Phase 2; H1/H2 remain specification-only until Phase 3 or later.
 
 ## B0 — raw xTB
 

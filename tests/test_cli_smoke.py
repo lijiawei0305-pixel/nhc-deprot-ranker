@@ -23,4 +23,26 @@ def test_audit_legacy_dry_run_is_nonwriting() -> None:
 
 
 def test_later_phase_command_fails_clearly() -> None:
-    assert run(["train", "--dry-run"]) == 2
+    assert run(["evaluate", "--dry-run"]) == 2
+
+
+def test_phase2_train_dry_run_is_nonwriting(tmp_path: Path) -> None:
+    output = tmp_path / "baselines_v001"
+    assert (
+        run(
+            [
+                "train",
+                "--dataset",
+                "data/processed/v001",
+                "--model-config",
+                "configs/baselines.yaml",
+                "--evaluation-config",
+                "configs/evaluation.yaml",
+                "--out",
+                str(output),
+                "--dry-run",
+            ]
+        )
+        == 0
+    )
+    assert not output.exists()

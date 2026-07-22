@@ -7,7 +7,9 @@ from pydantic import ValidationError
 
 from nhc_deprot_ranker.config import (
     LegacyConfig,
+    load_baseline_model_config,
     load_data_config,
+    load_evaluation_config,
     load_families_config,
     load_legacy_config,
 )
@@ -30,6 +32,16 @@ def test_phase1_configs_load() -> None:
     assert data.label_defaults.hessian_computed is False
     assert families.axis_a.canonicalization == "sorted_pair"
     assert families.exact_combined_family.enabled is False
+
+
+def test_phase2_configs_load() -> None:
+    baselines = load_baseline_model_config(Path("configs/baselines.yaml"))
+    evaluation = load_evaluation_config(Path("configs/evaluation.yaml"))
+    assert baselines.model_name == "baseline_suite"
+    assert baselines.historical_reference.enforce is True
+    assert baselines.bootstrap.final_repeats == 2000
+    assert evaluation.ranking.lower_is_better is True
+    assert evaluation.blind_holdout.status == "missing"
 
 
 def test_writable_legacy_access_is_rejected() -> None:

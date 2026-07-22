@@ -239,6 +239,125 @@ class FamiliesConfig(StrictModel):
     unknown_family_policy: Literal["zero_effect"]
 
 
+class AffineConfig(StrictModel):
+    """Numerical safeguards for the Phase 2 affine baseline."""
+
+    min_samples: int = Field(ge=3)
+    condition_number_threshold: float = Field(gt=1.0)
+
+
+class BaselineBootstrapConfig(StrictModel):
+    """Deterministic coefficient-bootstrap settings."""
+
+    development_repeats: int = Field(ge=1)
+    final_repeats: int = Field(ge=1)
+    confidence: float = Field(gt=0.0, lt=1.0)
+    seed: int
+
+
+class HistoricalReferenceConfig(StrictModel):
+    """Audited legacy results used only as a reproduction gate."""
+
+    enforce: bool = True
+    intercept: float
+    slope: float
+    loocv_mae: float = Field(ge=0.0)
+    loocv_rmse: float = Field(ge=0.0)
+    loocv_spearman: float = Field(ge=-1.0, le=1.0)
+    loocv_kendall: float = Field(ge=-1.0, le=1.0)
+    raw_spearman: float = Field(ge=-1.0, le=1.0)
+    raw_kendall: float = Field(ge=-1.0, le=1.0)
+    intercept_absolute_tolerance: float = Field(ge=0.0)
+    slope_absolute_tolerance: float = Field(ge=0.0)
+    metric_absolute_tolerance: float = Field(ge=0.0)
+
+
+class BaselineModelConfig(StrictModel):
+    """Typed Phase 2 B0/B1 configuration."""
+
+    model_name: Literal["baseline_suite"]
+    model_version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    dataset_version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    target_column: Literal["dft_deprot_electronic_kcal"]
+    baseline_column: Literal["xtb_deprot_kcal"]
+    lower_is_better: Literal[True]
+    affine: AffineConfig
+    bootstrap: BaselineBootstrapConfig
+    historical_reference: HistoricalReferenceConfig
+
+
+class RankingEvaluationConfig(StrictModel):
+    """Lower-is-better ranking metric grids."""
+
+    lower_is_better: Literal[True]
+    true_top_m: list[int]
+    predicted_budget_k: list[int]
+    ndcg_k: list[int]
+    pairwise_tie_threshold_kcal: float = Field(ge=0.0)
+
+    @model_validator(mode="after")
+    def validate_positive_cutoffs(self) -> RankingEvaluationConfig:
+        """Require nonempty, unique, positive rank cutoffs."""
+
+        for name in ("true_top_m", "predicted_budget_k", "ndcg_k"):
+            values = getattr(self, name)
+            if not values or any(value < 1 for value in values):
+                raise ValueError(f"{name} must contain positive integers")
+            if len(values) != len(set(values)):
+                raise ValueError(f"{name} values must be unique")
+        return self
+
+
+class BootstrapCIConfig(StrictModel):
+    """Report-level bootstrap interval declaration."""
+
+    repeats: int = Field(ge=1)
+    confidence: float = Field(gt=0.0, lt=1.0)
+
+
+class PromotionConfig(StrictModel):
+    """Pre-registered Phase 4 promotion thresholds."""
+
+    min_spearman_delta: float
+    min_kendall_delta: float
+    max_regret_increase_kcal: float = Field(ge=0.0)
+    require_no_family_collapse: bool
+
+
+class BlindHoldoutConfig(StrictModel):
+    """Availability of a genuine unseen holdout."""
+
+    status: Literal["missing"]
+    reason: str
+
+
+class EvaluationConfig(StrictModel):
+    """Typed validation and ranking configuration."""
+
+    protocols: list[
+        Literal[
+            "loocv",
+            "leave_axis_a_out",
+            "leave_axis_b_out",
+            "combined_family_holdout_if_supported",
+            "size_extrapolation",
+        ]
+    ]
+    ranking: RankingEvaluationConfig
+    bootstrap_ci: BootstrapCIConfig
+    promotion: PromotionConfig
+    blind_holdout: BlindHoldoutConfig
+
+    @field_validator("protocols")
+    @classmethod
+    def unique_protocols(cls, value: list[str]) -> list[str]:
+        """Reject repeated validation protocol declarations."""
+
+        if len(value) != len(set(value)):
+            raise ValueError("evaluation protocols must be unique")
+        return value
+
+
 def _load_yaml_mapping(path: Path) -> dict[str, object]:
     """Load a YAML mapping without accepting implicit scalar roots."""
 
@@ -266,3 +385,15 @@ def load_families_config(path: Path) -> FamiliesConfig:
     """Load and validate family canonicalization configuration."""
 
     return FamiliesConfig.model_validate(_load_yaml_mapping(path))
+
+
+def load_baseline_model_config(path: Path) -> BaselineModelConfig:
+    """Load and validate the Phase 2 baseline configuration."""
+
+    return BaselineModelConfig.model_validate(_load_yaml_mapping(path))
+
+
+def load_evaluation_config(path: Path) -> EvaluationConfig:
+    """Load and validate the evaluation configuration."""
+
+    return EvaluationConfig.model_validate(_load_yaml_mapping(path))
