@@ -14,6 +14,7 @@ from nhc_deprot_ranker.config import (
     load_dft_plan_config,
     load_evaluation_config,
     load_families_config,
+    load_geometry_smoke_config,
     load_hierarchical_model_config,
     load_legacy_config,
 )
@@ -61,6 +62,29 @@ def test_phase6_rejects_a_rebalanced_batch_matrix(tmp_path: Path) -> None:
     path.write_text(yaml.safe_dump(raw), encoding="utf-8")
     with pytest.raises(ValidationError, match="allocation matrix changed"):
         load_dft_plan_config(path)
+
+
+def test_phase7_geometry_smoke_config_locks_exact_request() -> None:
+    config = load_geometry_smoke_config(Path("configs/geometry_smoke.yaml"))
+    assert config.expected_smoke_count == 4
+    assert config.canonical_input.bytes == 542
+    assert config.canonical_input.sha256 == (
+        "f486f93a2d58fb144c05a7340fd432334eeec46385c9319aca34d2e1b5c4cc87"
+    )
+    assert config.m2.seed == 42
+    assert config.m2.num_conformers == 10
+    assert config.m2.parallel == 1
+    assert config.quantum_chemistry_run is False
+
+
+def test_phase7_geometry_smoke_config_rejects_scope_expansion(tmp_path: Path) -> None:
+    raw = yaml.safe_load(Path("configs/geometry_smoke.yaml").read_text(encoding="utf-8"))
+    raw["expected_smoke_count"] = 5
+    raw["m2"]["parallel"] = 2
+    path = tmp_path / "geometry_smoke.yaml"
+    path.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    with pytest.raises(ValidationError):
+        load_geometry_smoke_config(path)
 
 
 def test_phase2_configs_load() -> None:

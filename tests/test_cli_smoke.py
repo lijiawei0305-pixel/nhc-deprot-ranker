@@ -8,6 +8,7 @@ import pytest
 import nhc_deprot_ranker.cli as cli_module
 from nhc_deprot_ranker.cli import run
 from nhc_deprot_ranker.preparation.dft_plan import DFTPlanResult
+from nhc_deprot_ranker.preparation.geometry_bundle import GeometryBundleResult
 
 
 def test_audit_legacy_dry_run_is_nonwriting() -> None:
@@ -178,4 +179,43 @@ def test_phase6_prepare_dft_plan_dry_run_is_nonwriting(
     )
     assert not output.exists()
     assert called["dry_run"] is True
+    assert called["output_dir"] == output
+
+
+def test_phase7_prepare_geometry_smoke_dry_run_is_nonwriting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "geometry_smoke_bundle_v001"
+    called: dict[str, Any] = {}
+
+    def fake_prepare_geometry_smoke_bundle(**kwargs: Any) -> GeometryBundleResult:
+        called.update(kwargs)
+        return GeometryBundleResult(
+            payload={
+                "command": "prepare-geometry-smoke",
+                "dry_run": True,
+                "input_validated": True,
+                "bundle_created": False,
+            }
+        )
+
+    monkeypatch.setattr(
+        cli_module, "prepare_geometry_smoke_bundle", fake_prepare_geometry_smoke_bundle
+    )
+    assert (
+        run(
+            [
+                "prepare-geometry-smoke",
+                "--dft-plan",
+                "results/dft_input_plan_v001",
+                "--out",
+                str(output),
+                "--dry-run",
+            ]
+        )
+        == 0
+    )
+    assert not output.exists()
+    assert called["dry_run"] is True
+    assert called["dft_plan_dir"] == Path("results/dft_input_plan_v001")
     assert called["output_dir"] == output

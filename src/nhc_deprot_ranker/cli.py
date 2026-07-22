@@ -19,6 +19,7 @@ from nhc_deprot_ranker.legacy.audit import build_source_plan, validate_label_csv
 from nhc_deprot_ranker.models.train import train_baselines
 from nhc_deprot_ranker.models.train_hierarchical import train_hierarchical
 from nhc_deprot_ranker.preparation.dft_plan import prepare_dft_plan
+from nhc_deprot_ranker.preparation.geometry_bundle import prepare_geometry_smoke_bundle
 from nhc_deprot_ranker.validation.evaluate import evaluate_decision
 
 LOGGER = logging.getLogger(__name__)
@@ -171,6 +172,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     prepare_dft.add_argument("--out", type=Path, required=True)
     _add_common_options(prepare_dft)
+
+    prepare_geometry = subparsers.add_parser(
+        "prepare-geometry-smoke",
+        help="create the immutable four-row portable legacy M2 geometry bundle",
+    )
+    prepare_geometry.add_argument("--dft-plan", type=Path, required=True)
+    prepare_geometry.add_argument(
+        "--geometry-config", type=Path, default=Path("configs/geometry_smoke.yaml")
+    )
+    prepare_geometry.add_argument(
+        "--dft-plan-evidence",
+        type=Path,
+        default=Path("docs/DFT_INPUT_PLAN_V001_MANIFEST.json"),
+    )
+    prepare_geometry.add_argument("--out", type=Path, required=True)
+    _add_common_options(prepare_geometry)
 
     for command in LATER_PHASE_COMMANDS:
         later = subparsers.add_parser(command, help=f"reserved for a later phase: {command}")
@@ -329,6 +346,17 @@ def run(argv: Sequence[str] | None = None) -> int:
                 overwrite=args.overwrite,
             )
             _emit(plan_result.payload, None, overwrite=False, dry_run=True)
+            return 0
+        if args.command == "prepare-geometry-smoke":
+            geometry_result = prepare_geometry_smoke_bundle(
+                dft_plan_dir=args.dft_plan,
+                dft_plan_evidence_path=args.dft_plan_evidence,
+                geometry_config_path=args.geometry_config,
+                output_dir=args.out,
+                dry_run=args.dry_run,
+                overwrite=args.overwrite,
+            )
+            _emit(geometry_result.payload, None, overwrite=False, dry_run=True)
             return 0
         LOGGER.error("%s is outside active Phase 1 and is not implemented", args.command)
         return 2

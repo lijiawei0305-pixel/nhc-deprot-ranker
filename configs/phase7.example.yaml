@@ -1,0 +1,15 @@
+schema_version: phase7_remote.v1
+connection:
+  mode: campus_direct
+  ssh_alias: hpc-alias
+  proxy_host: 127.0.0.1
+  proxy_port: 11080
+remote:
+  project_root: /path/to/hpc/project
+  run_relative: data/runs/nhc_deprot_ranker_phase7_smoke_v001_20260722
+  require_new_run_root: true
+transfer:
+  delete: false
+  directed_files_only: true
+server_write_authorized: false
+dft_execution_authorized: false
