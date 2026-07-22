@@ -1,0 +1,15 @@
+schema_version: phase8a_api_preflight.v1
+connection:
+  mode: campus_direct
+  ssh_alias: hpc-alias
+  proxy_host: 127.0.0.1
+  proxy_port: 11080
+remote:
+  project_root: /path/to/hpc/project
+  environment_relative: env/envs/molenv.sh
+  phase7_run_relative: data/runs/nhc_deprot_ranker_phase7_smoke_v001_20260722
+safety:
+  api_preflight_authorized: true
+  read_only: true
+  server_write_authorized: false
+  quantum_execution_authorized: false

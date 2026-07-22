@@ -12,7 +12,7 @@
 
 ## 2. 当前阶段与阶段门禁
 
-- Phase 0 至 Phase 6 已合入 `main`，Phase 7 的 4 条服务器几何 smoke 与专用 runner 开发已通过；当前强制暂停在 Phase 8 前，不得运行任何真实 DFT，直到先补齐硬 wall-time 并获得用户新的明确授权。
+- Phase 0 至 Phase 7 已合入 `main`；Phase 8A 已在独立分支完成硬 wall-time、双重闸门 worker 与服务器只读 API 预检，等待发布。Phase 8B 真实 DFT 仍未授权。
 - Phase 4 裁定 `raw_xTB_wins`：B0 是生产排序默认，B1 只能作为绝对能量校准 companion，H1 不得用于正式全库排序。
 - Phase 5 只读取不可变的 `data/processed/v001`、B0/B1/Phase 4 决策及其 manifest；不得改写 Phase 1/2/3/4 结果，不得重新拟合或调参。
 - Phase 5 可生成本地评分表、适用域审计、候选建议与无 Hessian DFT 互操作 manifest；不得运行 PySCF、xTB、Hessian，不得连接或写入 HPC，不得提交作业。
@@ -20,12 +20,16 @@
 - Phase 5 已按用户确认的 B0/B1 双轨语义、Top-100 和 50 条 `15/13/12/10` 配额完成；任何真实高保真计算、上传服务器或提交作业都属于新阶段，仍需重新文档先行和明确授权。
 - Phase 6 只把冻结的 50 条建议转换为本地、不可变、可校验的 legacy-ready CSV、5×10 分批计划、四桶 smoke 清单和协议/预期产物 manifest；必须写明 `geometry_generated=false`、`execution_ready=false`、`quantum_chemistry_run=false`、`server_write_authorized=false`、`submit_hpc=false`。
 - 当前只有 Phase 7 的 4 条 smoke 具有强验证的 cation/neutral 初始 XYZ；其余 46 条仍未生成。不得在本地运行 RDKit/力场、xTB、PySCF 或 Hessian 来补齐，不得把完整 50 条计划包称为可直接运行的 DFT 输入。
-- 旧 `dft_batch --skip-hessian` 的额外 ωB97X-D/def2-TZVP cation/neutral/radical 单点仍被禁用；专用双端点 runner 已实现但未执行，且在新增进程/信号级硬 wall-time 与新授权前必须保持 execution blocked。
+- 旧 `dft_batch --skip-hessian` 的额外 ωB97X-D/def2-TZVP cation/neutral/radical 单点仍被禁用；专用双端点 runner 与同组进程树硬 wall-time 已实现但未执行，在新的 Phase 8B 明确授权前必须保持 execution blocked。
 - Phase 7 几何范围严格等于 Phase 6 `smoke.csv` 的 4 个 InChIKey；不得扩展到 batch 01 的其余 6 条或完整 50 条，不得运行 xTB、PySCF、Hessian、旧 M4 或专用 runner。
 - Phase 7 只允许在私有配置指定的全新版本化服务器运行目录中写入；必须先确认目标不存在并完成只读环境/资源/legacy 文件哈希预检。禁止修改 `$WJW` 既有代码、环境、候选库或生产结果。
 - 禁止使用旧仓库全量 `deploy`、`rsync --delete`、远端删除/覆盖或模糊目标同步。只可定向上传已登记的小型 smoke 输入/脚本，传输后必须核对真实目标和 SHA256。
 - 服务器 M2 必须显式进入 `$WJW`、设置 `PYTHONPATH=$WJW` 并只 `source $WJW/env/envs/molenv.sh`；不得 `source ~/.bashrc`、混用软件栈或安装/升级依赖。
-- 专用 runner 只允许 cation(+1, singlet) 与 neutral(0, singlet) 的气相 B3LYP-D3(BJ)/def2-SVP geomeTRIC 优化和最终电子能；接口中不得出现 Hessian、ZPE、热化学、ωB97X-D/def2-TZVP 单点、radical、Molden 或作业提交逻辑。当前 execution authorization 必须保持 false；现有调用前后 deadline 检查不等于硬超时。
+- 专用 runner 只允许 cation(+1, singlet) 与 neutral(0, singlet) 的气相 B3LYP-D3(BJ)/def2-SVP geomeTRIC 优化和最终电子能；接口中不得出现 Hessian、ZPE、热化学、ωB97X-D/def2-TZVP 单点、radical、Molden 或作业提交逻辑。当前 execution authorization 必须保持 false；只有 Phase 8A 父进程 supervisor 的独立 session/process-group deadline 才可称为硬 wall-time，后端调用前后检查仍不能单独称为硬超时。
+- Phase 8A 只可在本地开发 supervisor/worker/状态协议并用无化学的短命令、挂起命令和子孙进程夹具测试；所有测试必须证明 timeout 后 TERM→grace→KILL、进程组回收、非零退出、无孤儿进程和原子失败证据。
+- Phase 8A 服务器动作严格只读：只允许显式进入项目根、只 source `molenv.sh`、设置 `PYTHONDONTWRITEBYTECODE=1`，然后导入模块并用 `inspect` 检查版本、可调用对象、签名与默认值。禁止创建 `Mole`、调用 `build()`、实例化真实 RKS/UKS、调用 `kernel()`/`optimize()`、计算积分/梯度/色散或写入服务器。
+- Phase 8A 不上传代码、不创建远端目录、不改 Phase 7 运行目录、不安装/升级依赖、不提交后台或调度任务。API 预检结果只能下载/记录为无私人坐标的 checked-in evidence。
+- `EXECUTION_AUTHORIZED` 与私有配置中的量化执行授权必须保持 false。请求 JSON、CLI 参数、环境变量、依赖注入或测试 monkeypatch 均不得成为真实执行的公开旁路。
 - 每个 Phase 必须先写清范围、输入、输出、假设、风险、命令和验收门禁，再执行代码或数据操作。
 - 每个 Phase 完成后，按 `prompt.md` 第 23 节报告完成项、读取文件、改动文件、科学假设、数据质量、命令、测试、未执行事项、门禁结论和下一步。
 
@@ -189,3 +193,18 @@ dig +trace domain
 8. 几何产物下载到忽略的本地版本目录，远端与本地 12 个核心产物及审计文件哈希一致，既有 Phase 1–6 结果未改变；
 9. 专用双端点 runner 对协议、状态、原子读入、色散硬失败、SCF/优化收敛、原子写入、resume、失败/退出码和标签公式有 mock 单测，但没有被本地或服务器执行；
 10. 全程未运行 xTB、PySCF、Hessian、旧 M4、专用 DFT runner，未提交后台/调度作业，未扩展到 smoke 之外；Phase 8 DFT smoke 仍需新的明确授权。
+
+## 17. Phase 8A 停止条件
+
+只有以下事实均有证据且被记录后，才可建议 Phase 8A 硬超时与 API 兼容性门禁通过：
+
+1. Phase 7 PR 已合入 `main`，Phase 8A 位于独立分支，先更新本文与实现计划再改代码或连接服务器；
+2. 硬 wall-time 在父进程中使用独立会话/进程组，超时后先 TERM、有限 grace 后 KILL，并无条件 wait/reap；不得只依赖 Python signal、调用前后 monotonic 检查或后端合作；
+3. 正常退出、非零退出、父进程挂起、忽略 TERM、产生子孙进程、输出过量、启动失败和 timeout 竞态均有无化学测试；测试结束后相关 PID/PGID 全部不存在；
+4. supervisor 的请求、source、协议、输入、attempt 和输出身份继续 hash-closed；timeout 失败证据原子落盘，不跨 attempt 拼接端点，不把 partial 输出标记成功；
+5. 公开 runner 与 worker 在任何 PySCF lazy import 前同时检查不可由用户输入覆盖的源码门禁；Phase 8A 中该门禁保持 false；
+6. 服务器只读 API 预检记录 Python、PySCF、geomeTRIC、pyscf-dispersion 版本，确认 `geometric_solver.kernel` 的收敛返回/参数、D3(BJ) API 和 RKS/newton 接口存在；不创建分子或 mean-field 对象，不调用任何计算 kernel；
+7. 私有服务器坐标继续只存在 ignored 配置；tracked evidence 无路径、alias、IP 或凭据；服务器与 Phase 7 结果零写入；
+8. 全套 pytest、Ruff、format、mypy、pre-commit、构建、静态禁算扫描和独立审计通过；
+9. 全程未运行 RDKit 几何、xTB、PySCF SCF/DFT、geomeTRIC 优化、Hessian、旧 M4 或专用 runner，未提交后台/调度作业；
+10. Phase 8B 真实 DFT smoke 仍保持 blocked，必须由用户在审阅 Phase 8A 证据后另行明确授权。

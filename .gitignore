@@ -17,6 +17,7 @@ build/
 
 configs/legacy.local.yaml
 configs/phase7.local.yaml
+configs/phase8a.local.yaml
 prompt.md
 
 data/*

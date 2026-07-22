@@ -1,8 +1,8 @@
 """Protocol-locked cation/neutral electronic-energy runner.
 
-The public execution gate is deliberately closed in Phase 7.  Request parsing,
-hash validation, atomic result handling, resume validation, and the backend-
-injected core can be tested without importing PySCF or geomeTRIC.  A later phase
+The public execution gate remains deliberately closed in Phase 8A.  Request
+validation, the parent/worker publication protocol, and the process supervisor
+can be tested without importing PySCF or geomeTRIC.  A later authorized phase
 must make a reviewed source change before :func:`run_two_endpoint` can execute.
 """
 
@@ -15,10 +15,12 @@ import math
 import os
 import re
 import shutil
+import sys
 import tempfile
 import time
 import uuid
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Any, Final, Literal, Protocol, cast
 
@@ -37,9 +39,10 @@ RESULT_SCHEMA_VERSION: Final = "nhc-two-endpoint-result-v1"
 ATTEMPT_SCHEMA_VERSION: Final = "nhc-two-endpoint-attempt-v1"
 SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-success-v1"
 FAILURE_SCHEMA_VERSION: Final = "nhc-two-endpoint-failure-v1"
+RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v2"
 
-# This is a source-level gate, not a caller-provided option.  Phase 8 must review
-# and deliberately change the implementation before any backend can load PySCF.
+# This is a source-level gate, not a caller-provided option.  A later phase must
+# review and deliberately change it before any backend can load PySCF.
 EXECUTION_AUTHORIZED: Final[bool] = False
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -51,6 +54,33 @@ _MAX_REQUEST_BYTES = 64 * 1024
 _MAX_XYZ_BYTES = 2 * 1024 * 1024
 _MAX_ATOMS = 1000
 _MAX_ABS_COORDINATE_ANGSTROM = 10_000.0
+_SUPERVISOR_TERMINATE_GRACE_SECONDS: Final = 10.0
+_SUPERVISOR_STREAM_CAPTURE_LIMIT_BYTES: Final = 64 * 1024
+_RUNNER_SOURCE_RELATIVE_PATHS: Final[tuple[str, ...]] = (
+    "nhc_deprot_ranker/__init__.py",
+    "nhc_deprot_ranker/constants.py",
+    "nhc_deprot_ranker/data/__init__.py",
+    "nhc_deprot_ranker/data/provenance.py",
+    "nhc_deprot_ranker/quantum/__init__.py",
+    "nhc_deprot_ranker/quantum/two_endpoint.py",
+    "nhc_deprot_ranker/quantum/worker.py",
+    "nhc_deprot_ranker/quantum/process_supervisor.py",
+)
+_WORKER_BOOTSTRAP: Final = (
+    "import runpy,sys;"
+    "sys.path.insert(0,sys.argv.pop(1));"
+    "runpy.run_module('nhc_deprot_ranker.quantum.worker',run_name='__main__',alter_sys=True)"
+)
+_SUCCESS_ATTEMPT_FILENAMES: Final[frozenset[str]] = frozenset(
+    {
+        "_ATTEMPT_SUCCESS",
+        "cation.json",
+        "cation.optimized.xyz",
+        "neutral.json",
+        "neutral.optimized.xyz",
+        "result.json",
+    }
+)
 
 _ELEMENTS: Final[frozenset[str]] = frozenset(
     {
@@ -360,6 +390,49 @@ class TwoEndpointBackend(Protocol):
         """Run the final same-method energy evaluation."""
 
 
+class _SupervisionResultLike(Protocol):
+    """Narrow result surface consumed from the process-tree supervisor."""
+
+    outcome: str
+    returncode: int | None
+    timed_out: bool
+    term_sent: bool
+    kill_sent: bool
+    orphan_descendants_detected: bool
+    process_started: bool
+    group_cleanup_confirmed: bool
+    direct_child_reaped: bool
+    stdout_truncated: bool
+    stderr_truncated: bool
+
+
+class _RunSupervised(Protocol):
+    """Dependency-injection seam for harmless Phase 8A protocol tests."""
+
+    def __call__(
+        self,
+        argv: Sequence[str],
+        *,
+        policy: object,
+        cwd: Path | None = None,
+        env: Mapping[str, str] | None = None,
+    ) -> _SupervisionResultLike:
+        """Run one isolated worker process tree."""
+
+
+class _SupervisionPolicyFactory(Protocol):
+    """Lazy constructor surface supplied by ``process_supervisor``."""
+
+    def __call__(
+        self,
+        *,
+        timeout_seconds: float,
+        terminate_grace_seconds: float,
+        stream_capture_limit_bytes: int,
+    ) -> object:
+        """Build the concrete supervisor policy."""
+
+
 @dataclass(frozen=True)
 class TwoEndpointRunResult:
     """Successful two-endpoint label and immutable output identity."""
@@ -377,10 +450,40 @@ class TwoEndpointRunResult:
     exit_code: int = 0
 
 
-def current_runner_source_sha256() -> str:
-    """Return the exact hash that a future frozen request must register."""
+def _canonical_runner_source_sha256(sources: Mapping[str, bytes]) -> str:
+    """Hash the exact eight-file pre-gate bundle without importing its modules."""
 
-    return sha256_file(Path(__file__).resolve())
+    if set(sources) != set(_RUNNER_SOURCE_RELATIVE_PATHS):
+        raise ValueError("runner source bundle must contain the exact canonical file set")
+    digest = hashlib.sha256()
+    digest.update(RUNNER_SOURCE_SCHEMA_VERSION.encode("ascii"))
+    digest.update(b"\x00")
+    for name in _RUNNER_SOURCE_RELATIVE_PATHS:
+        content = sources[name]
+        if not isinstance(content, bytes) or not content:
+            raise ValueError(f"runner source is empty or not bytes: {name}")
+        encoded_name = name.encode("ascii")
+        digest.update(len(encoded_name).to_bytes(2, "big"))
+        digest.update(encoded_name)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return digest.hexdigest()
+
+
+def current_runner_source_sha256() -> str:
+    """Return the canonical hash of the parent, worker and supervisor sources."""
+
+    source_root = Path(__file__).resolve().parents[2]
+    sources: dict[str, bytes] = {}
+    for name in _RUNNER_SOURCE_RELATIVE_PATHS:
+        path = source_root / name
+        try:
+            if path.is_symlink() or not path.is_file():
+                raise OSError("not a regular source file")
+            sources[name] = path.read_bytes()
+        except OSError as exc:
+            raise TwoEndpointError(f"runner source identity is unavailable: {name}") from exc
+    return _canonical_runner_source_sha256(sources)
 
 
 def _require_exact_keys(payload: dict[str, object], expected: set[str], label: str) -> None:
@@ -620,7 +723,7 @@ def load_two_endpoint_request(request_path: Path) -> TwoEndpointRequest:
 
 def _ensure_execution_authorized() -> None:
     if EXECUTION_AUTHORIZED is not True:
-        raise ExecutionNotAuthorizedError("two-endpoint quantum execution is disabled in Phase 7")
+        raise ExecutionNotAuthorizedError("two-endpoint quantum execution is disabled in Phase 8A")
 
 
 class PySCFBackend:
@@ -1273,14 +1376,7 @@ def _resume_if_valid(
     output_hashes = success["output_sha256"]
     if not isinstance(output_hashes, dict) or not output_hashes:
         raise ResumeValidationError("resume output hash map is invalid")
-    expected_attempt_names = {
-        "_ATTEMPT_SUCCESS",
-        "cation.json",
-        "cation.optimized.xyz",
-        "neutral.json",
-        "neutral.optimized.xyz",
-        "result.json",
-    }
+    expected_attempt_names = _SUCCESS_ATTEMPT_FILENAMES
     expected_output_names = {
         _relative_attempt_path(attempt_id, name) for name in expected_attempt_names
     }
@@ -1418,7 +1514,7 @@ def _execute_validated_request(
     final_attempt_dir = attempts_root / safe_attempt_id
     if final_attempt_dir.exists() or final_attempt_dir.is_symlink():
         raise ResumeValidationError("attempt_id already exists")
-    temporary_attempt = Path(tempfile.mkdtemp(prefix=".tmp-attempt-", dir=attempts_root))
+    temporary_attempt = Path(tempfile.mkdtemp(prefix=f".tmp-{safe_attempt_id}-", dir=attempts_root))
     deadline = time.monotonic() + request.timeout_seconds
     stage = "initialization"
     try:
@@ -1546,16 +1642,293 @@ def _execute_validated_request(
         ) from error
 
 
-def run_two_endpoint(request_path: Path, output_root: Path) -> TwoEndpointRunResult:
-    """Public execution entry point, intentionally disabled before lazy imports.
+def _supervision_failure_kind(result: _SupervisionResultLike) -> tuple[str, str, int] | None:
+    if result.outcome == "supervision_error":
+        return (
+            "WorkerSupervisionError",
+            "worker process-tree supervision failed",
+            1,
+        )
+    if result.timed_out:
+        return (
+            "HardWallTimeoutError",
+            "worker process tree exceeded the hard wall-time",
+            124,
+        )
+    if result.orphan_descendants_detected:
+        return (
+            "WorkerOrphanDescendantsError",
+            "worker left process-group descendants after direct-child exit",
+            1,
+        )
+    if result.outcome == "clean" and result.returncode == 0:
+        return None
+    if result.outcome == "spawn_error":
+        return ("WorkerSpawnError", "worker process could not be started", 1)
+    if result.outcome == "nonzero":
+        return ("WorkerExitError", "worker process exited nonzero", 1)
+    return (
+        "WorkerSupervisionError",
+        f"worker supervision ended with outcome {result.outcome!r}",
+        1,
+    )
 
-    No parameter can override the Phase 7 gate.  Once a later phase changes the
-    source-level authorization, this function will still require a frozen request
-    whose own authorization flag is true and whose source/input hashes match.
+
+def _supervision_safe_to_finalize(result: _SupervisionResultLike) -> bool:
+    """Require proof that no spawned process can still mutate scratch state."""
+
+    return not result.process_started or (
+        result.group_cleanup_confirmed and result.direct_child_reaped
+    )
+
+
+def _publish_supervisor_failure(
+    *,
+    request: TwoEndpointRequest,
+    output_root: Path,
+    attempt_id: str,
+    error_type: str,
+    error_message: str,
+    exit_code: int,
+    supervision: _SupervisionResultLike,
+) -> Path:
+    """Atomically publish one failure envelope after supervision has returned."""
+
+    attempts_root = output_root / "attempts"
+    final_attempt_dir = attempts_root / attempt_id
+    if final_attempt_dir.exists() or final_attempt_dir.is_symlink():
+        raise ResumeValidationError("attempt_id already exists before failure publication")
+    temporary_attempt = Path(
+        tempfile.mkdtemp(prefix=f".tmp-{attempt_id}-supervisor-failure-", dir=attempts_root)
+    )
+    failure_payload = {
+        "schema_version": FAILURE_SCHEMA_VERSION,
+        "status": "failed",
+        "attempt_id": attempt_id,
+        "request_id": request.request_id,
+        "inchikey": request.inchikey,
+        "stage": "supervisor",
+        "error_type": error_type,
+        "error_message": error_message,
+        "exit_code": exit_code,
+        **_identity(request),
+        "supervision": {
+            "outcome": supervision.outcome,
+            "returncode": supervision.returncode,
+            "timed_out": supervision.timed_out,
+            "term_sent": supervision.term_sent,
+            "kill_sent": supervision.kill_sent,
+            "orphan_descendants_detected": supervision.orphan_descendants_detected,
+            "process_started": supervision.process_started,
+            "group_cleanup_confirmed": supervision.group_cleanup_confirmed,
+            "direct_child_reaped": supervision.direct_child_reaped,
+            "stdout_truncated": supervision.stdout_truncated,
+            "stderr_truncated": supervision.stderr_truncated,
+        },
+    }
+    try:
+        _atomic_write_json(temporary_attempt / "failure.json", failure_payload)
+        if {path.name for path in temporary_attempt.iterdir()} != {"failure.json"}:
+            raise ResumeValidationError("supervisor failure envelope file set drifted")
+        os.replace(temporary_attempt, final_attempt_dir)
+    except Exception:
+        shutil.rmtree(temporary_attempt, ignore_errors=True)
+        raise
+    return final_attempt_dir
+
+
+def _publish_worker_success(
+    *,
+    request: TwoEndpointRequest,
+    worker_output_root: Path,
+    output_root: Path,
+    attempt_id: str,
+) -> TwoEndpointRunResult:
+    """Validate the isolated worker state before publishing its exact attempt."""
+
+    if worker_output_root.is_symlink() or not worker_output_root.is_dir():
+        raise ResumeValidationError("worker output root is unsafe")
+    worker_result = _resume_if_valid(request=request, output_root=worker_output_root)
+    if worker_result is None or worker_result.attempt_id != attempt_id:
+        raise ResumeValidationError("worker did not produce the fixed attempt identity")
+    worker_attempts_root = worker_output_root / "attempts"
+    if {path.name for path in worker_attempts_root.iterdir()} != {attempt_id}:
+        raise ResumeValidationError("worker scratch contains cross-attempt state")
+    worker_attempt_dir = worker_attempts_root / attempt_id
+    if {path.name for path in worker_attempt_dir.iterdir()} != _SUCCESS_ATTEMPT_FILENAMES:
+        raise ResumeValidationError("worker success attempt file set drifted")
+
+    final_attempt_dir = output_root / "attempts" / attempt_id
+    if final_attempt_dir.exists() or final_attempt_dir.is_symlink():
+        raise ResumeValidationError("attempt_id already exists before success publication")
+    success_bytes = (worker_output_root / "success.json").read_bytes()
+    marker_bytes = (worker_output_root / "_SUCCESS").read_bytes()
+    os.replace(worker_attempt_dir, final_attempt_dir)
+    try:
+        _atomic_write_bytes(output_root / "success.json", success_bytes)
+        _atomic_write_bytes(output_root / "_SUCCESS", marker_bytes)
+    except Exception:
+        (output_root / "_SUCCESS").unlink(missing_ok=True)
+        (output_root / "success.json").unlink(missing_ok=True)
+        raise
+    return replace(worker_result, resumed=False)
+
+
+def _execute_supervised_request(
+    request: TwoEndpointRequest,
+    output_root: Path,
+    *,
+    run_supervised: _RunSupervised,
+    supervision_policy: object,
+    attempt_id: str | None = None,
+    python_executable: str | None = None,
+) -> TwoEndpointRunResult:
+    """Run a fixed-attempt worker and publish only parent-validated state."""
+
+    if request.execution_authorized is not True:
+        raise ExecutionNotAuthorizedError("frozen request does not authorize execution")
+    _validate_output_root(output_root)
+    resumed = _resume_if_valid(request=request, output_root=output_root)
+    if resumed is not None:
+        return resumed
+
+    safe_attempt_id = _safe_attempt_id(attempt_id)
+    output_root.mkdir(parents=False, exist_ok=True)
+    attempts_root = output_root / "attempts"
+    attempts_root.mkdir(exist_ok=True)
+    if attempts_root.is_symlink():
+        raise ResumeValidationError("attempts root must not be a symlink")
+    final_attempt_dir = attempts_root / safe_attempt_id
+    if final_attempt_dir.exists() or final_attempt_dir.is_symlink():
+        raise ResumeValidationError("attempt_id already exists")
+
+    worker_output_root = Path(
+        tempfile.mkdtemp(
+            prefix=f".worker-{safe_attempt_id}-",
+            dir=output_root.parent,
+        )
+    )
+    source_root = Path(__file__).resolve().parents[2]
+    environment = dict(os.environ)
+    for inherited_python_setting in ("PYTHONHOME", "PYTHONPATH", "PYTHONSTARTUP"):
+        environment.pop(inherited_python_setting, None)
+    argv = [
+        python_executable or sys.executable,
+        "-I",
+        "-B",
+        "-c",
+        _WORKER_BOOTSTRAP,
+        str(source_root),
+        "--request-path",
+        str(request.request_path.resolve(strict=True)),
+        "--output-root",
+        str(worker_output_root.resolve(strict=True)),
+        "--attempt-id",
+        safe_attempt_id,
+    ]
+    try:
+        supervision = run_supervised(
+            argv,
+            policy=supervision_policy,
+            cwd=source_root,
+            env=environment,
+        )
+    except Exception:
+        # An unexpected supervisor exception cannot prove that a spawned group is
+        # dead, so it must not be converted into a published attempt or cleaned.
+        raise
+
+    failure = _supervision_failure_kind(supervision)
+    if not _supervision_safe_to_finalize(supervision):
+        raise TwoEndpointRunError(
+            "worker supervision could not prove process-group cleanup and child reap",
+            exit_code=1,
+            attempt_dir=None,
+        )
+    if failure is not None:
+        error_type, error_message, exit_code = failure
+        attempt_dir = _publish_supervisor_failure(
+            request=request,
+            output_root=output_root,
+            attempt_id=safe_attempt_id,
+            error_type=error_type,
+            error_message=error_message,
+            exit_code=exit_code,
+            supervision=supervision,
+        )
+        shutil.rmtree(worker_output_root, ignore_errors=True)
+        raise TwoEndpointRunError(
+            f"two-endpoint worker failed: {error_message}",
+            exit_code=exit_code,
+            attempt_dir=attempt_dir,
+        )
+
+    try:
+        result = _publish_worker_success(
+            request=request,
+            worker_output_root=worker_output_root,
+            output_root=output_root,
+            attempt_id=safe_attempt_id,
+        )
+    except Exception as error:
+        if final_attempt_dir.exists() or final_attempt_dir.is_symlink():
+            # Publication had already moved the validated six-file attempt.  It
+            # remains uncommitted (no _SUCCESS) and must not be overwritten with
+            # a contradictory failure envelope under the same identity.
+            shutil.rmtree(worker_output_root, ignore_errors=True)
+            raise TwoEndpointRunError(
+                "two-endpoint parent could not publish validated success state",
+                exit_code=1,
+                attempt_dir=None,
+            ) from error
+        attempt_dir = _publish_supervisor_failure(
+            request=request,
+            output_root=output_root,
+            attempt_id=safe_attempt_id,
+            error_type="WorkerProtocolError",
+            error_message=_safe_failure_message(error),
+            exit_code=1,
+            supervision=supervision,
+        )
+        shutil.rmtree(worker_output_root, ignore_errors=True)
+        raise TwoEndpointRunError(
+            "two-endpoint worker returned invalid success state",
+            exit_code=1,
+            attempt_dir=attempt_dir,
+        ) from error
+    shutil.rmtree(worker_output_root, ignore_errors=True)
+    return result
+
+
+def run_two_endpoint(request_path: Path, output_root: Path) -> TwoEndpointRunResult:
+    """Public parent-supervised entry point, disabled before any side effect.
+
+    No parameter can override the source gate.  A future reviewed source change
+    must still satisfy the frozen request gate before importing the supervisor,
+    spawning the worker, importing compute dependencies or creating output.
     """
 
     _ensure_execution_authorized()
     request = load_two_endpoint_request(request_path)
     if request.execution_authorized is not True:
         raise ExecutionNotAuthorizedError("frozen request does not authorize execution")
-    return _execute_validated_request(request, output_root, backend=PySCFBackend())
+    supervisor_module = importlib.import_module("nhc_deprot_ranker.quantum.process_supervisor")
+    policy_factory = cast(
+        _SupervisionPolicyFactory,
+        supervisor_module.SupervisionPolicy,
+    )
+    supervised_runner = cast(
+        _RunSupervised,
+        supervisor_module.run_supervised,
+    )
+    policy = policy_factory(
+        timeout_seconds=float(request.timeout_seconds),
+        terminate_grace_seconds=_SUPERVISOR_TERMINATE_GRACE_SECONDS,
+        stream_capture_limit_bytes=_SUPERVISOR_STREAM_CAPTURE_LIMIT_BYTES,
+    )
+    return _execute_supervised_request(
+        request,
+        output_root,
+        run_supervised=supervised_runner,
+        supervision_policy=policy,
+    )
