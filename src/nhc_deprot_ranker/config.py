@@ -729,6 +729,126 @@ class DFTPlanConfig(StrictModel):
         return self
 
 
+class GeometrySmokeCanonicalInputConfig(StrictModel):
+    """Byte identity of the four-row legacy M2 request CSV."""
+
+    name: Literal["smoke_candidates.csv"]
+    bytes: Literal[542]
+    sha256: Literal["f486f93a2d58fb144c05a7340fd432334eeec46385c9319aca34d2e1b5c4cc87"]
+    columns: tuple[Literal["InChIKey"], Literal["SMILES_cation"], Literal["SMILES_neutral"]]
+
+
+class GeometrySmokePhase6InputsConfig(StrictModel):
+    """Frozen checked-in and ignored Phase 6 artifact identities."""
+
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    smoke_csv_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates_csv_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    package_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class GeometrySmokeLegacyFileConfig(StrictModel):
+    """One portable, hash-locked legacy M2 source identity."""
+
+    path: Path
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @field_validator("path")
+    @classmethod
+    def require_safe_relative_path(cls, value: Path) -> Path:
+        """Reject host-specific, traversing, or non-canonical source paths."""
+
+        if value.is_absolute() or ".." in value.parts or value.as_posix().startswith("./"):
+            raise ValueError("geometry-smoke legacy path must be safe and relative")
+        return value
+
+
+class GeometrySmokeLegacyConfig(StrictModel):
+    """Audited legacy M2 source commit and exact files."""
+
+    commit: Literal["44a68bf70031bd75799f42c4a02adf71f1b99d31"]
+    gen_3d: GeometrySmokeLegacyFileConfig
+    structure_gen: GeometrySmokeLegacyFileConfig
+
+    @model_validator(mode="after")
+    def validate_m2_files(self) -> GeometrySmokeLegacyConfig:
+        """Lock the only two legacy source paths that the smoke may use."""
+
+        expected = {
+            "gen_3d": (
+                "scripts/mol/gen_3d.py",
+                "d23c7ad9a6e35948949f6485b53caafb0f3f5705148f642e3a4a30fb589a946a",
+            ),
+            "structure_gen": (
+                "scripts/mol/structure_gen.py",
+                "a50b50b9967ac9e8203b398fe69f3daebf40a144f37dae8e0aa086e613ad1365",
+            ),
+        }
+        for field, (path, digest) in expected.items():
+            item = getattr(self, field)
+            if item.path.as_posix() != path or item.sha256 != digest:
+                raise ValueError(f"Phase 7 legacy {field} identity changed")
+        return self
+
+
+class GeometrySmokeM2Config(StrictModel):
+    """The only molecular geometry operation authorized in Phase 7."""
+
+    environment_script: Path
+    embedding_method: Literal["ETKDGv3"]
+    seed: Literal[42]
+    num_conformers: Literal[10]
+    use_random_coords: Literal[False]
+    force_field_primary: Literal["MMFF94"]
+    force_field_fallback: Literal["UFF"]
+    parallel: Literal[1]
+    geometry_quality: Literal["initial_force_field_geometry"]
+    force_field_convergence: Literal["unavailable_legacy_m2"]
+
+    @field_validator("environment_script")
+    @classmethod
+    def require_molecular_environment(cls, value: Path) -> Path:
+        """Permit only the audited project-relative molecular environment."""
+
+        if value.as_posix() != "env/envs/molenv.sh":
+            raise ValueError("Phase 7 must source only env/envs/molenv.sh")
+        return value
+
+
+class GeometrySmokeConfig(StrictModel):
+    """Strict Phase 7 four-candidate geometry bundle policy."""
+
+    version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    phase6_plan_version: Literal["v001"]
+    expected_smoke_count: Literal[4]
+    ordered_keys: tuple[str, ...]
+    canonical_input: GeometrySmokeCanonicalInputConfig
+    phase6_inputs: GeometrySmokePhase6InputsConfig
+    legacy: GeometrySmokeLegacyConfig
+    m2: GeometrySmokeM2Config
+    geometry_scope: Literal["smoke_only"]
+    geometry_generated: Literal[False]
+    quantum_chemistry_run: Literal[False]
+    hessian_computed: Literal[False]
+    old_m4_run: Literal[False]
+    dedicated_runner_run: Literal[False]
+    submit_hpc: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_frozen_smoke(self) -> GeometrySmokeConfig:
+        """Lock the exact preregistered Phase 6 smoke identity and order."""
+
+        expected = (
+            "IJWCXRPLHNQISE-UHFFFAOYSA-N",
+            "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+            "QXHIEGFUWOLQIJ-UHFFFAOYSA-N",
+            "HQKHXILTVGYEGE-UHFFFAOYSA-N",
+        )
+        if self.ordered_keys != expected or len(set(self.ordered_keys)) != 4:
+            raise ValueError("Phase 7 smoke keys or order changed")
+        return self
+
+
 def _load_yaml_mapping(path: Path) -> dict[str, object]:
     """Load a YAML mapping without accepting implicit scalar roots."""
 
@@ -780,6 +900,12 @@ def load_dft_plan_config(path: Path) -> DFTPlanConfig:
     """Load and validate the Phase 6 local execution-plan configuration."""
 
     return DFTPlanConfig.model_validate(_load_yaml_mapping(path))
+
+
+def load_geometry_smoke_config(path: Path) -> GeometrySmokeConfig:
+    """Load and validate the Phase 7 geometry-smoke bundle policy."""
+
+    return GeometrySmokeConfig.model_validate(_load_yaml_mapping(path))
 
 
 def load_hierarchical_model_config(path: Path) -> HierarchicalModelConfig:

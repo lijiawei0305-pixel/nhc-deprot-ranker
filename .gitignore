@@ -16,6 +16,7 @@ dist/
 build/
 
 configs/legacy.local.yaml
+configs/phase7.local.yaml
 prompt.md
 
 data/*

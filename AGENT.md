@@ -12,15 +12,20 @@
 
 ## 2. 当前阶段与阶段门禁
 
-- Phase 0 至 Phase 6 本地计划均已完成；当前处于 Phase 6 后强制暂停，不启动几何生成或真实计算，除非用户完成下一项明确裁定。
+- Phase 0 至 Phase 6 已合入 `main`，Phase 7 的 4 条服务器几何 smoke 与专用 runner 开发已通过；当前强制暂停在 Phase 8 前，不得运行任何真实 DFT，直到先补齐硬 wall-time 并获得用户新的明确授权。
 - Phase 4 裁定 `raw_xTB_wins`：B0 是生产排序默认，B1 只能作为绝对能量校准 companion，H1 不得用于正式全库排序。
 - Phase 5 只读取不可变的 `data/processed/v001`、B0/B1/Phase 4 决策及其 manifest；不得改写 Phase 1/2/3/4 结果，不得重新拟合或调参。
 - Phase 5 可生成本地评分表、适用域审计、候选建议与无 Hessian DFT 互操作 manifest；不得运行 PySCF、xTB、Hessian，不得连接或写入 HPC，不得提交作业。
 - Phase 5 必须在 Phase 4 通过、产生明确生产默认模型并获得用户明确确认后才能开始。
 - Phase 5 已按用户确认的 B0/B1 双轨语义、Top-100 和 50 条 `15/13/12/10` 配额完成；任何真实高保真计算、上传服务器或提交作业都属于新阶段，仍需重新文档先行和明确授权。
 - Phase 6 只把冻结的 50 条建议转换为本地、不可变、可校验的 legacy-ready CSV、5×10 分批计划、四桶 smoke 清单和协议/预期产物 manifest；必须写明 `geometry_generated=false`、`execution_ready=false`、`quantum_chemistry_run=false`、`server_write_authorized=false`、`submit_hpc=false`。
-- 当前 50 条没有完整 cation/neutral XYZ 对；不得在本地运行 RDKit/力场、xTB、PySCF 或 Hessian 来补齐，不得把 SMILES 计划包称为可直接运行的 DFT 输入。
-- 旧 `dft_batch --skip-hessian` 除 B3LYP-D3(BJ)/def2-SVP 两端优化外还执行 ωB97X-D/def2-TZVP cation/neutral/radical 单点；在用户确认专用端点 runner 或接受这些额外步骤前，legacy compatibility 必须保持 blocked。
+- 当前只有 Phase 7 的 4 条 smoke 具有强验证的 cation/neutral 初始 XYZ；其余 46 条仍未生成。不得在本地运行 RDKit/力场、xTB、PySCF 或 Hessian 来补齐，不得把完整 50 条计划包称为可直接运行的 DFT 输入。
+- 旧 `dft_batch --skip-hessian` 的额外 ωB97X-D/def2-TZVP cation/neutral/radical 单点仍被禁用；专用双端点 runner 已实现但未执行，且在新增进程/信号级硬 wall-time 与新授权前必须保持 execution blocked。
+- Phase 7 几何范围严格等于 Phase 6 `smoke.csv` 的 4 个 InChIKey；不得扩展到 batch 01 的其余 6 条或完整 50 条，不得运行 xTB、PySCF、Hessian、旧 M4 或专用 runner。
+- Phase 7 只允许在私有配置指定的全新版本化服务器运行目录中写入；必须先确认目标不存在并完成只读环境/资源/legacy 文件哈希预检。禁止修改 `$WJW` 既有代码、环境、候选库或生产结果。
+- 禁止使用旧仓库全量 `deploy`、`rsync --delete`、远端删除/覆盖或模糊目标同步。只可定向上传已登记的小型 smoke 输入/脚本，传输后必须核对真实目标和 SHA256。
+- 服务器 M2 必须显式进入 `$WJW`、设置 `PYTHONPATH=$WJW` 并只 `source $WJW/env/envs/molenv.sh`；不得 `source ~/.bashrc`、混用软件栈或安装/升级依赖。
+- 专用 runner 只允许 cation(+1, singlet) 与 neutral(0, singlet) 的气相 B3LYP-D3(BJ)/def2-SVP geomeTRIC 优化和最终电子能；接口中不得出现 Hessian、ZPE、热化学、ωB97X-D/def2-TZVP 单点、radical、Molden 或作业提交逻辑。当前 execution authorization 必须保持 false；现有调用前后 deadline 检查不等于硬超时。
 - 每个 Phase 必须先写清范围、输入、输出、假设、风险、命令和验收门禁，再执行代码或数据操作。
 - 每个 Phase 完成后，按 `prompt.md` 第 23 节报告完成项、读取文件、改动文件、科学假设、数据质量、命令、测试、未执行事项、门禁结论和下一步。
 
@@ -169,3 +174,18 @@ dig +trace domain
 8. 计划包不可覆盖，输入/输出/源码 SHA256、key 集合/顺序、批次并集和独立读回完整；
 9. 输出不含私人绝对路径、SSH 信息、凭据或可执行提交脚本；
 10. 未运行 RDKit 几何、xTB、PySCF、Hessian，未连接/写入服务器，未传输文件或提交作业。
+
+## 16. Phase 7 停止条件
+
+只有以下事实均有证据且被记录后，才可建议 Phase 7 几何 smoke 与 runner 开发门禁通过：
+
+1. Phase 6 PR 已合入 `main`，Phase 7 只读取不可变 `dft_input_plan_v001`、其 checked-in evidence 与恰好 4 条 smoke；
+2. 服务器连接、项目根、环境脚本和运行目录来自被忽略的私有配置及已读取的服务器知识文档，tracked 文件中无私人路径、IP、alias 或凭据；
+3. 远端只读预检验证 molecular 环境可导入 RDKit、legacy M2 两个脚本哈希匹配、目标版本目录不存在，并记录资源/并发状态；
+4. 定向传输不含 `--delete`，只传 geometry bundle 的输入 CSV、manifest、M2 wrapper 与 validator；这些文件均在本地与远端逐文件 SHA256 一致，未执行的 runner 源码不上传服务器；
+5. legacy M2 只处理 4 条 smoke，固定 ETKDGv3 seed 42、10 conformers、MMFF94（legacy UFF fallback）、`parallel=1`，退出码与失败清单均为通过状态；
+6. 4 个 key 各有且仅有有效的 cation XYZ、neutral XYZ 和 `C2_carbene/N1/N3` atom-map JSON；原子数、元素、有限坐标、形式电荷、C2/N 索引、集合完整性和文件哈希全部独立验证；
+7. legacy M2 未记录力场收敛码时必须明确标为 `force_field_convergence=unavailable_legacy_m2`，不得把可解析初始几何称为已验证局部极小点；
+8. 几何产物下载到忽略的本地版本目录，远端与本地 12 个核心产物及审计文件哈希一致，既有 Phase 1–6 结果未改变；
+9. 专用双端点 runner 对协议、状态、原子读入、色散硬失败、SCF/优化收敛、原子写入、resume、失败/退出码和标签公式有 mock 单测，但没有被本地或服务器执行；
+10. 全程未运行 xTB、PySCF、Hessian、旧 M4、专用 DFT runner，未提交后台/调度作业，未扩展到 smoke 之外；Phase 8 DFT smoke 仍需新的明确授权。

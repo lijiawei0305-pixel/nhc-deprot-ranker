@@ -10,7 +10,8 @@ Updated: 2026-07-22
 | Phase 3 — hierarchical model | Complete and merged to `main` | Passed 2026-07-22 |
 | Phase 4 — model decision | Complete and merged to `main` | Passed 2026-07-22; `raw_xTB_wins` |
 | Phase 5 — full scoring/acquisition | Complete and merged to `main` | Passed 2026-07-22 |
-| Phase 6 — local DFT execution plan | Complete locally on `agent/phase6-local-dft-prep` | Local plan passed 2026-07-22; geometry/execution blocked |
+| Phase 6 — local DFT execution plan | Complete and merged to `main` | Passed 2026-07-22; PR #6 / `55bfe47` |
+| Phase 7 — four-row geometry smoke and dedicated runner | Complete locally on `agent/phase7-smoke-geometry-runner` | Passed 2026-07-22; publication pending; DFT execution prohibited |
 
 ## Current completed work
 
@@ -58,11 +59,23 @@ Updated: 2026-07-22
 - Built and independently verified `results/dft_input_plan_v001`: 50/50 unique candidates, zero overlap with 71 labels, exact `15/13/12/10` totals, five ten-row batches, four smoke rows, 15 files, six directories, and zero geometry/executable/symlink artifacts.
 - Recorded `geometry_generated=false`, `quantum_chemistry_run=false`, `hessian_computed=false`, `execution_ready=false`, `server_write_authorized=false`, and `submit_hpc=false` throughout the package.
 - Preserved both required blockers, `blocked_no_xyz` and `blocked_runner_extra_steps`, and published complete checked-in evidence in `docs/DFT_INPUT_PLAN_V001_MANIFEST.json`.
+- Merged Phase 6 PR #6 to `main` at `55bfe47` before opening the isolated Phase 7 branch.
+- Received the user decision to use audited legacy M2 for exactly four server-side smoke geometries and to develop a dedicated two-endpoint runner without executing DFT.
+- Read the server-knowledge worktree, legacy M2/M4 source, environment/connection rules, and relevant failure skills; prohibited full deploy/`rsync --delete` and froze an isolated, directed-transfer workflow.
+- Identified the observed cation-map/neutral-index mismatch risk and required endpoint-specific graph/coordinate validation rather than trusting legacy file existence or exit code.
+- Implemented the strict four-row bundle builder, standalone strong geometry validator, ignored remote-route schema, and dedicated guarded two-endpoint runner.
+- Created and independently hash-verified the immutable local `geometry_smoke_bundle_v001`: eight registered files, canonical input 542 bytes / `f486f93a...cc87`, package manifest `2c4d776a...6ae9`, no symlinks, private paths, bytecode, geometry, or quantum result.
+- Passed 188 local tests, Ruff lint/format, strict mypy, pre-commit, Bash syntax, package build, and an independent Phase 7 safety/science audit. All chemistry adapters were fake or lazy; no RDKit, PySCF, or geomeTRIC execution occurred.
+- Used the user-confirmed campus-direct route, passed the corrected read-only server preflight, and recorded Python 3.11.15 / RDKit 2025.03.6 plus exact legacy source hashes before any write.
+- Uploaded exactly eight registered bundle files to one new isolated run root with directed transfers and no delete, then ran only legacy M2 at `parallel=1`: 4/4 processed, 4/4 successful, zero failed/skipped/backfilled, and an empty failure log.
+- Strongly validated 8 XYZ, 4 legacy maps and 4 corrected endpoint maps; all charges, AddHs sequences, heavy-element sets, one-proton differences, C2 five-membered-ring mappings, coordinates and SHA256 checks passed.
+- Downloaded only that run and independently matched 27/27 remote/local files. Validation SHA256 is `35e99683...39f90`; result-tree SHA256 is `644f027e...72ad`; the independent result audit found no blocker.
+- Kept the dedicated runner unexecuted with source-level authorization false. No PySCF, xTB, Hessian, legacy M4, extra single point, scheduler or background job ran.
 
 ## Current boundary
 
-Phase 0–6 local planning is complete. The frozen 50-row acquisition now has an immutable, non-executable 5×10 handoff plan. Large runtime data/models/results remain ignored; checked-in manifests preserve their exact identities. No geometry generation, quantum-chemistry calculation, HPC connection, server write, file transfer, or job submission has occurred.
+Phase 0–7 are complete locally. Four smoke candidates now have strongly validated initial cation/neutral geometries; the other 46 remain ungenerated. All DFT execution remains blocked: the dedicated runner is implemented and mock-tested but has no hard wall-time interrupt and its source-level authorization is false.
 
 ## Next action
 
-Pause before any new implementation or external action. Ask the user to choose the uniform initial-geometry source and whether to develop a dedicated two-endpoint B3LYP-D3(BJ)/def2-SVP runner (recommended) or explicitly accept the legacy runner's additional single-point calculations.
+Publish the reviewed Phase 7 branch to `main`. Then pause for a Phase 8 decision: implement and test a process/signal-level hard wall timeout first, and request explicit authorization before any real PySCF smoke.

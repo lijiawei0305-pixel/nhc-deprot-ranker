@@ -1,0 +1,47 @@
+version: v001
+phase6_plan_version: v001
+expected_smoke_count: 4
+ordered_keys:
+  - IJWCXRPLHNQISE-UHFFFAOYSA-N
+  - LBNPGYISTSLAHY-UHFFFAOYSA-N
+  - QXHIEGFUWOLQIJ-UHFFFAOYSA-N
+  - HQKHXILTVGYEGE-UHFFFAOYSA-N
+canonical_input:
+  name: smoke_candidates.csv
+  bytes: 542
+  sha256: f486f93a2d58fb144c05a7340fd432334eeec46385c9319aca34d2e1b5c4cc87
+  columns:
+    - InChIKey
+    - SMILES_cation
+    - SMILES_neutral
+phase6_inputs:
+  evidence_sha256: bc97f21fcc48d43605948d81502636c005ee35b794e5deabace29e2fefedc36f
+  smoke_csv_sha256: 0b55988527a239ec6b8e83c8879b14ca59e5c3fda457480a5f2acbb329292362
+  candidates_csv_sha256: 18459553187ff9decb24a657405e76149c08800429acb0ec8d8e61af2d0ddef9
+  package_manifest_sha256: e7524307d6e6d3822b67982a8553ea85b2702554f79eccc9adf2cff4e3205d5e
+legacy:
+  commit: 44a68bf70031bd75799f42c4a02adf71f1b99d31
+  gen_3d:
+    path: scripts/mol/gen_3d.py
+    sha256: d23c7ad9a6e35948949f6485b53caafb0f3f5705148f642e3a4a30fb589a946a
+  structure_gen:
+    path: scripts/mol/structure_gen.py
+    sha256: a50b50b9967ac9e8203b398fe69f3daebf40a144f37dae8e0aa086e613ad1365
+m2:
+  environment_script: env/envs/molenv.sh
+  embedding_method: ETKDGv3
+  seed: 42
+  num_conformers: 10
+  use_random_coords: false
+  force_field_primary: MMFF94
+  force_field_fallback: UFF
+  parallel: 1
+  geometry_quality: initial_force_field_geometry
+  force_field_convergence: unavailable_legacy_m2
+geometry_scope: smoke_only
+geometry_generated: false
+quantum_chemistry_run: false
+hessian_computed: false
+old_m4_run: false
+dedicated_runner_run: false
+submit_hpc: false
