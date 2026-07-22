@@ -1,0 +1,91 @@
+version: v001
+dataset_version: v001
+acquisition_version: v001
+expected_candidates: 50
+expected_labels: 71
+batch_size: 10
+bucket_order:
+  - predicted_top_region
+  - cutoff_region
+  - chemical_family_diversity
+  - uncertain_ood_conflict
+batches:
+  - batch_id: batch_01
+    counts:
+      predicted_top_region: 3
+      cutoff_region: 3
+      chemical_family_diversity: 2
+      uncertain_ood_conflict: 2
+  - batch_id: batch_02
+    counts:
+      predicted_top_region: 3
+      cutoff_region: 3
+      chemical_family_diversity: 2
+      uncertain_ood_conflict: 2
+  - batch_id: batch_03
+    counts:
+      predicted_top_region: 3
+      cutoff_region: 3
+      chemical_family_diversity: 2
+      uncertain_ood_conflict: 2
+  - batch_id: batch_04
+    counts:
+      predicted_top_region: 3
+      cutoff_region: 2
+      chemical_family_diversity: 3
+      uncertain_ood_conflict: 2
+  - batch_id: batch_05
+    counts:
+      predicted_top_region: 3
+      cutoff_region: 2
+      chemical_family_diversity: 3
+      uncertain_ood_conflict: 2
+smoke_per_bucket: 1
+protocol:
+  label_protocol_id: 2d03e2dc62c94cbf2bb6aaa1a40b842bb1369427c9df10b742441ef7227850fd
+  reaction: NHC-H+ -> NHC + H+
+  phase: gas
+  method: B3LYP
+  dispersion: D3(BJ)
+  basis: def2-SVP
+  geometry_optimizer: geomeTRIC
+  cation_charge: 1
+  cation_multiplicity: 1
+  neutral_charge: 0
+  neutral_multiplicity: 1
+  target_definition: electronic_deprotonation_energy
+  label_quality: electronic_energy_only
+  hartree_to_kcal_mol: 627.509474
+  proton_constant_kcal: -6.28
+  lower_is_better: true
+  hessian_computed: false
+legacy_interface:
+  commit: 44a68bf70031bd75799f42c4a02adf71f1b99d31
+  files:
+    - path: scripts/mol/dft_runner.py
+      sha256: 45b3bbb8118a749b7e453b414d22edb42c5fe7d19861bcf184711ed3e12ce832
+    - path: scripts/mol/dft_batch.py
+      sha256: 9641125099c2f95f6566cb76bc2b24525d2b784dbde936403893433ae702a71b
+    - path: scripts/mol/dft_robust_driver.py
+      sha256: 9172fc97be8bdf92935b7de41e673c42a49e50bf26ed63ca4518708964af1a6a
+    - path: scripts/lib/robust_batch.py
+      sha256: 4aa9fdea370fc85f14ba5f5dc71fd250e8ff2cf7b09218db4b9a16aeed5fe4a5
+    - path: scripts/mol/dft_harvest.py
+      sha256: 2bdaaff18859fd15e4b7d924e75edad916f689ab4abb1b2bc81353c4ba7504d5
+    - path: scripts/mol/gen_3d.py
+      sha256: d23c7ad9a6e35948949f6485b53caafb0f3f5705148f642e3a4a30fb589a946a
+    - path: scripts/mol/structure_gen.py
+      sha256: a50b50b9967ac9e8203b398fe69f3daebf40a144f37dae8e0aa086e613ad1365
+  relevant_files_match_commit: true
+  legacy_m2_handoff_ready: true
+  legacy_m4_execution_ready: false
+  compatibility_blockers:
+    - blocked_no_xyz
+    - blocked_runner_extra_steps
+geometry_generated: false
+geometry_status: not_generated
+quantum_chemistry_run: false
+execution_ready: false
+server_write_authorized: false
+submit_hpc: false
+seed: 20260722

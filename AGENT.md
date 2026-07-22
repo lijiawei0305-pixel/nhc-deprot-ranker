@@ -12,12 +12,15 @@
 
 ## 2. 当前阶段与阶段门禁
 
-- Phase 0 至 Phase 5 已完成；当前阶段门禁关闭，除发布/审查现有结果外，不得默认启动新的真实计算阶段。
+- Phase 0 至 Phase 6 本地计划均已完成；当前处于 Phase 6 后强制暂停，不启动几何生成或真实计算，除非用户完成下一项明确裁定。
 - Phase 4 裁定 `raw_xTB_wins`：B0 是生产排序默认，B1 只能作为绝对能量校准 companion，H1 不得用于正式全库排序。
 - Phase 5 只读取不可变的 `data/processed/v001`、B0/B1/Phase 4 决策及其 manifest；不得改写 Phase 1/2/3/4 结果，不得重新拟合或调参。
 - Phase 5 可生成本地评分表、适用域审计、候选建议与无 Hessian DFT 互操作 manifest；不得运行 PySCF、xTB、Hessian，不得连接或写入 HPC，不得提交作业。
 - Phase 5 必须在 Phase 4 通过、产生明确生产默认模型并获得用户明确确认后才能开始。
 - Phase 5 已按用户确认的 B0/B1 双轨语义、Top-100 和 50 条 `15/13/12/10` 配额完成；任何真实高保真计算、上传服务器或提交作业都属于新阶段，仍需重新文档先行和明确授权。
+- Phase 6 只把冻结的 50 条建议转换为本地、不可变、可校验的 legacy-ready CSV、5×10 分批计划、四桶 smoke 清单和协议/预期产物 manifest；必须写明 `geometry_generated=false`、`execution_ready=false`、`quantum_chemistry_run=false`、`server_write_authorized=false`、`submit_hpc=false`。
+- 当前 50 条没有完整 cation/neutral XYZ 对；不得在本地运行 RDKit/力场、xTB、PySCF 或 Hessian 来补齐，不得把 SMILES 计划包称为可直接运行的 DFT 输入。
+- 旧 `dft_batch --skip-hessian` 除 B3LYP-D3(BJ)/def2-SVP 两端优化外还执行 ωB97X-D/def2-TZVP cation/neutral/radical 单点；在用户确认专用端点 runner 或接受这些额外步骤前，legacy compatibility 必须保持 blocked。
 - 每个 Phase 必须先写清范围、输入、输出、假设、风险、命令和验收门禁，再执行代码或数据操作。
 - 每个 Phase 完成后，按 `prompt.md` 第 23 节报告完成项、读取文件、改动文件、科学假设、数据质量、命令、测试、未执行事项、门禁结论和下一步。
 
@@ -151,3 +154,18 @@ dig +trace domain
 8. `high_fidelity_batch_manifest.json` 只描述建议与电子能协议，明确 `submit_hpc=false`，不得触发外部动作；
 9. 评分与选点结果不可覆盖，输入/输出/源码 SHA256、行数、排序、配额和独立读回完整；
 10. 未运行量化计算、Hessian、HPC 连接、服务器写操作或作业提交。
+
+## 15. Phase 6 停止条件
+
+只有以下事实均有证据且被记录后，才可建议 Phase 6 本地计划门禁通过：
+
+1. 只读取冻结的 v001 dataset/acquisition 及其证据，50 个 InChIKey 唯一且与 71 个已标注 key 零重叠；
+2. `candidates.csv` 使用旧接口精确列名 `InChIKey`、`SMILES_cation`、`SMILES_neutral`，两端 SMILES 非空且逐行与 Phase 5 manifest 一致；
+3. 50 条按确认矩阵分为 5×10，无重复、无遗漏，并保持总桶配额 `15/13/12/10`；
+4. smoke 恰好 4 条、四个 acquisition bucket 各 1 条、全部属于 batch 01，并使用冻结 tie-break；
+5. 协议锁定为气相 B3LYP-D3(BJ)/def2-SVP、geomeTRIC、阳离子 +1/单重态、中性 0/单重态、电子能-only、无 Hessian；
+6. 输出明确 `geometry_status=not_generated`，目录中没有 XYZ、Molden、`freq.json`、电子能或其他伪计算产物；
+7. legacy compatibility 同时记录 `blocked_no_xyz` 和 `blocked_runner_extra_steps`，不得宣称 execution-ready；
+8. 计划包不可覆盖，输入/输出/源码 SHA256、key 集合/顺序、批次并集和独立读回完整；
+9. 输出不含私人绝对路径、SSH 信息、凭据或可执行提交脚本；
+10. 未运行 RDKit 几何、xTB、PySCF、Hessian，未连接/写入服务器，未传输文件或提交作业。

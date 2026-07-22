@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+import yaml
 from pydantic import ValidationError
 
 from nhc_deprot_ranker.config import (
@@ -10,6 +11,7 @@ from nhc_deprot_ranker.config import (
     load_acquisition_config,
     load_baseline_model_config,
     load_data_config,
+    load_dft_plan_config,
     load_evaluation_config,
     load_families_config,
     load_hierarchical_model_config,
@@ -34,6 +36,31 @@ def test_phase1_configs_load() -> None:
     assert data.label_defaults.hessian_computed is False
     assert families.axis_a.canonicalization == "sorted_pair"
     assert families.exact_combined_family.enabled is False
+
+
+def test_phase6_dft_plan_config_loads() -> None:
+    config = load_dft_plan_config(Path("configs/dft_plan.yaml"))
+    assert config.expected_candidates == 50
+    assert len(config.batches) == 5
+    assert all(batch.counts.total() == 10 for batch in config.batches)
+    assert config.geometry_generated is False
+    assert config.execution_ready is False
+    assert config.legacy_interface.compatibility_blockers == (
+        "blocked_no_xyz",
+        "blocked_runner_extra_steps",
+    )
+
+
+def test_phase6_rejects_a_rebalanced_batch_matrix(tmp_path: Path) -> None:
+    raw = yaml.safe_load(Path("configs/dft_plan.yaml").read_text(encoding="utf-8"))
+    raw["batches"][0]["counts"]["predicted_top_region"] = 2
+    raw["batches"][0]["counts"]["chemical_family_diversity"] = 3
+    raw["batches"][1]["counts"]["predicted_top_region"] = 4
+    raw["batches"][1]["counts"]["chemical_family_diversity"] = 1
+    path = tmp_path / "dft_plan.yaml"
+    path.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    with pytest.raises(ValidationError, match="allocation matrix changed"):
+        load_dft_plan_config(path)
 
 
 def test_phase2_configs_load() -> None:

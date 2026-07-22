@@ -554,6 +554,181 @@ class AcquisitionConfig(StrictModel):
         return self
 
 
+class DFTPlanBucketCounts(StrictModel):
+    """One deterministic Phase 6 batch allocation."""
+
+    predicted_top_region: int = Field(ge=0)
+    cutoff_region: int = Field(ge=0)
+    chemical_family_diversity: int = Field(ge=0)
+    uncertain_ood_conflict: int = Field(ge=0)
+
+    def total(self) -> int:
+        """Return the number of candidates assigned to this batch."""
+
+        return sum(self.model_dump().values())
+
+
+class DFTPlanBatchConfig(StrictModel):
+    """Named batch and its exact acquisition-bucket counts."""
+
+    batch_id: str = Field(pattern=r"^batch_[0-9]{2}$")
+    counts: DFTPlanBucketCounts
+
+
+class DFTPlanProtocolConfig(StrictModel):
+    """Frozen electronic-label protocol for the non-executable handoff."""
+
+    label_protocol_id: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reaction: Literal["NHC-H+ -> NHC + H+"]
+    phase: Literal["gas"]
+    method: Literal["B3LYP"]
+    dispersion: Literal["D3(BJ)"]
+    basis: Literal["def2-SVP"]
+    geometry_optimizer: Literal["geomeTRIC"]
+    cation_charge: Literal[1]
+    cation_multiplicity: Literal[1]
+    neutral_charge: Literal[0]
+    neutral_multiplicity: Literal[1]
+    target_definition: Literal["electronic_deprotonation_energy"]
+    label_quality: Literal["electronic_energy_only"]
+    hartree_to_kcal_mol: float = Field(gt=0.0)
+    proton_constant_kcal: float
+    lower_is_better: Literal[True]
+    hessian_computed: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_electronic_label_constants(self) -> DFTPlanProtocolConfig:
+        """Lock the finite legacy-compatible electronic-label constants."""
+
+        if not math.isfinite(self.hartree_to_kcal_mol) or not math.isclose(
+            self.hartree_to_kcal_mol, 627.509474, rel_tol=0.0, abs_tol=1e-12
+        ):
+            raise ValueError("Phase 6 Hartree conversion must equal 627.509474")
+        if not math.isfinite(self.proton_constant_kcal) or not math.isclose(
+            self.proton_constant_kcal, -6.28, rel_tol=0.0, abs_tol=1e-12
+        ):
+            raise ValueError("Phase 6 proton constant must equal -6.28 kcal/mol")
+        return self
+
+
+class LegacyInterfaceFileConfig(StrictModel):
+    """Portable identity for one audited legacy interface file."""
+
+    path: Path
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @field_validator("path")
+    @classmethod
+    def require_relative_legacy_path(cls, value: Path) -> Path:
+        """Forbid personal absolute paths and traversal in tracked configuration."""
+
+        if value.is_absolute() or ".." in value.parts:
+            raise ValueError("legacy interface path must be safe and relative")
+        return value
+
+
+class LegacyDFTInterfaceConfig(StrictModel):
+    """Audited legacy commit and file identities used only as an interface contract."""
+
+    commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    files: list[LegacyInterfaceFileConfig]
+    relevant_files_match_commit: Literal[True]
+    legacy_m2_handoff_ready: Literal[True]
+    legacy_m4_execution_ready: Literal[False]
+    compatibility_blockers: tuple[Literal["blocked_no_xyz"], Literal["blocked_runner_extra_steps"]]
+
+    @field_validator("files")
+    @classmethod
+    def unique_interface_paths(
+        cls, value: list[LegacyInterfaceFileConfig]
+    ) -> list[LegacyInterfaceFileConfig]:
+        """Reject repeated or empty audited interface lists."""
+
+        paths = [item.path.as_posix() for item in value]
+        if not paths or len(paths) != len(set(paths)):
+            raise ValueError("legacy interface files must be nonempty and unique")
+        return value
+
+
+class DFTPlanConfig(StrictModel):
+    """Typed Phase 6 local-only DFT execution-plan policy."""
+
+    version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    dataset_version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    acquisition_version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    expected_candidates: int = Field(ge=1)
+    expected_labels: int = Field(ge=1)
+    batch_size: int = Field(ge=1)
+    bucket_order: tuple[
+        Literal["predicted_top_region"],
+        Literal["cutoff_region"],
+        Literal["chemical_family_diversity"],
+        Literal["uncertain_ood_conflict"],
+    ]
+    batches: list[DFTPlanBatchConfig]
+    smoke_per_bucket: Literal[1]
+    protocol: DFTPlanProtocolConfig
+    legacy_interface: LegacyDFTInterfaceConfig
+    geometry_generated: Literal[False]
+    geometry_status: Literal["not_generated"]
+    quantum_chemistry_run: Literal[False]
+    execution_ready: Literal[False]
+    server_write_authorized: Literal[False]
+    submit_hpc: Literal[False]
+    seed: int
+
+    @model_validator(mode="after")
+    def validate_plan_allocation(self) -> DFTPlanConfig:
+        """Require the approved five-batch allocation and exact Phase 5 totals."""
+
+        expected_order = (
+            "predicted_top_region",
+            "cutoff_region",
+            "chemical_family_diversity",
+            "uncertain_ood_conflict",
+        )
+        if self.bucket_order != expected_order:
+            raise ValueError("Phase 6 bucket order must match the frozen Phase 5 order")
+        batch_ids = [batch.batch_id for batch in self.batches]
+        if not batch_ids or len(batch_ids) != len(set(batch_ids)):
+            raise ValueError("Phase 6 batch ids must be nonempty and unique")
+        if batch_ids != sorted(batch_ids):
+            raise ValueError("Phase 6 batches must be ordered by batch_id")
+        if self.expected_candidates != 50 or self.batch_size != 10:
+            raise ValueError("Phase 6 must contain exactly five batches of ten candidates")
+        if batch_ids != [f"batch_{index:02d}" for index in range(1, 6)]:
+            raise ValueError("Phase 6 batch ids must be exactly batch_01 through batch_05")
+        expected_matrix = (
+            (3, 3, 2, 2),
+            (3, 3, 2, 2),
+            (3, 3, 2, 2),
+            (3, 2, 3, 2),
+            (3, 2, 3, 2),
+        )
+        realized_matrix = tuple(
+            tuple(int(getattr(batch.counts, bucket)) for bucket in expected_order)
+            for batch in self.batches
+        )
+        if realized_matrix != expected_matrix:
+            raise ValueError("Phase 6 batch allocation matrix changed")
+        if any(batch.counts.total() != self.batch_size for batch in self.batches):
+            raise ValueError("every Phase 6 batch must contain exactly batch_size rows")
+        if len(self.batches) * self.batch_size != self.expected_candidates:
+            raise ValueError("Phase 6 batches do not cover expected_candidates")
+        totals = {
+            bucket: sum(int(getattr(batch.counts, bucket)) for batch in self.batches)
+            for bucket in expected_order
+        }
+        if totals != {
+            "predicted_top_region": 15,
+            "cutoff_region": 13,
+            "chemical_family_diversity": 12,
+            "uncertain_ood_conflict": 10,
+        }:
+            raise ValueError("Phase 6 allocation must preserve the approved 15/13/12/10 quotas")
+        return self
+
+
 def _load_yaml_mapping(path: Path) -> dict[str, object]:
     """Load a YAML mapping without accepting implicit scalar roots."""
 
@@ -599,6 +774,12 @@ def load_acquisition_config(path: Path) -> AcquisitionConfig:
     """Load and validate the Phase 5 scoring/acquisition configuration."""
 
     return AcquisitionConfig.model_validate(_load_yaml_mapping(path))
+
+
+def load_dft_plan_config(path: Path) -> DFTPlanConfig:
+    """Load and validate the Phase 6 local execution-plan configuration."""
+
+    return DFTPlanConfig.model_validate(_load_yaml_mapping(path))
 
 
 def load_hierarchical_model_config(path: Path) -> HierarchicalModelConfig:
