@@ -1,0 +1,120 @@
+{
+  "acceptance": {
+    "eligible": false,
+    "passed": false,
+    "reason": "immutable_terminal_receipt_rejected",
+    "terminal_evidence_complete": false
+  },
+  "bundle": {
+    "directory_tree_sha256": "1f6eb83183082419f0fc396cb16aa7e621c2814856f6ee9d76ad61b97fd8ee42",
+    "payload_manifest_sha256": "f093bc91979cb222c84e4559344218a2284ae29e7bd50f0a59686c7a5582011d",
+    "permit_sha256": "65a4fa8200ca28fe4301b64781e0671b408cfcb72c32eb4ebf4e687c742b14ca",
+    "request_sha256": "22ec675ecf0dc5edb62f5e59fa72028c82def00e657e180cc9fba406dba6c8dc",
+    "runner_source_sha256": "52781e09ed9c72f874354a46eab850cf5ab309d80436340304cab2ee612a2227",
+    "transport_inventory_sha256": "f490c3b88b2589774c736a4013e75dab178327616ee96344679bef27108fc5d9",
+    "transport_tree_sha256": "114e7badab436dbee5d86e977267cd782fde5005272978989ba12087c4cf23d7"
+  },
+  "corrective_action": {
+    "execution_gate_closed": true,
+    "future_terminal_identity_uses_stable_projection": true,
+    "immutable_remote_receipt_modified": false,
+    "new_attempt_required_for_any_future_execution": true,
+    "phase7_zero_byte_reader_scoped_fix": true,
+    "production_bundle_and_launch_route_retired": true,
+    "second_attempt_authorized": false
+  },
+  "deployment": {
+    "directory_count": 11,
+    "file_count": 28,
+    "overwrite_used": false,
+    "remote_delete_used": false,
+    "status": "passed"
+  },
+  "generated_at_utc": "2026-07-22T17:36:11Z",
+  "identity": {
+    "attempt_id": "attempt-phase8b-qxh-v001",
+    "inchikey": "QXHIEGFUWOLQIJ-UHFFFAOYSA-N",
+    "request_id": "phase8b-qxh-smoke-v001"
+  },
+  "inputs": {
+    "cation_xyz_sha256": "097f08ab7c3f265efa8ee36c3fd45d72776c9bdcbd3de503baf8fe91561c12aa",
+    "neutral_xyz_sha256": "e41e87daca3c7a74383364a427d277df5cf8a0aa70bff015c4cf432455f26bd0",
+    "protocol_sha256": "266b06e0d49cb6e3067bcfeb6d62f0712852e96768c4205b49fffcb3df52fe92"
+  },
+  "launch": {
+    "invocation_sha256": "73aaefee7a89a77883ad3b0f289a0cc17aeed933f65ed67bfcc2d7da1c7a30eb",
+    "outcome_sha256": "4e3028525a6abfc684468ff78ada4ae9417f374e5b1d4659b40a62cd614f165b",
+    "retry_authorized": false,
+    "ssh_returncode": 0,
+    "status": "single_invocation_returned_zero"
+  },
+  "phase": "8B",
+  "postflight": {
+    "current_inspector_sha256": "2c5262b4c52aaf62efd4cfc39d6fbb0dcbd18d063d4e20dd2f657802c9f68cef",
+    "historical_inspector_sha256": "7d1081991d3ac61183cf080a1d92b775496f99c0e3c110604096f5fd8913b747",
+    "historical_postflight": {
+      "portable_evidence_produced": false,
+      "reason": "registered_zero_byte_phase7_file_rejected_by_generic_reader",
+      "status": "failed_closed_before_receipt_validation"
+    },
+    "incident_collector": {
+      "portable_incident_produced": false,
+      "reason": "terminal_relative_file_tree_drifted",
+      "second_readback_attempted": false,
+      "status": "failed_closed"
+    }
+  },
+  "preflight": {
+    "check_count": 17,
+    "compute_kernel_called": false,
+    "dispersion_evaluated": false,
+    "hessian_computed": false,
+    "status": "passed",
+    "versions": {
+      "geometric": "1.1.1",
+      "pyscf": "2.13.1",
+      "pyscf_dispersion": "1.5.0",
+      "python": "3.11.15"
+    }
+  },
+  "resources": {
+    "computational_threads": 4,
+    "cpu_affinity": "0-3",
+    "hard_wall_timeout_seconds": 7200,
+    "pyscf_max_memory_mb": 12000,
+    "stderr_capture_limit_bytes": 65536,
+    "stdout_capture_limit_bytes": 65536,
+    "terminate_grace_seconds": 10,
+    "worker_count": 1
+  },
+  "schema_version": "phase8b.dft-smoke-evidence.v1",
+  "scientific_result": {
+    "accepted_final_scf_energies": 0,
+    "completed_endpoint_workflows": 0,
+    "compute_kernel_invocation": "indeterminate",
+    "d3_runtime_evidence": "unavailable",
+    "deprotonation_label": null,
+    "failure_class": "execution_protocol"
+  },
+  "status": "rejected",
+  "terminal": {
+    "acknowledgement_published": true,
+    "authority_validated": true,
+    "compute_claim_sha256": "4ba0f44dff9a58f98dd83f1b42e66801ad633911183332548b036badf3aebb81",
+    "failure_envelope": {
+      "error_type": "WorkerProtocolError",
+      "message": "worker failure output root file set drifted",
+      "stage": "supervisor"
+    },
+    "guardian_acknowledgement_sha256": "bce3d0062b4de8d896e647d871cf4b13b0367adb925aa68fbc62dc09a8b1a7fc",
+    "guardian_receipt_sha256": "39187f4188c7ebebc02937ee7e4c947f35ace166883bedfb902a51b40c1ea72d",
+    "immutable_receipt": {
+      "compute_claim_sha256": null,
+      "error_code": "ExecutionIdentityError",
+      "outcome": "cleanup_failed",
+      "supervisor_returncode": 1
+    },
+    "permit_consumed": true,
+    "worker_registration_sha256": "249f9258c7a248f82eb5a51650bd1ea9f6fe8e46511c256748bf4090765655f8"
+  }
+}

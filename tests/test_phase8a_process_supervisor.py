@@ -246,6 +246,122 @@ def test_delayed_completion_observation_is_fail_closed_as_timeout(
     assert result.direct_child_reaped
 
 
+def test_absolute_deadline_includes_process_started_callback_delay() -> None:
+    absolute_deadline = time.monotonic() + 0.08
+
+    def delayed_bootstrap(pid: int, pgid: int) -> None:
+        assert pid == pgid
+        time.sleep(0.12)
+
+    result = run_supervised(
+        _command("sleep", "--seconds", "30"),
+        policy=SupervisionPolicy(
+            timeout_seconds=30.0,
+            terminate_grace_seconds=0.01,
+            poll_interval_seconds=0.005,
+            absolute_deadline_monotonic=absolute_deadline,
+        ),
+        on_process_started=delayed_bootstrap,
+    )
+
+    assert result.outcome == "timeout"
+    assert result.timed_out
+    assert result.term_sent
+    assert result.duration_seconds < 1.0
+    assert result.group_cleanup_confirmed
+    assert result.direct_child_reaped
+
+
+def test_process_started_callback_follows_pgid_validation_and_precedes_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events: list[str] = []
+    real_observer = supervisor._child_exit_is_waitable
+
+    def callback(pid: int, pgid: int) -> None:
+        assert pid == pgid
+        assert os.getpgid(pid) == pgid
+        events.append("callback")
+
+    def observing_loop(pid: int) -> bool:
+        if "loop" not in events:
+            assert events == ["callback"]
+            events.append("loop")
+        return real_observer(pid)
+
+    monkeypatch.setattr(supervisor, "_child_exit_is_waitable", observing_loop)
+    result = run_supervised(
+        _command("sleep", "--seconds", "0.05"),
+        policy=_policy(),
+        on_process_started=callback,
+    )
+
+    assert result.outcome == "clean"
+    assert events[0] == "callback"
+    assert "loop" in events
+
+
+def test_process_started_callback_exception_kills_group_and_reaps(
+    tmp_path: Path,
+) -> None:
+    leader_pid_file = tmp_path / "callback-leader.pid"
+    child_pid_file = tmp_path / "callback-child.pid"
+
+    def failed_callback(pid: int, pgid: int) -> None:
+        assert pid == pgid
+        wait_deadline = time.monotonic() + 2.0
+        while not child_pid_file.exists() and time.monotonic() < wait_deadline:
+            time.sleep(0.005)
+        assert child_pid_file.exists()
+        raise RuntimeError("synthetic callback failure")
+
+    result = run_supervised(
+        _command(
+            "grandchild",
+            "--seconds",
+            "30",
+            "--pid-file",
+            str(leader_pid_file),
+            "--child-pid-file",
+            str(child_pid_file),
+        ),
+        policy=_policy(),
+        on_process_started=failed_callback,
+    )
+
+    assert result.outcome == "supervision_error"
+    assert result.kill_sent
+    assert result.group_cleanup_confirmed
+    assert result.direct_child_reaped
+    assert result.safe_to_finalize
+    assert result.error_message is not None
+    assert "synthetic callback failure" in result.error_message
+    _assert_pid_gone(int(leader_pid_file.read_text(encoding="ascii")))
+    _assert_pid_gone(int(child_pid_file.read_text(encoding="ascii")))
+
+
+def test_pass_fds_are_inherited_by_only_the_spawned_child() -> None:
+    read_fd, write_fd = os.pipe()
+    try:
+        os.write(write_fd, b"proof")
+        os.close(write_fd)
+        write_fd = -1
+        command = [
+            sys.executable,
+            "-c",
+            "import os,sys;sys.stdout.buffer.write(os.read(int(sys.argv[1]),5))",
+            str(read_fd),
+        ]
+        result = run_supervised(command, policy=_policy(), pass_fds=(read_fd,))
+    finally:
+        os.close(read_fd)
+        if write_fd >= 0:
+            os.close(write_fd)
+
+    assert result.outcome == "clean"
+    assert result.stdout == b"proof"
+
+
 def test_malformed_argv_and_policy_are_rejected_before_spawn() -> None:
     for argv in ([], [""], [sys.executable, ""]):
         with pytest.raises(ValueError, match="argv"):
@@ -256,10 +372,17 @@ def test_malformed_argv_and_policy_are_rejected_before_spawn() -> None:
         {"timeout_seconds": 1.0, "terminate_grace_seconds": -1.0},
         {"timeout_seconds": 1.0, "stream_capture_limit_bytes": -1},
         {"timeout_seconds": 1.0, "poll_interval_seconds": 0.0},
+        {"timeout_seconds": 1.0, "absolute_deadline_monotonic": 0.0},
+        {"timeout_seconds": 1.0, "absolute_deadline_monotonic": float("inf")},
     )
     for kwargs in invalid_policies:
         with pytest.raises(ValueError):
             SupervisionPolicy(**kwargs)
+
+    with pytest.raises(ValueError, match="non-negative"):
+        run_supervised(_command("success"), policy=_policy(), pass_fds=(-1,))
+    with pytest.raises(ValueError, match="duplicates"):
+        run_supervised(_command("success"), policy=_policy(), pass_fds=(3, 3))
 
 
 @pytest.mark.parametrize("iteration", range(12))
