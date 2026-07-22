@@ -47,6 +47,7 @@ class SupervisionPolicy:
     terminate_grace_seconds: float = 5.0
     stream_capture_limit_bytes: int = 1024 * 1024
     poll_interval_seconds: float = 0.01
+    absolute_deadline_monotonic: float | None = None
 
     def __post_init__(self) -> None:
         if not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0.0:
@@ -57,6 +58,11 @@ class SupervisionPolicy:
             raise ValueError("stream_capture_limit_bytes must be non-negative")
         if not math.isfinite(self.poll_interval_seconds) or self.poll_interval_seconds <= 0.0:
             raise ValueError("poll_interval_seconds must be finite and greater than zero")
+        if self.absolute_deadline_monotonic is not None and (
+            not math.isfinite(self.absolute_deadline_monotonic)
+            or self.absolute_deadline_monotonic <= 0.0
+        ):
+            raise ValueError("absolute_deadline_monotonic must be finite and greater than zero")
 
 
 @dataclass(frozen=True, slots=True)
@@ -297,6 +303,8 @@ def run_supervised(
     policy: SupervisionPolicy,
     cwd: str | os.PathLike[str] | None = None,
     env: Mapping[str, str] | None = None,
+    pass_fds: tuple[int, ...] = (),
+    on_process_started: Callable[[int, int], None] | None = None,
 ) -> SupervisionResult:
     """Run ``argv`` in a fresh process group and enforce ``policy``.
 
@@ -312,10 +320,23 @@ def run_supervised(
     command = tuple(argv)
     if not command or any(not isinstance(part, str) or not part for part in command):
         raise ValueError("argv must be a non-empty sequence of non-empty strings")
+    if not isinstance(pass_fds, tuple):
+        raise TypeError("pass_fds must be a tuple")
+    if any(isinstance(fd, bool) or not isinstance(fd, int) or fd < 0 for fd in pass_fds):
+        raise ValueError("pass_fds must contain only non-negative integers")
+    if len(set(pass_fds)) != len(pass_fds):
+        raise ValueError("pass_fds must not contain duplicates")
+    if on_process_started is not None and not callable(on_process_started):
+        raise TypeError("on_process_started must be callable")
     normalized_cwd = None if cwd is None else str(Path(cwd))
     normalized_env = None if env is None else dict(env)
 
     started_at = time.monotonic()
+    deadline = (
+        started_at + policy.timeout_seconds
+        if policy.absolute_deadline_monotonic is None
+        else policy.absolute_deadline_monotonic
+    )
     stdout_capture = _Capture(policy.stream_capture_limit_bytes)
     stderr_capture = _Capture(policy.stream_capture_limit_bytes)
     process: subprocess.Popen[bytes] | None = None
@@ -340,6 +361,7 @@ def run_supervised(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             close_fds=True,
+            pass_fds=pass_fds,
             cwd=normalized_cwd,
             env=normalized_env,
         )
@@ -381,8 +403,9 @@ def run_supervised(
             capture=stderr_capture,
             name=f"supervisor-stderr-{process.pid}",
         )
+        if on_process_started is not None:
+            on_process_started(identity.leader_pid, identity.pgid)
 
-        deadline = started_at + policy.timeout_seconds
         while True:
             child_exit_waitable = _child_exit_is_waitable(process.pid)
             observed_at = time.monotonic()

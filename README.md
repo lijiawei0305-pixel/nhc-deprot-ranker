@@ -16,7 +16,18 @@ It is an electronic-energy label, not a complete Gibbs free energy. Lower is bet
 
 ## Current status
 
-Phase 0 through Phase 6 local planning are complete. The immutable processed dataset `v001` contains 401,856 candidates and 71 labels. Phase 4 selected `raw_xTB_wins`: B0 is the production ranking, B1 is only the absolute-calibration/parameter-uncertainty companion, and H1 is not promoted. Phase 5 scored all 401,856 candidates and produced a 50-candidate acquisition suggestion with exact `15/13/12/10` quotas. Phase 6 converted those frozen candidates into a checked, non-executable 5×10 DFT handoff plan with no geometry. No quantum-chemistry calculation, server write, or HPC submission ran. See [Phase Status](PHASE_STATUS.md), [Phase 6 Report](docs/PHASE6_REPORT.md), and [Model Card](docs/MODEL_CARD.md).
+Phase 0 through Phase 8A are complete. The immutable processed dataset `v001`
+contains 401,856 candidates and 71 labels. Phase 4 selected `raw_xTB_wins`: B0
+is the production ranking, B1 is only the absolute-calibration and parameter-
+uncertainty companion, and H1 is not promoted. Phase 7 produced validated
+initial cation/neutral geometries for four frozen smoke candidates, and Phase
+8A established the hard process-tree timeout and read-only server API contract.
+
+The only authorized Phase 8B QXH DFT smoke attempt was consumed and rejected
+at the execution-protocol layer. It produced no acceptable endpoint energy,
+dynamic D3 evidence, or deprotonation label and must not be retried. The source
+execution gate remains closed. See [Phase Status](PHASE_STATUS.md), the
+[Phase 8B Report](docs/PHASE8B_REPORT.md), and the [Model Card](docs/MODEL_CARD.md).
 
 ## Source policy
 

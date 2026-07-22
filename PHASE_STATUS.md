@@ -1,6 +1,6 @@
 # Phase Status
 
-Updated: 2026-07-22
+Updated: 2026-07-23
 
 | Phase | Status | Gate |
 | --- | --- | --- |
@@ -13,7 +13,7 @@ Updated: 2026-07-22
 | Phase 6 — local DFT execution plan | Complete and merged to `main` | Passed 2026-07-22; PR #6 / `55bfe47` |
 | Phase 7 — four-row geometry smoke and dedicated runner | Complete and merged to `main` | Passed 2026-07-22; PR #7 / `133f8e3`; DFT execution prohibited |
 | Phase 8A — hard wall-time and read-only API preflight | Complete and merged to `main` | Passed 2026-07-22; PR #8 / `d621ca8`; DFT execution prohibited |
-| Phase 8B — single-candidate DFT smoke | Documentation planning on `agent/phase8b-single-candidate-smoke-plan` | Planning only; real DFT and server writes not authorized |
+| Phase 8B — single-candidate DFT smoke | Complete with rejected execution incident | Failed closed 2026-07-23; unique attempt consumed; retry prohibited |
 
 ## Current completed work
 
@@ -86,11 +86,26 @@ Updated: 2026-07-22
 - Audited the Phase 8A runner and found execution blockers that must be implemented and mock-tested before a real attempt: exact path-bound one-shot permit, irreversible pre-spawn consumption, fixed affinity/thread/memory controls, independent supervisor-death watchdog, explicit retry/error taxonomy, cross-endpoint/electron validation, dynamic D3 energy/gradient evidence, and complete success/failure supervision evidence. Merely changing `EXECUTION_AUTHORIZED` is prohibited.
 - Wrote `docs/PHASE8B_IMPLEMENTATION_PLAN.md` with the unique protocol, D3-only zero-SCF diagnostic boundary, fresh resource preflight, isolated directed transfer, one controlled detached supervisor, no-fallback failure semantics, private-result handling, portable evidence contract, and a mandatory second authorization pause. No SSH, server write, molecule, PySCF, geomeTRIC, D3 evaluation, Hessian, worker, or source-gate change occurred.
 - Passed 238 tests in the repository virtual environment, pre-commit, diff/portable-path/source-gate scans, and independent candidate, resource, science/D3, process-safety, and document-consistency audits. Audit findings were resolved in the plan; no Critical or High issue remains at the planning gate.
+- Merged the Phase 8B planning-only branch as PR #9 at `d5e5f61`, then received explicit authorization for exactly one frozen QXH attempt with no replacement or retry.
+- Implemented the one-shot permit, exact authority and source closure, pre-import worker handshake, permanent compute claim, independent Linux guardian, CPU/thread/memory controls, dynamic D3 evidence contract, strict deployment/launch/postflight tooling, and no-chemistry regression coverage.
+- Passed the execution preflight, created only the frozen isolated target, transferred the exact 28-file bundle, and issued exactly one launch. The permit was consumed and the compute claim was published; no second launch occurred.
+- Rejected the attempt because the immutable guardian receipt recorded `cleanup_failed` and did not bind the permanent compute-claim hash. No cation or neutral endpoint result, accepted SCF energy, dynamic D3 evidence, or deprotonation label exists.
+- Determined that a transient `S` to `R` process-state change was incorrectly compared as durable identity drift. Future code now compares only stable identity fields at terminal readback while retaining exact registration/acknowledgement/claim equality.
+- Corrected the future postflight reader to accept the registered zero-byte Phase 7 helper log only in the Phase 7 tree. The historical postflight remains incomplete, the immutable receipt remains rejected, and kernel invocation remains `indeterminate`.
+- Permanently retired the consumed QXH production bundle and launch routes, passed 556 closed-gate tests, Ruff, strict mypy for 72 source files, pre-commit, compileall, package build, privacy/diff checks, and a final security review with no remaining High, Critical, or Medium issue.
 
 ## Current boundary
 
-Phase 0–8A are complete and merged. Phase 8B is in documentation planning only. Four smoke candidates have validated initial geometries; QXH is frozen for the first infrastructure smoke and the other 46 remain ungenerated. The current runner is not execution-ready because the Phase 8B resource, exact-permission and dynamic-evidence blockers are intentionally unimplemented. Phase 8B real DFT and server writes remain blocked: its source gate is false, no request exists, and no Phase 8B private execution/write authorization exists.
+Phase 0–8A and the Phase 8B planning gate are complete and merged. The only
+authorized Phase 8B QXH attempt was consumed and rejected at the execution
+protocol layer. Its permit, attempt identity, bundle, and remote root are
+permanently unusable. No acceptable DFT endpoint or label was produced, and
+the source execution gate is false.
 
 ## Next action
 
-Review and merge the Phase 8B planning-only branch, then stop and ask whether the user explicitly authorizes the exact frozen QXH smoke. Until that second decision, do not implement an open gate, connect to the server, create a remote root, construct a molecule, or run PySCF/geomeTRIC/D3.
+Publish the rejected Phase 8B incident, future-code corrections, and closed-gate
+verification to `main`, then stop. Any new calculation requires a separate
+document-first plan, a new candidate/attempt/root/permit authority chain, and
+new explicit user authorization. No model or dataset ingestion may occur from
+this rejected attempt.

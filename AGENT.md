@@ -12,7 +12,7 @@
 
 ## 2. 当前阶段与阶段门禁
 
-- Phase 0 至 Phase 8A 已合入 `main`；当前只进入用户确认的 Phase 8B 单候选 DFT smoke 文档规划阶段。规划不等于执行授权，真实 DFT 仍未授权。
+- Phase 0 至 Phase 8A 已合入 `main`；Phase 8B 规划已由 PR #9 合入 `main`。用户授权的唯一 QXH 双端点 DFT smoke attempt 已消耗并被终态证据链拒绝；该授权不得复用，也不扩展到第二 attempt、其他候选或后续阶段。
 - Phase 4 裁定 `raw_xTB_wins`：B0 是生产排序默认，B1 只能作为绝对能量校准 companion，H1 不得用于正式全库排序。
 - Phase 5 只读取不可变的 `data/processed/v001`、B0/B1/Phase 4 决策及其 manifest；不得改写 Phase 1/2/3/4 结果，不得重新拟合或调参。
 - Phase 5 可生成本地评分表、适用域审计、候选建议与无 Hessian DFT 互操作 manifest；不得运行 PySCF、xTB、Hessian，不得连接或写入 HPC，不得提交作业。
@@ -20,7 +20,7 @@
 - Phase 5 已按用户确认的 B0/B1 双轨语义、Top-100 和 50 条 `15/13/12/10` 配额完成；任何真实高保真计算、上传服务器或提交作业都属于新阶段，仍需重新文档先行和明确授权。
 - Phase 6 只把冻结的 50 条建议转换为本地、不可变、可校验的 legacy-ready CSV、5×10 分批计划、四桶 smoke 清单和协议/预期产物 manifest；必须写明 `geometry_generated=false`、`execution_ready=false`、`quantum_chemistry_run=false`、`server_write_authorized=false`、`submit_hpc=false`。
 - 当前只有 Phase 7 的 4 条 smoke 具有强验证的 cation/neutral 初始 XYZ；其余 46 条仍未生成。不得在本地运行 RDKit/力场、xTB、PySCF 或 Hessian 来补齐，不得把完整 50 条计划包称为可直接运行的 DFT 输入。
-- 旧 `dft_batch --skip-hessian` 的额外 ωB97X-D/def2-TZVP cation/neutral/radical 单点仍被禁用；专用双端点 runner 与同组进程树硬 wall-time 已实现但未执行，在新的 Phase 8B 明确授权前必须保持 execution blocked。
+- 旧 `dft_batch --skip-hessian` 的额外 ωB97X-D/def2-TZVP cation/neutral/radical 单点仍被禁用。专用双端点 runner 的唯一获准 attempt 已在执行协议层失败，未产生完整端点工作流或最终能量；execution gate 必须保持关闭。
 - Phase 7 几何范围严格等于 Phase 6 `smoke.csv` 的 4 个 InChIKey；不得扩展到 batch 01 的其余 6 条或完整 50 条，不得运行 xTB、PySCF、Hessian、旧 M4 或专用 runner。
 - Phase 7 只允许在私有配置指定的全新版本化服务器运行目录中写入；必须先确认目标不存在并完成只读环境/资源/legacy 文件哈希预检。禁止修改 `$WJW` 既有代码、环境、候选库或生产结果。
 - 禁止使用旧仓库全量 `deploy`、`rsync --delete`、远端删除/覆盖或模糊目标同步。只可定向上传已登记的小型 smoke 输入/脚本，传输后必须核对真实目标和 SHA256。
@@ -30,10 +30,10 @@
 - Phase 8A 服务器动作严格只读：只允许显式进入项目根、只 source `molenv.sh`、设置 `PYTHONDONTWRITEBYTECODE=1`，然后导入模块并用 `inspect` 检查版本、可调用对象、签名与默认值。禁止创建 `Mole`、调用 `build()`、实例化真实 RKS/UKS、调用 `kernel()`/`optimize()`、计算积分/梯度/色散或写入服务器。
 - Phase 8A 不上传代码、不创建远端目录、不改 Phase 7 运行目录、不安装/升级依赖、不提交后台或调度任务。API 预检结果只能下载/记录为无私人坐标的 checked-in evidence。
 - `EXECUTION_AUTHORIZED` 与私有配置中的量化执行授权必须保持 false。请求 JSON、CLI 参数、环境变量、依赖注入或测试 monkeypatch 均不得成为真实执行的公开旁路。
-- Phase 8B 当前只可读取 Phase 6–8A 已登记的计划、四条 Phase 7 几何证据、runner/supervisor 契约和本地服务器知识，形成恰好一个候选、cation/neutral 两端点的最小 smoke 计划。不得连接服务器、上传、创建远端目录、运行 worker 或改动执行代码。
+- Phase 8B 当前只允许只读事故取证、终态身份比较缺陷修复、关闭门回归和 rejected portable evidence。不得重写不可变远端 receipt、恢复 permit、再次启动 worker、替换候选或产生补算结果。
 - Phase 8B 计划必须预先冻结候选 InChIKey 及选择理由、两端点输入哈希、唯一协议、线程/内存/timeout 上限、新版本化远端根、同步前后哈希、动态 D3(BJ) 验收、失败保留/清理、证据下载和强制停止条件；不得保留“现场再决定”的科学或安全参数。
 - Phase 8B 规划裁定冻结 `QXHIEGFUWOLQIJ-UHFFFAOYSA-N`，cation/neutral 输入 SHA256 分别为 `097f08ab7c3f265efa8ee36c3fd45d72776c9bdcbd3de503baf8fe91561c12aa` 与 `e41e87daca3c7a74383364a427d277df5cf8a0aa70bff015c4cf432455f26bd0`；资源固定为单 worker 串行、4 个计算线程、整棵进程树 CPU affinity `0-3`、PySCF `max_memory=12000 MB` 软上限和整请求 `7200 s` hard wall-time。任何更换或扩大均须新计划和新授权。
-- Phase 8B 规划阶段中 `EXECUTION_AUTHORIZED` 与所有私有量化执行位继续为 false。只有计划经用户再次明确确认后，才可另行更新 `AGENT.md` 与私有授权并执行已冻结的一个 smoke；“进入 Phase 8B”本身不得解释为该第二次授权。
+- Phase 8B 的本地源码门、通用请求门与私有执行位均须保持 false。任何未来计算都必须使用新版本根、新 attempt、新 permit、新的文档先行计划和用户明确授权；本次 bundle、路径和许可永久不可复用。
 - 每个 Phase 必须先写清范围、输入、输出、假设、风险、命令和验收门禁，再执行代码或数据操作。
 - 每个 Phase 完成后，按 `prompt.md` 第 23 节报告完成项、读取文件、改动文件、科学假设、数据质量、命令、测试、未执行事项、门禁结论和下一步。
 
@@ -227,3 +227,20 @@ dig +trace domain
 8. 动态验收明确区分 API 可用、D3(BJ) 实际启用、优化/SCF 显式收敛、有限能量、原子顺序与标签公式；任何一项不明即失败，不得把静态 Phase 8A 证据替代动态结果；
 9. 计划规定执行前/后资源与文件哈希、无 Hessian/无额外计算证明、失败 envelope、远端/本地只读回读和 checked-in portable evidence；私人坐标不得进入 tracked 文件；
 10. 计划写完后立即停止，向用户展示候选与全部资源/安全边界，并等待明确的“授权执行该冻结 smoke”；未收到该表述前所有执行位保持 false。
+
+上述规划条件已通过 PR #9 合入 `main`，且用户已明确授权执行该冻结 smoke。
+
+## 19. Phase 8B 单次真实 smoke 执行停止条件
+
+1. 本次授权只包含 `QXHIEGFUWOLQIJ-UHFFFAOYSA-N` 的 cation(+1, singlet) 后 neutral(0, singlet) 两端点；request ID 固定为 `phase8b-qxh-smoke-v001`，attempt ID 固定为 `attempt-phase8b-qxh-v001`；
+2. 本文件必须是授权后的第一个文件改动；随后先实现通用安全能力并以关闭 gate 通过 fake backend/标准库进程测试、238+ 全套回归、Ruff、format、strict mypy、pre-commit、build、静态禁算扫描和独立审计；
+3. 只有最终候选特异源码再次完成无化学测试与审计后，才可冻结 source hash，按无环顺序生成 true request、permit-excluding payload manifest、一次性私有 permit 与 outer transport inventory；
+4. 一次性 permit 必须绑定解析后的固定远端根、request/output 路径、候选、attempt、输入、协议、资源和 payload hash，在任何 worker spawn 前原子且不可逆消费；成功、失败或 spawn error 均不得恢复；
+5. 新鲜服务器只读 preflight 必须先通过计划中的版本/API/source hash、Phase 7 hash、`nproc/load/MemAvailable/disk/taskset/CPU 0-3`、进程 CWD/RSS 和目标不存在门禁；任一失败即停止且不得改名或放宽；
+6. 远端写入只允许固定相对根 `data/runs/nhc_deprot_ranker_phase8b_dft_smoke_v001` 和 manifest 登记文件，使用定向传输并逐文件复核；禁止覆盖、`rsync --delete`、全库部署、环境修改或调度提交；
+7. 真实运行严格为 one worker、cation→neutral、CPU affinity `0-3`、4 计算线程、PySCF `max_memory=12000 MB` 软上限、整请求 `7200 s` hard wall-time、10 s TERM grace 和 64 KiB/stream；不得现场增加资源；
+8. 独立 chemistry-free watchdog、pre-import handshake、parent-death containment、PID/PGID/start-time 校验与 TERM/KILL/reap 必须生效；监督器死亡也不得让 worker 脱离 deadline；
+9. 每端点必须动态证明 D3(BJ) energy/gradient hook、summary 算术与一次 zero-SCF D3 分量复核；必须显式收敛且有限；不得运行 Hessian、频率、ZPE、热化学、no-D3 对照、额外电子单点、radical、Molden 或第二 attempt；
+10. 无论成功或失败，均先证明精确进程树消失、permit 已消费、远端/本地 hash 与 Phase 7 不变性，再下载 private result、关闭本地执行 gate、写 portable evidence 并停止；不得自动替换候选、重跑、摄取模型或进入下一阶段。
+
+上述唯一 attempt 已消耗：远端 permit 为 consumed，compute claim 已线性化，但不可变 guardian receipt 因终态身份比较错误记录 `cleanup_failed` 且未绑定 claim hash，冻结 postflight 因而正确拒绝验收。没有完成任何端点级工作流，也没有产生或接受最终 SCF 能量、动态 D3 证据或脱质子标签。现存证据不足以证明 SCF/DFT kernel 从未被调用；只可将其状态记录为 `indeterminate`。本阶段只允许生成独立 rejected incident evidence、修复未来代码并保持 execution gate 关闭；再次执行必须重新计划和授权。

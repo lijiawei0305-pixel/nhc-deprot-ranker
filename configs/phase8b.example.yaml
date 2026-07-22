@@ -1,0 +1,24 @@
+schema_version: phase8b_remote.v1
+connection:
+  mode: campus_direct
+  ssh_alias: hpc-alias
+  proxy_host: 127.0.0.1
+  proxy_port: 11080
+remote:
+  project_root: /path/to/hpc/project
+  environment_relative: env/envs/molenv.sh
+  phase7_run_relative: data/runs/nhc_deprot_ranker_phase7_smoke_v001
+  phase8b_run_relative: data/runs/nhc_deprot_ranker_phase8b_dft_smoke_v001
+  require_new_phase8b_root: true
+transfer:
+  directed_files_only: true
+  recursive_copy: false
+  delete: false
+  overwrite: false
+safety:
+  read_only_preflight_authorized: true
+  server_write_authorized: false
+  quantum_execution_authorized: false
+  consumed_private_permit_required: true
+  scheduler_submission_authorized: false
+  second_attempt_authorized: false
