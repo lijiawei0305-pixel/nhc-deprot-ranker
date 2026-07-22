@@ -5,7 +5,7 @@ Updated: 2026-07-22
 | Phase | Status | Gate |
 | --- | --- | --- |
 | Phase 0 — legacy audit | Complete | Passed 2026-07-22 |
-| Phase 1 — data contract/import | Not started | Phase 0 user approval required |
+| Phase 1 — data contract/import | Complete on `agent/phase1-data-import` | Passed 2026-07-22 |
 | Phase 2 — baselines | Not started | Phase 1 pass required |
 | Phase 3 — hierarchical model | Not started | Phase 2 pass required |
 | Phase 4 — model decision | Not started | Phase 3 pass required |
@@ -23,12 +23,15 @@ Updated: 2026-07-22
 - Documented a no-write/no-compute server verification plan for the two HPC-only authoritative tables and raw gold endpoints.
 - Completed the approved server read-only audit and closed all identified data-source gaps.
 - Created the independent Git repository skeleton, MIT license, portable configuration, ignored local source map, package/CLI skeleton, Phase 0 utilities, source manifest, and reports.
-- Passed pytest (23), Ruff, mypy, configuration parsing, package build, and private-path checks.
+- Published the Phase 0 foundation as the public GitHub repository `lijiawei0305-pixel/nhc-deprot-ranker` under MIT.
+- Implemented local/SSH read-only streaming import, formula checks, canonical families, label conflict handling, protocol identity, provenance, atomic output, and immutable version enforcement.
+- Built and independently verified `data/processed/v001`: 401,856 candidates, 71 labels, 100% fragment coverage, zero formula failures/conflicts, and one label protocol.
+- Passed pytest (31), Ruff, mypy, configuration parsing, package build, pre-commit, and private-path checks.
 
 ## Current boundary
 
-Phase 0 is complete. No new model, quantum-chemistry calculation, full-pool scoring, or HPC job has been performed. The working tree has not been committed or published.
+Phase 0 is published on `main`; Phase 1 is complete on its review branch. The production data products remain ignored local artifacts, while their hashes and quality evidence are checked in. No model, quantum-chemistry calculation, full-pool scoring, or HPC job has been performed.
 
 ## Next action
 
-Wait for explicit user approval before starting Phase 1 data import and immutable processed-dataset construction.
+Review and merge the Phase 1 draft pull request. Phase 2 requires separate authorization and does not start automatically.

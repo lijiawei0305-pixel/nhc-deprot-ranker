@@ -16,7 +16,7 @@ It is an electronic-energy label, not a complete Gibbs free energy. Lower is bet
 
 ## Current status
 
-Only Phase 0 is in scope. The legacy repository has been audited read-only; no new model has been trained and no full-pool scoring or quantum-chemistry calculation has run. See [Phase Status](PHASE_STATUS.md) and [Legacy Audit](docs/LEGACY_AUDIT.md).
+Phase 0 and Phase 1 are complete. The legacy repository and HPC-only tables were read and audited without modification, and the immutable processed dataset `v001` has passed its production gate with 401,856 candidates and 71 high-fidelity labels. No model has been trained, no full-pool prediction has run, and no quantum-chemistry calculation has been submitted. See [Phase Status](PHASE_STATUS.md), [Phase 1 Report](docs/PHASE1_REPORT.md), and [Legacy Audit](docs/LEGACY_AUDIT.md).
 
 ## Source policy
 
@@ -36,23 +36,28 @@ ruff check .
 mypy src scripts
 ```
 
-Phase 0 CLI discovery:
+Phase 1 dataset build:
 
 ```bash
 nhc-deprot --help
 nhc-deprot audit-legacy --config configs/legacy.local.yaml --dry-run
-nhc-deprot validate-labels --help
+nhc-deprot build-dataset \
+  --legacy-config configs/legacy.local.yaml \
+  --data-config configs/data.yaml \
+  --families-config configs/families.yaml \
+  --out data/processed/v001 \
+  --dry-run
 ```
 
-Commands for later phases report that their phase is not implemented; they do not silently create outputs.
+Remove `--dry-run` only after reviewing the source plan. Existing processed versions are never overwritten. Commands for later phases report that their phase is not implemented; they do not silently create outputs.
 
 ## Repository map
 
 - `configs/`: portable specifications plus an ignored real-location file;
 - `docs/`: science, data, family, model, validation, acquisition, audit, and reporting contracts;
-- `src/nhc_deprot_ranker/`: package skeleton and Phase 0 audit utilities;
+- `src/nhc_deprot_ranker/`: audit utilities and the Phase 1 streaming importer;
 - `scripts/`: direct audit and label-formula entry points;
-- `tests/`: synthetic, HPC-independent Phase 0 tests;
+- `tests/`: synthetic, HPC-independent Phase 0/1 tests;
 - `data/`, `models/`, `results/`: ignored runtime roots with tracked placeholders.
 
 ## License

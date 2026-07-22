@@ -13,6 +13,7 @@ class ResolvedSource:
     """A local path or a read-only remote path."""
 
     location: str
+    source_id: str
     path: Path
     is_remote: bool
     ssh_alias: str | None = None
@@ -29,6 +30,7 @@ def resolve_source(config: LegacyConfig, source: LocatedPath) -> ResolvedSource:
     if source.location == "legacy_repo":
         return ResolvedSource(
             location=source.location,
+            source_id=f"legacy_repo:{source.path.as_posix()}",
             path=config.legacy_repo.root / source.path,
             is_remote=False,
         )
@@ -38,6 +40,7 @@ def resolve_source(config: LegacyConfig, source: LocatedPath) -> ResolvedSource:
         raise ValueError("remote source configuration is incomplete")
     return ResolvedSource(
         location=source.location,
+        source_id=f"remote_root:{source.path.as_posix()}",
         path=config.source_access.remote_root / source.path,
         is_remote=True,
         ssh_alias=config.source_access.ssh_alias,

@@ -7,13 +7,13 @@
 - Real roots and SSH alias: ignored `configs/legacy.local.yaml` only.
 - No large legacy input is copied into this repository.
 
-## Local environment used for Phase 0 checks
+## Local environment used for Phase 0/1 checks
 
 - Python 3.14.3; project support floor is Python 3.11.
 - Pydantic 2.12.5, PyYAML 6.0.3, pytest 9.0.3.
 - The legacy declared molecular environment uses Python 3.11.
 
-Phase 0 utilities use no quantum-chemistry package.
+Phase 0/1 utilities use no quantum-chemistry package. Phase 1 additionally uses pandas and PyArrow for normalized Parquet output.
 
 ## Commands
 
@@ -29,6 +29,19 @@ PYTHONPATH=src python -m nhc_deprot_ranker.cli \
 PYTHONPATH=src python scripts/verify_label_formula.py \
   --input <LEGACY_LOCAL_ROOT>/reports/part1-blind-round2-2026-07-09/deltaE_final.csv \
   --target-column dft_deprot_kcal --dry-run
+
+PYTHONPATH=src python -m nhc_deprot_ranker.cli build-dataset \
+  --legacy-config configs/legacy.local.yaml \
+  --data-config configs/data.yaml \
+  --families-config configs/families.yaml \
+  --out data/processed/v001 \
+  --dry-run
+
+PYTHONPATH=src python -m nhc_deprot_ranker.cli build-dataset \
+  --legacy-config configs/legacy.local.yaml \
+  --data-config configs/data.yaml \
+  --families-config configs/families.yaml \
+  --out data/processed/v001
 ```
 
 The approved server audit used direct, read-only SSH and an stdin-fed standard-library Python scanner. It printed only aggregate metadata and hashes. The exact allowed/prohibited operation classes and completion record are in `SERVER_READONLY_PLAN.md`.
@@ -40,7 +53,10 @@ The approved server audit used direct, read-only SSH and an stdin-fed standard-l
 - Protocol IDs use sorted canonical JSON with NaN prohibited.
 - Family pairs use deterministic normalized sorting.
 - Dry-run commands do not create explicit outputs.
+- Candidate rows use stable `(xtb_deprot_kcal, inchikey)` ascending order.
+- A processed version is built in a sibling temporary directory and atomically published only after manifests and hashes succeed.
+- Existing versions are immutable; a rebuild after source/config changes requires a new dataset version.
 
-## Remaining reproducibility work
+## Phase 1 evidence
 
-Phase 1 will create an immutable processed dataset manifest and checked-in audit command output schema. Model/data manifests and prediction hashes are unavailable because no model or processed production dataset exists yet.
+The large processed artifacts are intentionally ignored. Their row counts, source hashes, output hashes, protocol ID, and gate outcome are recorded in `PROCESSED_V001_MANIFEST.json` and `PHASE1_REPORT.md`. Model and prediction hashes remain unavailable because Phase 2 has not started.

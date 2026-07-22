@@ -1,0 +1,58 @@
+{
+  "built_at_utc": "2026-07-22T07:16:46.438264+00:00",
+  "dataset_version": "v001",
+  "label_protocol_id": "2d03e2dc62c94cbf2bb6aaa1a40b842bb1369427c9df10b742441ef7227850fd",
+  "output_sha256": {
+    "candidates.parquet": "28367af13a0c47c2386632871ac1d1c1067c414f0cdb4c3a7e7cccf5d7d42e3e",
+    "data_quality.json": "c30890b8ffb5d86a3cbe22e819ae7bf671a30cacab58efee4bef212c203f3301",
+    "label_source_membership.csv": "f3e2802733600b48e029294a618866b5211ff05c98d2acccd4415ad929276ca2",
+    "labels.parquet": "f6651a97955a98a091a664cf8b1671108e2891f23eb88d4ec7b8ce69d3990656",
+    "protocol_manifest.json": "c4beda4bf14739a7394c09f6e1e5a90b472746afd0462a0dcc12fd243bd8b026",
+    "source_manifest.json": "e419fd1273505e2b5dc013113e028595901ce76e06e5c4db5df2b6bc06dd5e70"
+  },
+  "phase1_gate": {
+    "formula_failures": 0,
+    "fragment_coverage_fraction": 1.0,
+    "label_conflicts": 0,
+    "labels_missing_candidates": 0,
+    "primary_key_unique": true,
+    "protocol_ids": 1
+  },
+  "rows": {
+    "candidates": 401856,
+    "label_source_memberships": 71,
+    "labels": 71
+  },
+  "sources": [
+    {
+      "parsed_rows": 401856,
+      "role": "xtb_full_candidates",
+      "sha256": "327c00871fde7149b79e527de537dd98ea26686af641b87882a112e15a01617f"
+    },
+    {
+      "parsed_rows": 36585,
+      "role": "fragment_lookup_v3",
+      "sha256": "30ad7d4479a4902f22856ae5e5838e368eaf47eab1f576ee68b352a2a03316ae"
+    },
+    {
+      "parsed_rows": 365271,
+      "role": "fragment_lookup_v4_new",
+      "sha256": "ff319a318ab3d954ea530e559ec90dca59e5f8c1d209b013e679a2a60f946747"
+    },
+    {
+      "parsed_rows": 24,
+      "role": "labels_gold",
+      "sha256": "ba181ef3959bab52842fd396080ba1acf0f9111b59303a0f6050eadeba1e6d9e"
+    },
+    {
+      "parsed_rows": 12,
+      "role": "labels_blind_round1",
+      "sha256": "f353d3e9882a420c68595ee679869749026c166b1516bc13045963d74c204f62"
+    },
+    {
+      "parsed_rows": 35,
+      "role": "labels_blind_round2",
+      "sha256": "4c457f12363c44698279f0dc43e85a6933bc3bae0c4a9a807a35398cfe84eb5b"
+    }
+  ]
+}

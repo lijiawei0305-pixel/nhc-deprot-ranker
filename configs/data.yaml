@@ -7,6 +7,8 @@ candidate_columns:
   inchikey: InChIKey
   smiles_cation: SMILES_cation
   smiles_neutral: SMILES_neutral
+  e_cation_hartree: e_cation
+  e_neutral_hartree: e_neutral
   xtb_deprot_kcal: delta_e_deprot_kcal
   n1_frag: N1_frag
   n3_frag: N3_frag
@@ -48,3 +50,9 @@ protocol:
   proton_constant_kcal: -6.28
   target_definition: electronic_deprotonation_energy
   label_quality: electronic_energy_only
+
+label_defaults:
+  cation_converged: true
+  neutral_converged: true
+  hessian_computed: false
+  n_imaginary: null
