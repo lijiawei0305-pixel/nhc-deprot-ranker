@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from nhc_deprot_ranker.config import (
     LegacyConfig,
+    load_acquisition_config,
     load_baseline_model_config,
     load_data_config,
     load_evaluation_config,
@@ -54,6 +55,15 @@ def test_phase3_config_loads() -> None:
     assert model.expected_label_rows == 71
     assert model.skeleton_policy == "inactive_if_single_level"
     assert model.bootstrap.regularization_policy == "fixed_from_nested_cv"
+
+
+def test_phase5_config_loads_and_has_exact_quotas() -> None:
+    config = load_acquisition_config(Path("configs/acquisition.yaml"))
+    assert config.acquisition_batch_size == 50
+    assert config.score_top_n == 100
+    assert config.probability_top_k == [10, 50, 100]
+    assert sum(config.quotas.model_dump().values()) == pytest.approx(1.0)
+    assert config.submit_hpc is False
 
 
 def test_writable_legacy_access_is_rejected() -> None:

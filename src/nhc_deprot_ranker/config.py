@@ -470,6 +470,90 @@ class EvaluationConfig(StrictModel):
         return value
 
 
+class AcquisitionWeightsConfig(StrictModel):
+    """Non-negative Phase 5 acquisition score weights."""
+
+    top: float = Field(ge=0.0)
+    uncertainty: float = Field(ge=0.0)
+    rank_shift: float = Field(ge=0.0)
+    family_novelty: float = Field(ge=0.0)
+    cutoff: float = Field(ge=0.0)
+    diversity: float = Field(ge=0.0)
+
+
+class AcquisitionQuotasConfig(StrictModel):
+    """Configured acquisition-bucket fractions."""
+
+    predicted_top_region: float = Field(ge=0.0, le=1.0)
+    cutoff_region: float = Field(ge=0.0, le=1.0)
+    chemical_family_diversity: float = Field(ge=0.0, le=1.0)
+    uncertain_ood_conflict: float = Field(ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def sum_to_one(self) -> AcquisitionQuotasConfig:
+        """Require an exact complete allocation within float tolerance."""
+
+        total = (
+            self.predicted_top_region
+            + self.cutoff_region
+            + self.chemical_family_diversity
+            + self.uncertain_ood_conflict
+        )
+        if not math.isclose(total, 1.0, rel_tol=0.0, abs_tol=1e-12):
+            raise ValueError("acquisition quotas must sum to 1")
+        return self
+
+
+class AcquisitionConfig(StrictModel):
+    """Typed Phase 5 full-score and acquisition policy."""
+
+    version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    dataset_version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    top_k: int = Field(ge=1)
+    score_top_n: int = Field(ge=1)
+    acquisition_batch_size: int = Field(ge=1)
+    probability_top_k: list[int]
+    sparse_family_min_support: int = Field(ge=1)
+    high_uncertainty_quantile: float = Field(gt=0.0, lt=1.0)
+    bootstrap_chunk_rows: int = Field(ge=1)
+    cutoff_rank: int = Field(ge=1)
+    cutoff_window: int = Field(ge=1)
+    top_region_max_rank: int = Field(ge=1)
+    quota_rounding: Literal["largest_remainder_config_order"]
+    diversity_fields: tuple[
+        Literal["combined_family"],
+        Literal["axis_a_family"],
+        Literal["axis_b_family"],
+        Literal["n1_frag"],
+        Literal["n3_frag"],
+        Literal["c4_frag"],
+        Literal["c5_frag"],
+    ]
+    weights: AcquisitionWeightsConfig
+    quotas: AcquisitionQuotasConfig
+    exclude_already_labeled: Literal[True]
+    submit_hpc: Literal[False]
+    seed: int
+
+    @model_validator(mode="after")
+    def validate_phase5_policy(self) -> AcquisitionConfig:
+        """Require unique cutoffs/fields and the approved B0/B1 Top-50 policy."""
+
+        if not self.probability_top_k or any(value < 1 for value in self.probability_top_k):
+            raise ValueError("probability_top_k must contain positive values")
+        if len(self.probability_top_k) != len(set(self.probability_top_k)):
+            raise ValueError("probability_top_k values must be unique")
+        if self.top_k not in self.probability_top_k:
+            raise ValueError("top_k must be included in probability_top_k")
+        if len(self.diversity_fields) != len(set(self.diversity_fields)):
+            raise ValueError("diversity_fields must be unique")
+        if self.cutoff_rank != self.top_k:
+            raise ValueError("approved Phase 5 cutoff_rank must equal top_k")
+        if self.score_top_n < max(self.probability_top_k):
+            raise ValueError("score_top_n must cover the largest Top-K probability")
+        return self
+
+
 def _load_yaml_mapping(path: Path) -> dict[str, object]:
     """Load a YAML mapping without accepting implicit scalar roots."""
 
@@ -509,6 +593,12 @@ def load_evaluation_config(path: Path) -> EvaluationConfig:
     """Load and validate the evaluation configuration."""
 
     return EvaluationConfig.model_validate(_load_yaml_mapping(path))
+
+
+def load_acquisition_config(path: Path) -> AcquisitionConfig:
+    """Load and validate the Phase 5 scoring/acquisition configuration."""
+
+    return AcquisitionConfig.model_validate(_load_yaml_mapping(path))
 
 
 def load_hierarchical_model_config(path: Path) -> HierarchicalModelConfig:

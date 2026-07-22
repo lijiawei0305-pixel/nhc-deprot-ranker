@@ -42,3 +42,9 @@ The old Δ-learning form fixes the explicit xTB coefficient at 1. The audited 71
 - Broad same-run xTB electronics/ESP are shortcut-prone and remain ablations, not default features.
 
 No claim is made that a new model wins, reaches DFT accuracy, predicts experimental chemistry, or identifies the best synthesis candidate.
+
+## Final model and Phase 5 audit
+
+Phase 4 ultimately selected `raw_xTB_wins`. B1 is retained only for a DFT-scale affine companion; H1 was not promoted because its apparent gains did not survive the complete head-recall, family-collapse, offset-stability, and B0-comparison gate. This is consistent with the Phase 0 warning that simple xTB was a serious ranking baseline.
+
+Phase 5 preserves that scientific boundary. It ranks by B0 only, reports B1 coefficient-bootstrap intervals separately, and records zero rank shift. All 401,856 rows lack validated size fields, so none is called fully in-domain. The selected 50 candidates are all baseline extrapolations and high under the limited coefficient-uncertainty threshold; they are proposed to reduce evidence gaps, not asserted to be high-confidence chemical winners.

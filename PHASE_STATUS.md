@@ -8,8 +8,8 @@ Updated: 2026-07-22
 | Phase 1 — data contract/import | Complete and merged to `main` | Passed 2026-07-22 |
 | Phase 2 — baselines | Complete and merged to `main` | Passed 2026-07-22 |
 | Phase 3 — hierarchical model | Complete and merged to `main` | Passed 2026-07-22 |
-| Phase 4 — model decision | Complete on `agent/phase4-model-decision`; awaiting review | Passed 2026-07-22; `raw_xTB_wins` |
-| Phase 5 — full scoring/acquisition | Not started | Separate authorization required; B0 selected |
+| Phase 4 — model decision | Complete and merged to `main` | Passed 2026-07-22; `raw_xTB_wins` |
+| Phase 5 — full scoring/acquisition | Complete | Passed 2026-07-22 |
 
 ## Current completed work
 
@@ -44,11 +44,19 @@ Updated: 2026-07-22
 - Built and independently verified `results/decision_v001`: 55 input hashes, 13 runtime files, 180 uncertainty rows, and 6,000/6,000 protocol bootstrap replicates all passed.
 - Final decision: `raw_xTB_wins`. B1 failed to improve primary ranking; H1 failed stable head recall, stable improvement over B0, one catastrophic held-out family, and one supported offset-stability gate.
 - Selected B0 as the production ranking default and retained B1 as the absolute-calibration companion; H1 was not promoted.
+- Merged Phase 4 PR #4 into `main` as `18aae58` and opened the isolated Phase 5 branch.
+- Re-audited all 401,856 candidate fields: size is missing for every row; 2,782 rows are outside the labeled xTB range; only 2,316 rows have both axis families seen in training; all raw Top-50 rows are below the labeled xTB range and have at least one unseen axis family.
+- Confirmed all 2,000 B1 bootstrap slopes are positive (`0.6259–0.8065`), so B1 companion ranks and Top-K membership are identical to B0 in every replicate.
+- Confirmed the dual-track B0/B1 output semantics, Top-100 review table, and 50-candidate acquisition policy with exact quotas `15/13/12/10`.
+- Implemented typed Phase 5 configuration, full scoring, B1 coefficient-bootstrap companion intervals, applicability flags, deterministic acquisition, immutable manifests, CLI, and eight audit figures.
+- Built and independently verified `results/scoring_v001`: 401,856 unique ranked candidates, exact B0/calibrated rank identity, zero rank shifts, 2,782 baseline extrapolations, explicit size-unavailable status on every row, and no fully in-domain claims.
+- Built and independently verified `results/acquisition_v001`: 50 unique unlabeled candidates, zero overlap with 71 labels, exact quotas with no fill, 46 combined families, and a local-only high-fidelity manifest with `submit_hpc=false`.
+- Passed 87 pytest tests, Ruff, strict mypy, real output/hash readback, and visual QA; no quantum-chemistry or server/HPC action occurred.
 
 ## Current boundary
 
-Phase 0/1/2/3 are published on `main`; Phase 4 is complete on its isolated branch and awaits review. Runtime data/models/results remain ignored local artifacts, while exact hashes and quality evidence are checked in. Phase 5 full-pool scoring, quantum-chemistry calculation, HPC connection, and server writes have not been performed.
+Phase 0–5 are complete. Large runtime data/models/results remain ignored; checked-in manifests preserve their exact identities. No quantum-chemistry calculation, HPC connection, server write, file transfer, or job submission occurred.
 
 ## Next action
 
-Review and merge the Phase 4 draft PR. Phase 5 requires separate user authorization and does not start automatically.
+Any real high-fidelity calculation campaign requires a separately documented and explicitly authorized new phase. The current 50-row acquisition result remains a local suggestion only.

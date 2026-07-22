@@ -1,0 +1,57 @@
+{
+  "acquisition_version": "v001",
+  "batch_size": 50,
+  "built_at_utc": "2026-07-22T09:54:37.471246+00:00",
+  "dataset_version": "v001",
+  "gate_status": "passed",
+  "input_identity": {
+    "acquisition_config_sha256": "f58fcd476031dfdf311760c08798e0ed0d4e45e8eab855a3cae05240ae36786a",
+    "dataset_evidence_sha256": "db6b390efda24b46056b2155805bcc3c4394470405c9c561156cbd72ec8bb862",
+    "full_ranked_candidates_sha256": "dc560def31e2f6726404b3325ddf485aa065c782dfd205e17d90d310feb9d6ec",
+    "score_manifest_sha256": "c9c87b1597ed8d994b089595b9da7c93a21467dbee82d1e0256a0e3fce5dacf6"
+  },
+  "output_sha256": {
+    "_SUCCESS": "469c00897d72c4b00cc6403ccd607a90a210dcdb842d7b5e6c14c9e41625123e",
+    "acquisition_candidates.csv": "5a0680c583dc583cbbc00bb4e58a95cd8e5f892e015eeb8786a7877de870462a",
+    "acquisition_manifest.json": "ee243360640299a0819f5ccf51a20ee30c31f56f581c4dbaa59c7522e2f1e94b",
+    "acquisition_summary.json": "09b25c198e7387bc0e811c3cf07f9dd01655118aa0c8e52b7ec504067e6ec601",
+    "figures/01_acquisition_buckets.png": "315e9b9a86f5cf53fe6955275e2839870d1a332290d2dafd72519a2762e926ae",
+    "figures/02_selected_rank_vs_uncertainty.png": "217d622fe010690d78be93b9752c3503c6f0584e8abbf35ad62de4ae09fa0348",
+    "figures/03_selected_family_coverage.png": "4a13b1ce7121e609089e83b052a78ea576889693b15a2d32d3e1b2c0e7c151d2",
+    "figures/04_selected_applicability.png": "ce18fa242f09e2f9a73848711cab9ee08b52c47bb1f057341bf8479028dc3f1a",
+    "high_fidelity_batch_manifest.json": "43d8388ef2e3385ef01a19485d0bc1d30524059bffdd92843ba27148e57907ea"
+  },
+  "ranking_model": "B0_raw_xTB",
+  "source_tree_sha256": "429ef1d0d513eccbeb0f247139817c5f39ce725e7bd9b9c03fdf7246d779840a",
+  "submit_hpc": false,
+  "summary": {
+    "baseline_extrapolation": 50,
+    "eligible_unlabeled": 401785,
+    "excluded_labeled": 71,
+    "high_uncertainty": 50,
+    "labeled_overlap": 0,
+    "nonzero_rank_shift": 0,
+    "production_rank_max": 69,
+    "production_rank_min": 1,
+    "quota_fill_counts": {
+      "chemical_family_diversity": 0,
+      "cutoff_region": 0,
+      "predicted_top_region": 0,
+      "uncertain_ood_conflict": 0
+    },
+    "realized_quotas": {
+      "chemical_family_diversity": 12,
+      "cutoff_region": 13,
+      "predicted_top_region": 15,
+      "uncertain_ood_conflict": 10
+    },
+    "selected": 50,
+    "size_unavailable": 50,
+    "unique_axis_a_families": 10,
+    "unique_axis_b_families": 21,
+    "unique_combined_families": 46,
+    "unique_keys": 50,
+    "unseen_axis_a": 50,
+    "unseen_axis_b": 24
+  }
+}

@@ -13,7 +13,7 @@
 - Pydantic 2.12.5, PyYAML 6.0.3, pytest 9.0.3.
 - The legacy declared molecular environment uses Python 3.11.
 
-Phase 0/1/2/3/4 utilities use no quantum-chemistry package. Phase 1 uses pandas and PyArrow for normalized Parquet output; Phases 2–4 add SciPy statistics, joblib serialization, scikit-learn-compatible estimators, paired OOF uncertainty, and headless Matplotlib reports.
+Phase 0/1/2/3/4/5 utilities use no quantum-chemistry package. Phase 1 uses pandas and PyArrow for normalized Parquet output; Phases 2–5 add SciPy statistics, joblib serialization, scikit-learn-compatible estimators, paired/parameter-bootstrap uncertainty, and headless Matplotlib reports.
 
 ## Commands
 
@@ -85,6 +85,46 @@ PYTHONPATH=src python -m nhc_deprot_ranker.cli evaluate \
   --hierarchical-results results/hierarchical_v001 \
   --evaluation-config configs/evaluation.yaml \
   --out results/decision_v001
+
+PYTHONPATH=src python -m nhc_deprot_ranker.cli score \
+  --dataset data/processed/v001 \
+  --baseline-results results/baselines_v001 \
+  --decision-results results/decision_v001 \
+  --acquisition-config configs/acquisition.yaml \
+  --dataset-evidence docs/PROCESSED_V001_MANIFEST.json \
+  --baseline-evidence docs/BASELINES_V001_MANIFEST.json \
+  --decision-evidence docs/DECISION_V001_MANIFEST.json \
+  --out results/scoring_v001 \
+  --seed 20260722 \
+  --dry-run
+
+PYTHONPATH=src python -m nhc_deprot_ranker.cli score \
+  --dataset data/processed/v001 \
+  --baseline-results results/baselines_v001 \
+  --decision-results results/decision_v001 \
+  --acquisition-config configs/acquisition.yaml \
+  --dataset-evidence docs/PROCESSED_V001_MANIFEST.json \
+  --baseline-evidence docs/BASELINES_V001_MANIFEST.json \
+  --decision-evidence docs/DECISION_V001_MANIFEST.json \
+  --out results/scoring_v001 \
+  --seed 20260722
+
+PYTHONPATH=src python -m nhc_deprot_ranker.cli acquire \
+  --dataset data/processed/v001 \
+  --scored-results results/scoring_v001 \
+  --acquisition-config configs/acquisition.yaml \
+  --dataset-evidence docs/PROCESSED_V001_MANIFEST.json \
+  --out results/acquisition_v001 \
+  --seed 20260722 \
+  --dry-run
+
+PYTHONPATH=src python -m nhc_deprot_ranker.cli acquire \
+  --dataset data/processed/v001 \
+  --scored-results results/scoring_v001 \
+  --acquisition-config configs/acquisition.yaml \
+  --dataset-evidence docs/PROCESSED_V001_MANIFEST.json \
+  --out results/acquisition_v001 \
+  --seed 20260722
 ```
 
 The approved server audit used direct, read-only SSH and an stdin-fed standard-library Python scanner. It printed only aggregate metadata and hashes. The exact allowed/prohibited operation classes and completion record are in `SERVER_READONLY_PLAN.md`.
@@ -102,7 +142,10 @@ The approved server audit used direct, read-only SSH and an stdin-fed standard-l
 - Phase 3 inner folds use deterministic key/group hashing and support-balanced group assignment.
 - Phase 3 bootstrap fixes the all-data nested-CV penalties and refits scaling, vocabularies, and coefficients for each paired InChIKey resample.
 - Phase 4 bootstrap resamples aligned frozen OOF truth/B0/B1/H1 rows together and never refits a model or retunes a penalty.
+- Phase 5 applies frozen B1 coefficient replicates in bounded 4,096-row chunks and validates every slope as positive before deterministic Top-K membership is emitted.
+- Phase 5 acquisition rounds quotas by largest remainder in configuration order, selects without replacement, and breaks ties by score, B0 rank, and InChIKey.
+- Score and acquisition outputs are built in sibling temporary directories and atomically published; existing result versions are rejected.
 
 ## Phase 1 evidence
 
-The large processed, baseline-result, hierarchical-result, and decision-result artifacts are intentionally ignored. Phase 1 evidence is recorded in `PROCESSED_V001_MANIFEST.json`; B0/B1 evidence in `BASELINES_V001_MANIFEST.json`; H1 evidence in `HIERARCHICAL_V001_MANIFEST.json`; and the final `raw_xTB_wins` decision in `DECISION_V001_MANIFEST.json`. Full-pool prediction hashes remain unavailable because Phase 5 has not started.
+The large processed and runtime result artifacts are intentionally ignored. Phase 1 evidence is recorded in `PROCESSED_V001_MANIFEST.json`; B0/B1 evidence in `BASELINES_V001_MANIFEST.json`; H1 evidence in `HIERARCHICAL_V001_MANIFEST.json`; the final `raw_xTB_wins` decision in `DECISION_V001_MANIFEST.json`; full scoring in `SCORING_V001_MANIFEST.json`; and local acquisition in `ACQUISITION_V001_MANIFEST.json`.
