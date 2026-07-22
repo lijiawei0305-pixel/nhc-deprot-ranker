@@ -398,6 +398,29 @@ class BootstrapCIConfig(StrictModel):
 
     repeats: int = Field(ge=1)
     confidence: float = Field(gt=0.0, lt=1.0)
+    seed: int
+
+
+class StableImprovementConfig(StrictModel):
+    """Point and paired-bootstrap stability rule for a claimed improvement."""
+
+    min_delta: float = Field(ge=0.0)
+    require_95_percent_lower_bound_nonnegative: Literal[True]
+
+
+class FamilyCollapseConfig(StrictModel):
+    """Operational definition of catastrophic held-out-family error."""
+
+    max_heldout_mae_increase_kcal: float = Field(gt=0.0)
+    max_heldout_mae_ratio: float = Field(gt=1.0)
+    catastrophic_requires_both: Literal[True]
+
+
+class FamilyOffsetStabilityConfig(StrictModel):
+    """Bootstrap sign-stability rule for supported family offsets."""
+
+    minimum_support: int = Field(ge=1)
+    min_conditional_sign_stability: float = Field(ge=0.5, le=1.0)
 
 
 class PromotionConfig(StrictModel):
@@ -406,7 +429,11 @@ class PromotionConfig(StrictModel):
     min_spearman_delta: float
     min_kendall_delta: float
     max_regret_increase_kcal: float = Field(ge=0.0)
-    require_no_family_collapse: bool
+    require_no_family_collapse: Literal[True]
+    primary_rank: StableImprovementConfig
+    family_collapse: FamilyCollapseConfig
+    family_offset_stability: FamilyOffsetStabilityConfig
+    head_recall: StableImprovementConfig
 
 
 class BlindHoldoutConfig(StrictModel):

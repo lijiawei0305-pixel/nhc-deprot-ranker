@@ -7,9 +7,9 @@ Updated: 2026-07-22
 | Phase 0 — legacy audit | Complete | Passed 2026-07-22 |
 | Phase 1 — data contract/import | Complete and merged to `main` | Passed 2026-07-22 |
 | Phase 2 — baselines | Complete and merged to `main` | Passed 2026-07-22 |
-| Phase 3 — hierarchical model | Complete on `agent/phase3-hierarchical`; awaiting review | Passed 2026-07-22 |
-| Phase 4 — model decision | Not started | Phase 3 pass required |
-| Phase 5 — full scoring/acquisition | Not started | Promoted Phase 4 model required |
+| Phase 3 — hierarchical model | Complete and merged to `main` | Passed 2026-07-22 |
+| Phase 4 — model decision | Complete on `agent/phase4-model-decision`; awaiting review | Passed 2026-07-22; `raw_xTB_wins` |
+| Phase 5 — full scoring/acquisition | Not started | Separate authorization required; B0 selected |
 
 ## Current completed work
 
@@ -37,11 +37,18 @@ Updated: 2026-07-22
 - Built and independently verified `results/hierarchical_v001`: LOOCV/axis-A/axis-B each cover 71/71 keys, all held-out family contributions are zero, model roundtrip is exact, and 2,000/2,000 bootstrap fits succeeded.
 - Recorded provisional H1-vs-B1 evidence without promotion: H1 improves LOOCV MAE from 2.7216 to 2.2373 kcal/mol and Spearman from 0.95708 to 0.97297; Axis-B MAE worsens from 2.7875 to 2.9163 despite improved rank correlations.
 - Audited weak family identification: 72/73 active family-effect bootstrap 95% intervals cross zero; this limitation is carried forward to Phase 4.
+- Merged Phase 3 PR #3 into `main` as `2571ddc` and opened the isolated Phase 4 branch.
+- Audited the frozen promotion evidence and identified the only unresolved scientific policy: numerical definitions for catastrophic held-out-family error and bootstrap family-offset stability.
+- Confirmed and froze the conservative Phase 4 family-collapse, conditional sign-stability, and stable head-recall rules in `configs/evaluation.yaml`.
+- Implemented the frozen-evidence evaluator, deterministic paired OOF bootstrap, B1/H1 promotion gates, family collapse/stability audits, immutable manifests, CLI, and four figures.
+- Built and independently verified `results/decision_v001`: 55 input hashes, 13 runtime files, 180 uncertainty rows, and 6,000/6,000 protocol bootstrap replicates all passed.
+- Final decision: `raw_xTB_wins`. B1 failed to improve primary ranking; H1 failed stable head recall, stable improvement over B0, one catastrophic held-out family, and one supported offset-stability gate.
+- Selected B0 as the production ranking default and retained B1 as the absolute-calibration companion; H1 was not promoted.
 
 ## Current boundary
 
-Phase 0/1/2 are published on `main`; Phase 3 is complete on its isolated branch and awaits review. Runtime data/models/results remain ignored local artifacts, while exact hashes and quality evidence are checked in. No Phase 4 decision, production promotion, quantum-chemistry calculation, full-pool scoring, or HPC job has been performed.
+Phase 0/1/2/3 are published on `main`; Phase 4 is complete on its isolated branch and awaits review. Runtime data/models/results remain ignored local artifacts, while exact hashes and quality evidence are checked in. Phase 5 full-pool scoring, quantum-chemistry calculation, HPC connection, and server writes have not been performed.
 
 ## Next action
 
-Review and merge the Phase 3 draft PR. Start Phase 4 only after separate user authorization; the current evidence does not itself promote H1.
+Review and merge the Phase 4 draft PR. Phase 5 requires separate user authorization and does not start automatically.

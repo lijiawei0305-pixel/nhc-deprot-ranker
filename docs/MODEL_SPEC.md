@@ -1,6 +1,6 @@
 # Model Specification
 
-Status: B0/B1 and H1 are implemented and validated; production selection is deferred to Phase 4; H2 remains out of scope.
+Status: B0/B1 and H1 are implemented and validated. Phase 4 selected B0 raw xTB as the production ranking default; B1 is the absolute-calibration companion; H1 and H2 are not production defaults.
 
 ## B0 — raw xTB
 
@@ -57,4 +57,4 @@ At most one standardized size term may enter H2 after grouped/size-extrapolation
 
 ## Promotion
 
-B1 or H1 replaces B0 only through the configured honest ranking gates. H1 must also beat or remain non-inferior to B1 without family collapse. A valid final outcome is that B0 wins or evidence is insufficient.
+B1 or H1 replaces B0 only through the configured honest ranking gates. Phase 4 found that neither candidate passed every required gate, so the v001 outcome is `raw_xTB_wins`. This decision does not erase B1's absolute-calibration utility or H1's research evidence.

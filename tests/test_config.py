@@ -43,6 +43,9 @@ def test_phase2_configs_load() -> None:
     assert baselines.bootstrap.final_repeats == 2000
     assert evaluation.ranking.lower_is_better is True
     assert evaluation.blind_holdout.status == "missing"
+    assert evaluation.bootstrap_ci.seed == 20260722
+    assert evaluation.promotion.family_collapse.catastrophic_requires_both is True
+    assert evaluation.promotion.family_offset_stability.minimum_support == 3
 
 
 def test_phase3_config_loads() -> None:

@@ -15,12 +15,26 @@ ranking:
 bootstrap_ci:
   repeats: 2000
   confidence: 0.95
+  seed: 20260722
 
 promotion:
   min_spearman_delta: -0.01
   min_kendall_delta: -0.02
   max_regret_increase_kcal: 1.0
   require_no_family_collapse: true
+  primary_rank:
+    min_delta: 0.0
+    require_95_percent_lower_bound_nonnegative: true
+  family_collapse:
+    max_heldout_mae_increase_kcal: 3.0
+    max_heldout_mae_ratio: 2.0
+    catastrophic_requires_both: true
+  family_offset_stability:
+    minimum_support: 3
+    min_conditional_sign_stability: 0.60
+  head_recall:
+    min_delta: 0.0
+    require_95_percent_lower_bound_nonnegative: true
 
 blind_holdout:
   status: missing

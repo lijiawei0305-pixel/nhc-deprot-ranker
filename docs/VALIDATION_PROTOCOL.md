@@ -1,6 +1,6 @@
 # Validation Protocol
 
-Status: B0/B1 were implemented in Phase 2 and H1 in Phase 3. H1 inner penalty selection is isolated from every outer test fold; model promotion remains a separate Phase 4 decision.
+Status: B0/B1 were implemented in Phase 2, H1 in Phase 3, and the frozen-evidence promotion decision in Phase 4. The final production ranking default is B0 raw xTB.
 
 ## 1. Leakage boundary
 
@@ -40,3 +40,5 @@ Bootstrap resampling uses InChIKey as the unit and a configured seed. Reports st
 ## 6. Initial promotion thresholds
 
 Thresholds live in `configs/evaluation.yaml`, including provisional non-inferiority values for Spearman, Kendall, and regret. A promotion report compares B0, B1, and H1 under the same OOF/held-out rows and can return `insufficient_evidence`.
+
+Phase 4 registered numerical family-collapse, conditional offset-stability, stable primary-rank, and stable head-recall rules before running its automated decision. Paired metric intervals resample fixed OOF rows and do not refit models.
