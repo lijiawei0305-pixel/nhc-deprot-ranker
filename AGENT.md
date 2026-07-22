@@ -12,10 +12,10 @@
 
 ## 2. 当前阶段与阶段门禁
 
-- Phase 0 与 Phase 1 已完成并合并到 `main`；当前只执行 Phase 2 基线模型。
-- Phase 2 范围限定为 B0 原始 xTB、B1 自由斜率全局仿射、LOOCV、家族分组验证和排名指标。
-- Phase 2 不实现或选择 H1/H2，不做正式全库评分或选点，不运行 PySCF、xTB、Hessian，不提交 HPC 作业，也不生成虚构性能。
-- Phase 3 必须在 Phase 2 通过并获得用户明确确认后才能开始。
+- Phase 0、Phase 1 与 Phase 2 已完成并合并到 `main`；Phase 3 已在隔离分支完成并等待审查。
+- Phase 3 已交付 H1 加性部分池化、嵌套验证、family effect、bootstrap 不确定度、未知 family 回退和序列化。
+- 当前不得执行 H2/尺寸消融、Phase 4 最终晋级裁决、正式全库评分或选点，不运行 PySCF、xTB、Hessian，不提交 HPC 作业，也不生成虚构性能。
+- Phase 4 必须在 Phase 3 通过并获得用户明确确认后才能开始。
 - 每个 Phase 必须先写清范围、输入、输出、假设、风险、命令和验收门禁，再执行代码或数据操作。
 - 每个 Phase 完成后，按 `prompt.md` 第 23 节报告完成项、读取文件、改动文件、科学假设、数据质量、命令、测试、未执行事项、门禁结论和下一步。
 
@@ -107,3 +107,16 @@ dig +trace domain
 6. 真实结果目录不可覆盖，输入/输出 SHA256、数据集版本、模型版本和 split manifest 完整；
 7. size extrapolation 若缺少已验证尺寸字段，明确记为 unavailable，不得伪造；
 8. 未执行 H1、正式全库评分、量化计算或服务器写操作。
+
+## 12. Phase 3 停止条件
+
+只有以下事实均有证据且被记录后，才可建议 Phase 3 通过：
+
+1. H1 求解器在合成数据上恢复已知 family offset，且稀有 family 收缩强于高支持 family；
+2. lambda 增大时 family effect 接近 0，lambda=0 的可识别情形接近 one-hot OLS；
+3. 连续量中心化、family vocabulary 和超参数选择只来自各训练折；
+4. LOOCV、axis-A、axis-B outer OOF 均覆盖 71/71 InChIKey，inner 选择不接触 outer test；
+5. 未见 family effect 明确为 0、预测有限，并有单元测试；
+6. 2,000 次最终 bootstrap 使用固定且已记录的 nested-CV penalty，失败数和 family 稳定性完整报告；
+7. 模型保存/读取后预测逐位一致，秩亏/条件数/pseudoinverse 状态可审计；
+8. 未执行 H2、Phase 4 晋级、正式全库评分、量化计算或服务器写操作。

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Literal
 
@@ -286,6 +287,90 @@ class BaselineModelConfig(StrictModel):
     historical_reference: HistoricalReferenceConfig
 
 
+class SlopePenaltyConfig(StrictModel):
+    """Optional original-scale slope prior interface."""
+
+    free: Literal[True]
+    prior_center: float
+    penalty: float = Field(ge=0.0)
+
+
+class HierarchicalRegularizationConfig(StrictModel):
+    """Finite coarse and refinement grids for H1."""
+
+    shared_family_coarse_grid: list[float]
+    axis_specific_refinement: Literal[True]
+    lambda_skeleton_grid: list[float]
+    lambda_axis_a_grid: list[float]
+    lambda_axis_b_grid: list[float]
+
+    @model_validator(mode="after")
+    def validate_grids(self) -> HierarchicalRegularizationConfig:
+        """Require finite non-negative unique grids without silent sorting."""
+
+        for name in (
+            "shared_family_coarse_grid",
+            "lambda_skeleton_grid",
+            "lambda_axis_a_grid",
+            "lambda_axis_b_grid",
+        ):
+            values = getattr(self, name)
+            if not values or any(not math.isfinite(value) or value < 0.0 for value in values):
+                raise ValueError(f"{name} must contain finite non-negative values")
+            if len(values) != len(set(values)):
+                raise ValueError(f"{name} values must be unique")
+        return self
+
+
+class HierarchicalBootstrapConfig(StrictModel):
+    """H1 fixed-penalty bootstrap settings."""
+
+    development_repeats: int = Field(ge=1)
+    final_repeats: int = Field(ge=1)
+    seed: int
+    regularization_policy: Literal["fixed_from_nested_cv"]
+
+
+class InnerCVConfig(StrictModel):
+    """Deterministic inner-fold settings."""
+
+    folds: int = Field(ge=2)
+    seed: int
+
+
+class NumericalSolverConfig(StrictModel):
+    """Linear-system conditioning policy."""
+
+    condition_number_threshold: float = Field(gt=1.0)
+
+
+class HierarchicalModelConfig(StrictModel):
+    """Typed Phase 3 H1 configuration."""
+
+    model_name: Literal["hierarchical_linear"]
+    model_version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    dataset_version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    baseline_result_version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    expected_label_rows: int = Field(ge=3)
+    target_column: Literal["dft_deprot_electronic_kcal"]
+    baseline_column: Literal["xtb_deprot_kcal"]
+    lower_is_better: Literal[True]
+    family_terms: tuple[
+        Literal["skeleton"],
+        Literal["axis_a_family"],
+        Literal["axis_b_family"],
+    ]
+    include_size: Literal[False]
+    size_column: Literal["n_electrons", "n_heavy_atoms"]
+    slope: SlopePenaltyConfig
+    regularization: HierarchicalRegularizationConfig
+    bootstrap: HierarchicalBootstrapConfig
+    unknown_family_policy: Literal["zero_effect"]
+    skeleton_policy: Literal["inactive_if_single_level"]
+    inner_cv: InnerCVConfig
+    numerical: NumericalSolverConfig
+
+
 class RankingEvaluationConfig(StrictModel):
     """Lower-is-better ranking metric grids."""
 
@@ -397,3 +482,18 @@ def load_evaluation_config(path: Path) -> EvaluationConfig:
     """Load and validate the evaluation configuration."""
 
     return EvaluationConfig.model_validate(_load_yaml_mapping(path))
+
+
+def load_hierarchical_model_config(path: Path) -> HierarchicalModelConfig:
+    """Load and validate the Phase 3 H1 configuration."""
+
+    return HierarchicalModelConfig.model_validate(_load_yaml_mapping(path))
+
+
+def load_model_name(path: Path) -> str:
+    """Read only the declared model name for CLI dispatch."""
+
+    value = _load_yaml_mapping(path).get("model_name")
+    if not isinstance(value, str) or value not in {"baseline_suite", "hierarchical_linear"}:
+        raise ValueError(f"unsupported or missing model_name in {path}")
+    return value

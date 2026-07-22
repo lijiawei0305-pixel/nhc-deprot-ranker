@@ -10,11 +10,12 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from nhc_deprot_ranker.config import load_legacy_config
+from nhc_deprot_ranker.config import load_legacy_config, load_model_name
 from nhc_deprot_ranker.constants import LABEL_FORMULA_ATOL_KCAL_MOL
 from nhc_deprot_ranker.data.build import build_dataset
 from nhc_deprot_ranker.legacy.audit import build_source_plan, validate_label_csv
 from nhc_deprot_ranker.models.train import train_baselines
+from nhc_deprot_ranker.models.train_hierarchical import train_hierarchical
 
 LOGGER = logging.getLogger(__name__)
 LATER_PHASE_COMMANDS = ("evaluate", "score", "acquire", "report")
@@ -63,11 +64,23 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("--out", type=Path, required=True)
     _add_common_options(build)
 
-    train = subparsers.add_parser("train", help="fit and evaluate immutable Phase 2 baselines")
+    train = subparsers.add_parser("train", help="fit and evaluate an immutable model result")
     train.add_argument("--dataset", type=Path, required=True)
     train.add_argument("--model-config", type=Path, default=Path("configs/baselines.yaml"))
     train.add_argument("--evaluation-config", type=Path, default=Path("configs/evaluation.yaml"))
-    train.add_argument("--evidence", type=Path, default=Path("docs/PROCESSED_V001_MANIFEST.json"))
+    train.add_argument(
+        "--evidence",
+        "--dataset-evidence",
+        dest="dataset_evidence",
+        type=Path,
+        default=Path("docs/PROCESSED_V001_MANIFEST.json"),
+    )
+    train.add_argument("--baseline-results", type=Path)
+    train.add_argument(
+        "--baseline-evidence",
+        type=Path,
+        default=Path("docs/BASELINES_V001_MANIFEST.json"),
+    )
     train.add_argument("--out", type=Path, required=True)
     _add_common_options(train)
 
@@ -140,17 +153,35 @@ def run(argv: Sequence[str] | None = None) -> int:
             _emit(build_result.payload, None, overwrite=False, dry_run=True)
             return 0
         if args.command == "train":
-            train_result = train_baselines(
+            model_name = load_model_name(args.model_config)
+            if model_name == "baseline_suite":
+                baseline_result = train_baselines(
+                    dataset_dir=args.dataset,
+                    model_config_path=args.model_config,
+                    evaluation_config_path=args.evaluation_config,
+                    evidence_path=args.dataset_evidence,
+                    output_dir=args.out,
+                    seed=args.seed,
+                    dry_run=args.dry_run,
+                    overwrite=args.overwrite,
+                )
+                _emit(baseline_result.payload, None, overwrite=False, dry_run=True)
+                return 0
+            if args.baseline_results is None:
+                raise ValueError("hierarchical training requires --baseline-results")
+            hierarchical_result = train_hierarchical(
                 dataset_dir=args.dataset,
+                baseline_results_dir=args.baseline_results,
                 model_config_path=args.model_config,
                 evaluation_config_path=args.evaluation_config,
-                evidence_path=args.evidence,
+                dataset_evidence_path=args.dataset_evidence,
+                baseline_evidence_path=args.baseline_evidence,
                 output_dir=args.out,
                 seed=args.seed,
                 dry_run=args.dry_run,
                 overwrite=args.overwrite,
             )
-            _emit(train_result.payload, None, overwrite=False, dry_run=True)
+            _emit(hierarchical_result.payload, None, overwrite=False, dry_run=True)
             return 0
         LOGGER.error("%s is outside active Phase 1 and is not implemented", args.command)
         return 2

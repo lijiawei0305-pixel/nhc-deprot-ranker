@@ -6,8 +6,8 @@ Updated: 2026-07-22
 | --- | --- | --- |
 | Phase 0 — legacy audit | Complete | Passed 2026-07-22 |
 | Phase 1 — data contract/import | Complete and merged to `main` | Passed 2026-07-22 |
-| Phase 2 — baselines | Complete on `agent/phase2-baselines` | Passed 2026-07-22 |
-| Phase 3 — hierarchical model | Not started | Phase 2 pass required |
+| Phase 2 — baselines | Complete and merged to `main` | Passed 2026-07-22 |
+| Phase 3 — hierarchical model | Complete on `agent/phase3-hierarchical`; awaiting review | Passed 2026-07-22 |
 | Phase 4 — model decision | Not started | Phase 3 pass required |
 | Phase 5 — full scoring/acquisition | Not started | Promoted Phase 4 model required |
 
@@ -31,11 +31,17 @@ Updated: 2026-07-22
 - Implemented B0/B1, exact LOOCV, axis-family holdouts, deterministic bootstrap, ranking metrics, immutable results, and auditable figures.
 - Built and independently verified `results/baselines_v001`: 71 OOF rows per protocol, historical reproduction passed, 2,000/2,000 bootstrap fits succeeded, and all split/hash checks passed.
 - Confirmed B1 improves absolute calibration but does not improve B0 ranking; production promotion remains deferred to Phase 4.
+- Merged Phase 2 PR #2 into `main` as `e33e5cf` and opened the isolated Phase 3 branch.
+- Re-audited current H1 support: one skeleton, 38 axis-A families (22 singletons), 35 axis-B families (16 singletons), and 71 combined-family singletons.
+- Implemented the H1 penalized additive estimator, deterministic finite nested penalty search, train-only preprocessing, zero-effect unknown-family fallback, fixed-penalty paired bootstrap, serialization, manifests, and nine figures.
+- Built and independently verified `results/hierarchical_v001`: LOOCV/axis-A/axis-B each cover 71/71 keys, all held-out family contributions are zero, model roundtrip is exact, and 2,000/2,000 bootstrap fits succeeded.
+- Recorded provisional H1-vs-B1 evidence without promotion: H1 improves LOOCV MAE from 2.7216 to 2.2373 kcal/mol and Spearman from 0.95708 to 0.97297; Axis-B MAE worsens from 2.7875 to 2.9163 despite improved rank correlations.
+- Audited weak family identification: 72/73 active family-effect bootstrap 95% intervals cross zero; this limitation is carried forward to Phase 4.
 
 ## Current boundary
 
-Phase 0/1 are published on `main`; Phase 2 is complete on its review branch. Runtime data/models/results remain ignored local artifacts, while exact hashes and quality evidence are checked in. No H1 model, production promotion, quantum-chemistry calculation, full-pool scoring, or HPC job has been performed.
+Phase 0/1/2 are published on `main`; Phase 3 is complete on its isolated branch and awaits review. Runtime data/models/results remain ignored local artifacts, while exact hashes and quality evidence are checked in. No Phase 4 decision, production promotion, quantum-chemistry calculation, full-pool scoring, or HPC job has been performed.
 
 ## Next action
 
-Review and merge the Phase 2 draft pull request. Phase 3 requires separate authorization and does not start automatically.
+Review and merge the Phase 3 draft PR. Start Phase 4 only after separate user authorization; the current evidence does not itself promote H1.

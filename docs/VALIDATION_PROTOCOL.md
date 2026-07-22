@@ -1,6 +1,6 @@
 # Validation Protocol
 
-Status: the B0/B1 subset was implemented in Phase 2 without changing these rules; H1 nested validation remains pending.
+Status: B0/B1 were implemented in Phase 2 and H1 in Phase 3. H1 inner penalty selection is isolated from every outer test fold; model promotion remains a separate Phase 4 decision.
 
 ## 1. Leakage boundary
 

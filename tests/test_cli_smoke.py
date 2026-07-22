@@ -46,3 +46,27 @@ def test_phase2_train_dry_run_is_nonwriting(tmp_path: Path) -> None:
         == 0
     )
     assert not output.exists()
+
+
+def test_phase3_train_dry_run_dispatches_from_model_config(tmp_path: Path) -> None:
+    output = tmp_path / "hierarchical_v001"
+    assert (
+        run(
+            [
+                "train",
+                "--dataset",
+                "data/processed/v001",
+                "--baseline-results",
+                "results/baselines_v001",
+                "--model-config",
+                "configs/model.yaml",
+                "--evaluation-config",
+                "configs/evaluation.yaml",
+                "--out",
+                str(output),
+                "--dry-run",
+            ]
+        )
+        == 0
+    )
+    assert not output.exists()
