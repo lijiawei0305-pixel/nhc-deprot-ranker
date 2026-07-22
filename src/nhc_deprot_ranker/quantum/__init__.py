@@ -1,14 +1,14 @@
 """Guarded, protocol-locked quantum-chemistry interfaces.
 
-Phase 7 exposes request validation and mockable data contracts, but the public
-execution entry point remains disabled until a later phase explicitly changes
-the source-level authorization gate.
+Phase 8A adds a parent-supervised worker protocol and hard-timeout seam while
+the public execution entry point remains source-disabled.
 """
 
 from nhc_deprot_ranker.quantum.two_endpoint import (
     EXECUTION_AUTHORIZED,
     LOCKED_PROTOCOL,
     LOCKED_PROTOCOL_SHA256,
+    RUNNER_SOURCE_SCHEMA_VERSION,
     BackendOptimizationResult,
     BackendSCFResult,
     BackendTimeoutError,
@@ -32,6 +32,7 @@ __all__ = [
     "EXECUTION_AUTHORIZED",
     "LOCKED_PROTOCOL",
     "LOCKED_PROTOCOL_SHA256",
+    "RUNNER_SOURCE_SCHEMA_VERSION",
     "BackendOptimizationResult",
     "BackendSCFResult",
     "BackendTimeoutError",

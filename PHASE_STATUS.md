@@ -11,7 +11,8 @@ Updated: 2026-07-22
 | Phase 4 — model decision | Complete and merged to `main` | Passed 2026-07-22; `raw_xTB_wins` |
 | Phase 5 — full scoring/acquisition | Complete and merged to `main` | Passed 2026-07-22 |
 | Phase 6 — local DFT execution plan | Complete and merged to `main` | Passed 2026-07-22; PR #6 / `55bfe47` |
-| Phase 7 — four-row geometry smoke and dedicated runner | Complete locally on `agent/phase7-smoke-geometry-runner` | Passed 2026-07-22; publication pending; DFT execution prohibited |
+| Phase 7 — four-row geometry smoke and dedicated runner | Complete and merged to `main` | Passed 2026-07-22; PR #7 / `133f8e3`; DFT execution prohibited |
+| Phase 8A — hard wall-time and read-only API preflight | Complete on `agent/phase8a-hard-timeout-api-preflight`; publication pending | Passed 2026-07-22; DFT execution prohibited |
 
 ## Current completed work
 
@@ -71,11 +72,17 @@ Updated: 2026-07-22
 - Strongly validated 8 XYZ, 4 legacy maps and 4 corrected endpoint maps; all charges, AddHs sequences, heavy-element sets, one-proton differences, C2 five-membered-ring mappings, coordinates and SHA256 checks passed.
 - Downloaded only that run and independently matched 27/27 remote/local files. Validation SHA256 is `35e99683...39f90`; result-tree SHA256 is `644f027e...72ad`; the independent result audit found no blocker.
 - Kept the dedicated runner unexecuted with source-level authorization false. No PySCF, xTB, Hessian, legacy M4, extra single point, scheduler or background job ran.
+- Merged Phase 7 PR #7 to `main` at `133f8e3` before opening the isolated Phase 8A branch.
+- Received user authorization for Phase 8A hard-timeout development and read-only server API compatibility inspection only; real DFT remains unauthorized.
+- Implemented a POSIX session/process-group supervisor with fail-closed monotonic deadline, bounded dual-stream draining, TERM/grace/KILL, bounded reap, orphan detection and explicit cleanup/reap proof. No-chemistry tests cover delayed observation, inspection failure, ignored TERM, grandchildren, output flood, spawn/policy errors and repeated no-residual runs.
+- Added an isolated `python -I -B` worker bootstrap, eight-file pre-gate source identity, double source/request gates, fixed-attempt scratch isolation and parent-only atomic success/failure publication. `EXECUTION_AUTHORIZED` remains false.
+- Completed the campus-direct read-only server API inspection: Python 3.11.15, PySCF 2.13.1, geomeTRIC 1.1.1 and pyscf-dispersion 1.5.0; all 18 static checks passed. The exact 27 Phase 7 files and three registered server sources matched and remained unchanged.
+- Recorded portable evidence in `docs/PHASE8A_API_PREFLIGHT_V001.json` and passed 238 tests, Ruff, format, strict mypy for 65 source/script files, pre-commit, build and independent code/evidence audits. No molecule, DFT, optimizer, dispersion, Hessian, server write or job ran.
 
 ## Current boundary
 
-Phase 0–7 are complete locally. Four smoke candidates now have strongly validated initial cation/neutral geometries; the other 46 remain ungenerated. All DFT execution remains blocked: the dedicated runner is implemented and mock-tested but has no hard wall-time interrupt and its source-level authorization is false.
+Phase 0–7 are complete and merged. Phase 8A is complete on its isolated branch and ready for publication. Four smoke candidates have validated initial geometries; the other 46 remain ungenerated. All DFT execution remains blocked and the source-level authorization is false.
 
 ## Next action
 
-Publish the reviewed Phase 7 branch to `main`. Then pause for a Phase 8 decision: implement and test a process/signal-level hard wall timeout first, and request explicit authorization before any real PySCF smoke.
+Publish Phase 8A through review and merge it to `main`, then stop. Phase 8B requires a new explicit user decision before any molecule construction, PySCF execution or server write.

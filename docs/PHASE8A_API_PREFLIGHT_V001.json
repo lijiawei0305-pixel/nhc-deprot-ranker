@@ -1,0 +1,107 @@
+{
+  "acceptance": {
+    "checks": {
+      "d3_adapter_is_class": true,
+      "d3_adapter_signature_has_required_parameters": true,
+      "d3bj_in_adapter_damping_map": true,
+      "d3bj_in_scf_supported_versions": true,
+      "geometric_kernel_has_required_parameters": true,
+      "geometric_kernel_returns_pair": true,
+      "geometric_optimize_discards_flag": true,
+      "newton_function_is_static_only": true,
+      "phase7_exact_file_count": true,
+      "phase7_registered_tree_matches": true,
+      "phase7_tree_unchanged": true,
+      "public_rks_is_callable": true,
+      "public_rks_signature_has_mol": true,
+      "registered_sources_match": true,
+      "registered_sources_unchanged": true,
+      "rks_implementation_is_scf_subclass": true,
+      "scf_dispersion_aliases_match": true,
+      "scf_static_hooks_callable": true
+    },
+    "passed": true
+  },
+  "dispersion": {
+    "adapter_class": "pyscf.dispersion.dftd3.DFTD3Dispersion",
+    "adapter_damping_keys": [
+      "d3bj",
+      "d3bjm",
+      "d3mbj",
+      "d3mzero",
+      "d3op",
+      "d3zero",
+      "d3zerom"
+    ],
+    "adapter_init_signature": "(self, mol, xc, version='d3bj', atm=False)",
+    "adapter_source_sha256": "134896ae9b832efe8dc079c5acaadbe9134a77b698d98f20cb4fc4b8b10434c3",
+    "d3bj_supported": true,
+    "supported_versions": [
+      "d3bj",
+      "d3bjm",
+      "d3op",
+      "d3zero",
+      "d3zerom",
+      "d4"
+    ]
+  },
+  "generated_at_utc": "2026-07-22T12:43:55.838035+00:00",
+  "geometric": {
+    "kernel_returns_convergence_pair": true,
+    "kernel_signature": "(method, assert_convergence=True, include_ghost=True, constraints=None, callback=None, maxsteps=100, **kwargs)",
+    "kernel_source_sha256": "491f31cd409af17da00d46112ad67f6b9456e41e95f07e68b169743eea015bee",
+    "optimize_discards_convergence_flag": true,
+    "optimize_signature": "(method, assert_convergence=True, include_ghost=True, constraints=None, callback=None, maxsteps=100, **kwargs)",
+    "optimize_source_sha256": "e66c264d4a4b016d8fd0d1f013aa0cb92c08b2ceec8755dfa1642f7e08c61c3f"
+  },
+  "imports": {
+    "dft": true,
+    "dft_rks_implementation": true,
+    "dftd3_adapter": true,
+    "geometric": true,
+    "geometric_solver": true,
+    "newton_ah": true,
+    "pyscf": true,
+    "scf_dispersion": true,
+    "scf_hf": true
+  },
+  "phase": "8A",
+  "phase7_integrity": {
+    "before_after_match": true,
+    "canonical_tree_sha256": "9b92a1f453274995661bd262e607239a86f4992bf4cc2809a311207dceadbecb",
+    "registered_file_count": 27,
+    "registered_sources_before_after_match": true,
+    "registered_sources_match": true,
+    "reported_phase7_tree_sha256": "644f027e276902dc1ab105f02f08864967f69ae87dc8883f608f5e4d17a372ad"
+  },
+  "safety": {
+    "compute_kernel_called": false,
+    "dispersion_evaluated": false,
+    "hessian_computed": false,
+    "mean_field_constructed": false,
+    "module_imports_only": true,
+    "molecule_constructed": false,
+    "optimizer_called": false,
+    "read_only": true,
+    "server_file_written": false
+  },
+  "scf": {
+    "do_disp_alias_matches": true,
+    "do_disp_signature": "(mf, disp=None)",
+    "get_dispersion_alias_matches": true,
+    "get_dispersion_signature": "(mf, disp=None, with_3body=None, verbose=None)",
+    "newton_function_signature": "(mf)",
+    "newton_signature": "(self)",
+    "public_rks_is_callable": true,
+    "public_rks_signature": "(mol, xc='LDA,VWN')",
+    "rks_implementation_is_scf_subclass": true
+  },
+  "schema_version": "phase8a.api_preflight.v1",
+  "status": "passed",
+  "versions": {
+    "geometric": "1.1.1",
+    "pyscf": "2.13.1",
+    "pyscf_dispersion": "1.5.0",
+    "python": "3.11.15"
+  }
+}
