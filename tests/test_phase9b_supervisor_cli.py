@@ -78,14 +78,6 @@ _NEUTRAL_XYZ = _endpoint_xyz(hydrogens=4)
 _CATION_SHA = hashlib.sha256(_CATION_XYZ).hexdigest()
 _NEUTRAL_SHA = hashlib.sha256(_NEUTRAL_XYZ).hexdigest()
 
-# The assisted route starts from a preoptimized geometry, so its declared digests
-# are computed from those files rather than invented: nothing can hash to a
-# hand-written constant.
-_PRE_CATION_XYZ = _endpoint_xyz(hydrogens=5, spacing=1.39)
-_PRE_NEUTRAL_XYZ = _endpoint_xyz(hydrogens=4, spacing=1.39)
-_PRE_C = hashlib.sha256(_PRE_CATION_XYZ).hexdigest()
-_PRE_N = hashlib.sha256(_PRE_NEUTRAL_XYZ).hexdigest()
-
 # Identical to the frozen candidate except for the two geometry digests, which
 # point at the synthetic files above.
 TEST_PROFILE = dataclasses.replace(
@@ -94,9 +86,10 @@ TEST_PROFILE = dataclasses.replace(
 
 
 def _endpoints(route: str) -> tuple[str, str]:
-    if route == ROUTE_DIRECT:
-        return _CATION_SHA, _NEUTRAL_SHA
-    return _PRE_C, _PRE_N
+    """Both routes start from the same frozen initial geometry."""
+
+    del route
+    return _CATION_SHA, _NEUTRAL_SHA
 
 
 def _build_root(
@@ -147,12 +140,8 @@ def _build_root(
     (run_root / REQUEST_RELATIVE).write_bytes(request.request_bytes)
     (run_root / PAYLOAD_MANIFEST_RELATIVE).write_bytes(manifest_bytes)
     # The request names these relative to its own directory.
-    (run_root / "input" / "xyz" / "cation.xyz").write_bytes(
-        _CATION_XYZ if route == ROUTE_DIRECT else _PRE_CATION_XYZ
-    )
-    (run_root / "input" / "xyz" / "neutral.xyz").write_bytes(
-        _NEUTRAL_XYZ if route == ROUTE_DIRECT else _PRE_NEUTRAL_XYZ
-    )
+    (run_root / "input" / "xyz" / "cation.xyz").write_bytes(_CATION_XYZ)
+    (run_root / "input" / "xyz" / "neutral.xyz").write_bytes(_NEUTRAL_XYZ)
     if place_ready:
         (run_root / READY_RELATIVE).write_bytes(permit_bytes)
     if place_consumed:
@@ -401,7 +390,16 @@ def test_a_phase8b_artifact_in_the_argv_is_refused(tmp_path: Path) -> None:
 # --- identity output and delegation -----------------------------------------
 
 
-def test_identity_json_is_exactly_what_launch_reads_back(tmp_path: Path) -> None:
+def test_identity_json_is_exactly_what_the_guardian_reads_back(tmp_path: Path) -> None:
+    """The supervisor's identity is now consumed by the guardian, not by launch.
+
+    Launch reads the guardian's acknowledgement; the guardian reads this. The two
+    contracts are asserted against their real parsers rather than kept in step by
+    hand.
+    """
+
+    from nhc_deprot_ranker.quantum import phase9b_guardian as guardian
+
     _, values = _build_root(tmp_path, ROUTE_DIRECT)
     verified = _verify(_argv(values))
     payload = sup.supervisor_identity_payload(verified, pid=4242)
@@ -409,33 +407,49 @@ def test_identity_json_is_exactly_what_launch_reads_back(tmp_path: Path) -> None
     assert payload["route"] == ROUTE_DIRECT
     assert payload["attempt_id"] == ROUTE_ATTEMPT_IDS[ROUTE_DIRECT]
     assert payload["pid"] == 4242
-    assert isinstance(payload["supervisor_identity"], str)
     assert len(str(payload["supervisor_identity"])) == 64
-    # The launch side accepts exactly this shape.
-    from nhc_deprot_ranker.preparation import phase9b_launch as lc
-    from nhc_deprot_ranker.preparation.phase9b_launch import _parse_supervisor_evidence
 
-    plan = lc.RouteLaunchPlan(
+    stdout_path = tmp_path / "supervisor.stdout.jsonl"
+    stdout_path.write_bytes(json.dumps(payload, sort_keys=True).encode() + b"\n")
+    binding = guardian.WorkerHandshakeBinding(
         route=ROUTE_DIRECT,
         attempt_id=ROUTE_ATTEMPT_IDS[ROUTE_DIRECT],
-        final_root="/srv/x/direct",
-        staging_root="/srv/x/.s",
-        request_path=values["--request-path"],
-        permit_path=values["--permit-path"],
-        output_root=values["--output-root"],
         request_sha256=values["--expected-request-sha256"],
         payload_manifest_sha256=values["--expected-payload-manifest-sha256"],
         permit_sha256=values["--expected-permit-sha256"],
         runner_source_sha256=values["--expected-runner-source-sha256"],
         resources_sha256=values["--expected-resources-sha256"],
-        registered_files={},
-        gpu_index=2,
+        inchikey=TEST_PROFILE.inchikey,
+        electron_count=TEST_PROFILE.electron_count,
+        cation_xyz_sha256=TEST_PROFILE.cation_xyz_sha256,
+        neutral_xyz_sha256=TEST_PROFILE.neutral_xyz_sha256,
+        output_root=values["--output-root"],
         cpu_affinity=_AFFINITY,
+        gpu_index=2,
         timeout_seconds=_TIMEOUT,
+        capability_identity_key="phase9b-lbnp-paired-smoke",
     )
-    identity, pid = _parse_supervisor_evidence(json.dumps(payload).encode(), plan=plan)
-    assert identity == payload["supervisor_identity"]
-    assert pid == 4242
+    evidence = guardian.await_spawn_acknowledgement(
+        stdout_path,
+        spawned=guardian.SpawnedProcess(pid=4242, process_group_id=4242, session_id=4242),
+        binding=binding,
+        deadline_seconds=1.0,
+        monotonic=lambda: 0.0,
+        sleep=lambda _seconds: None,
+    )
+    assert evidence["supervisor_identity"] == payload["supervisor_identity"]
+
+    # A PID the supervisor did not claim is refused, which is what closes the
+    # PID-reuse question as far as it can be closed.
+    with pytest.raises(guardian.Phase9BGuardianError, match="differs from the spawned PID"):
+        guardian.await_spawn_acknowledgement(
+            stdout_path,
+            spawned=guardian.SpawnedProcess(pid=9999, process_group_id=9999, session_id=9999),
+            binding=binding,
+            deadline_seconds=1.0,
+            monotonic=lambda: 0.0,
+            sleep=lambda _seconds: None,
+        )
 
 
 def test_identity_is_bound_to_the_route_and_never_shared(tmp_path: Path) -> None:

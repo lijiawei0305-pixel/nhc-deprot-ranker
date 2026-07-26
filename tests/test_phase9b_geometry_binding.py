@@ -13,6 +13,7 @@ expectation.
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import cast
@@ -38,7 +39,7 @@ from nhc_deprot_ranker.quantum.phase9b_permit import (
 from nhc_deprot_ranker.quantum.phase9b_resources import PHASE9B_RESOURCES
 from nhc_deprot_ranker.quantum.two_endpoint import (
     LOCKED_PROTOCOL_SHA256,
-    REQUEST_SCHEMA_VERSION,
+    REQUEST_SCHEMA_VERSION_V2,
 )
 
 _FROZEN_TIMEOUT: int = int(cast(int, PHASE9B_RESOURCES["hard_wall_timeout_seconds"]))
@@ -137,7 +138,10 @@ def _consumed(tmp_path: Path, route: str) -> ConsumedPhase9BPermit:
             PHASE9B_CANDIDATE.neutral_xyz_sha256,
         )
     else:
-        cation, neutral = _PRE_C, _PRE_N
+        cation, neutral = (
+            PHASE9B_CANDIDATE.cation_xyz_sha256,
+            PHASE9B_CANDIDATE.neutral_xyz_sha256,
+        )
     raw = render_phase9b_permit(
         route=route,
         project_root=tmp_path.as_posix(),
@@ -162,7 +166,7 @@ def _authority(tmp_path: Path, route: str) -> object:
     consumed = _consumed(tmp_path, route)
     permit = consumed.permit
     request = _Request(
-        schema_version=REQUEST_SCHEMA_VERSION,
+        schema_version=REQUEST_SCHEMA_VERSION_V2,
         execution_authorized=True,
         protocol_sha256=LOCKED_PROTOCOL_SHA256,
         timeout_seconds=_FROZEN_TIMEOUT,
@@ -183,7 +187,7 @@ def _authority(tmp_path: Path, route: str) -> object:
 
 
 def test_both_routes_bind_the_geometry_provenance(tmp_path: Path) -> None:
-    """Route A binds it as lineage; Route D binds it as its actual inputs."""
+    """Both routes bind it as their actual inputs, under the single-transaction design."""
 
     for index, route in enumerate((ROUTE_DIRECT, ROUTE_ASSISTED)):
         authority = _authority(tmp_path / f"r{index}", route)
@@ -216,12 +220,16 @@ def test_route_d_inputs_remain_exactly_the_validated_phase7_geometry(tmp_path: P
     assert consumed.permit.neutral_xyz_sha256 == PHASE9B_CANDIDATE.neutral_xyz_sha256
 
 
-def test_assisted_route_still_binds_the_initial_geometry_as_parent(tmp_path: Path) -> None:
+def test_assisted_route_starts_from_the_same_initial_geometry(tmp_path: Path) -> None:
+    """Route A no longer declares a preoptimized input it cannot yet have."""
+
     consumed = _consumed(tmp_path, ROUTE_ASSISTED)
-    assert consumed.permit.cation_xyz_sha256 == _PRE_C
-    raw = consumed.permit.raw_bytes.decode()
-    assert PHASE9B_CANDIDATE.cation_xyz_sha256 in raw
-    assert PHASE9B_CANDIDATE.neutral_xyz_sha256 in raw
+    assert consumed.permit.cation_xyz_sha256 == PHASE9B_CANDIDATE.cation_xyz_sha256
+    assert consumed.permit.neutral_xyz_sha256 == PHASE9B_CANDIDATE.neutral_xyz_sha256
+    # What distinguishes it is the bound AIMNet2 stage, not a different geometry.
+    raw = json.loads(consumed.permit.raw_bytes.decode())
+    assert raw["preoptimization"]["stage"] == "aimnet2"
+    assert raw["preoptimization"]["runs_inside_route"] is True
 
 
 def test_a_profile_with_drifted_provenance_cannot_authorize(tmp_path: Path) -> None:
@@ -230,7 +238,7 @@ def test_a_profile_with_drifted_provenance_cannot_authorize(tmp_path: Path) -> N
     consumed = _consumed(tmp_path, ROUTE_DIRECT)
     permit = consumed.permit
     request = _Request(
-        schema_version=REQUEST_SCHEMA_VERSION,
+        schema_version=REQUEST_SCHEMA_VERSION_V2,
         execution_authorized=True,
         protocol_sha256=LOCKED_PROTOCOL_SHA256,
         timeout_seconds=_FROZEN_TIMEOUT,

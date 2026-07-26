@@ -32,7 +32,7 @@ def _closure() -> tuple[str, ...]:
 def test_schema_version_reflects_the_changed_file_set() -> None:
     """A digest over a different file set must not share the old version."""
 
-    assert runner.RUNNER_SOURCE_SCHEMA_VERSION == "nhc-two-endpoint-runner-source-v5"
+    assert runner.RUNNER_SOURCE_SCHEMA_VERSION == "nhc-two-endpoint-runner-source-v6"
     assert "v3" not in runner.RUNNER_SOURCE_SCHEMA_VERSION
 
 
@@ -42,9 +42,9 @@ def test_every_phase9b_module_is_now_in_the_closure() -> None:
         assert member in closure, member
 
 
-def test_closure_holds_exactly_eighteen_files_with_no_duplicates() -> None:
+def test_closure_holds_exactly_twenty_one_files_with_no_duplicates() -> None:
     closure = _closure()
-    assert len(closure) == 18
+    assert len(closure) == 21
     assert len(set(closure)) == len(closure)
 
 
