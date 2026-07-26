@@ -179,10 +179,25 @@ _require_phase8b_arguments            name and message kept: the message is
 Attempting the capability parameterization surfaced a gap in the earlier Phase 9B
 design that must be closed before a registry entry can exist:
 
-**Resources are not frozen yet.** The expectation binds `resources_sha256`, but
-the Phase 9B resource budget is deliberately fixed in the execution request, not
-earlier. A registry entry built before that freeze would either bind the wrong
-budget or invite a later edit to a hash-bound value.
+**Resources are not frozen yet.** **Resolved.** The budget is now frozen in
+`quantum/phase9b_resources.py`, digest
+`0fec2c1914f413a2762e1fafc7daa9900551981b5af72897746864edffac7df8`.
+
+The PySCF envelope reuses the Phase 8B values verbatim — one worker, 4
+computational threads, CPU affinity `0-3`, PySCF `max_memory=12000 MB`, 7200 s
+hard wall-time, 10 s TERM grace, 64 KiB per stream. Two reasons, both about
+interpretability: Route D and Route A must share an identical PySCF envelope or
+any measured speedup is uninterpretable, and reusing a budget already exercised
+in a real attempt avoids adding an unvalidated variable next to the one being
+tested.
+
+The AIMNet2 stage carries its **own separate budget**: one free GPU or fail
+closed, one ensemble member, `ensemble_uncertainty_available=false`,
+`compile_model=false`, the measured 21.9 s first-call cost recorded explicitly, a
+60 s compile allowance, a 900 s preoptimization ceiling, and the mandatory
+cache-isolation variable list. It deliberately carries **no**
+`hard_wall_timeout_seconds`, so preoptimization cost cannot be hidden inside the
+PySCF number being compared. A regression enforces that separation.
 
 **`Phase9BExactAuthority` carries no geometry-validation binding.**
 **Resolved.** `CandidateProfile` and `Phase9BExactAuthority` now carry
@@ -201,14 +216,14 @@ reverified against the local immutable product. The geometry-validation anchor
 `35e99683...39f90` covers all four smoke candidates, so it is deliberately not
 candidate-specific.
 
-The remaining prerequisite is the frozen resource budget, which is wiring-step
-work. Until then the registry holds Phase 8B only, and a capability presenting
-any other identity key fails closed with `no frozen identity expectation` rather
-than falling back to a chain.
+Both prerequisites are now closed, so the Phase 9B capability expectation is
+registered. The registry holds exactly two chains, and a capability presenting
+any other identity key still fails closed with `no frozen identity expectation`
+rather than falling back to a chain.
 
 ## Current state
 
 All three execution gates remain closed, the closure remains at 14 files with no
 Phase 9B module wired in, `phase8b_authority.py`, `phase8b_permit.py`, and
 `two_endpoint.py` are untouched, `PHASE8B_DFT_SMOKE_V001.json` is unchanged, and
-the suite passes at 683.
+the suite passes at 696.

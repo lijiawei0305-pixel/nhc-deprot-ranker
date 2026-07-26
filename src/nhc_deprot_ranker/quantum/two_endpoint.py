@@ -1353,8 +1353,39 @@ def _phase8b_capability_identity_expectation() -> CapabilityIdentityExpectation:
 
 # Only chains with a fully frozen expectation appear here.  A capability whose
 # key is absent cannot be validated and therefore cannot be claimed.
+REQUEST_ID_PHASE9B: Final = "phase9b-lbnp-paired-smoke-v001"
+_PHASE9B_CAPABILITY_IDENTITY_KEY: Final = "phase9b-lbnp-paired-smoke"
+
+
+def _phase9b_capability_identity_expectation() -> CapabilityIdentityExpectation:
+    """Built from the frozen Phase 9B candidate profile and resource budget.
+
+    Imported lazily: those modules sit outside the runner source closure, so a
+    module-level import would couple closure-internal code to closure-external
+    code at import time.
+    """
+
+    from nhc_deprot_ranker.quantum.phase9b_authority import PHASE9B_CANDIDATE
+    from nhc_deprot_ranker.quantum.phase9b_permit import ROUTE_ATTEMPT_IDS, ROUTE_DIRECT
+    from nhc_deprot_ranker.quantum.phase9b_resources import phase9b_resources_sha256
+
+    return CapabilityIdentityExpectation(
+        identity_key=_PHASE9B_CAPABILITY_IDENTITY_KEY,
+        request_id=REQUEST_ID_PHASE9B,
+        inchikey=PHASE9B_CANDIDATE.inchikey,
+        attempt_id=ROUTE_ATTEMPT_IDS[ROUTE_DIRECT],
+        protocol_sha256=LOCKED_PROTOCOL_SHA256,
+        electron_count=PHASE9B_CANDIDATE.electron_count,
+        resources_sha256=phase9b_resources_sha256(),
+        endpoint_atom_map_sha256=PHASE9B_CANDIDATE.endpoint_atom_map_sha256,
+        legacy_atom_map_sha256=PHASE9B_CANDIDATE.legacy_atom_map_sha256,
+        geometry_validation_sha256=PHASE9B_CANDIDATE.geometry_validation_sha256,
+    )
+
+
 _CAPABILITY_IDENTITY_EXPECTATIONS: Final[dict[str, Callable[[], CapabilityIdentityExpectation]]] = {
-    PHASE8B_CAPABILITY_IDENTITY_KEY: _phase8b_capability_identity_expectation
+    PHASE8B_CAPABILITY_IDENTITY_KEY: _phase8b_capability_identity_expectation,
+    _PHASE9B_CAPABILITY_IDENTITY_KEY: _phase9b_capability_identity_expectation,
 }
 
 
