@@ -86,7 +86,7 @@ construction, which the `AIMNet2ASE` signature supports.
 | 4 | Where `charge`/`mult` enter | at `AIMNet2ASE` construction; not via `Atoms.info` |
 | 5 | Base calculator then endpoint wrapper? | Yes — the signature takes `base_calc: AIMNet2Calculator`, so one calculator can back two wrappers |
 | 6 | How energy/forces are read | the ASE interface; `implemented_properties` lists `energy` and `forces` |
-| 7 | `compile_model=False`? | Yes, recorded — though 9A-I also proved it does **not** prevent a `torch.compile` cache |
+| 7 | `compile_model=False`? | Yes, recorded. Phase 9A-S4 proved from source that `torch.compile` is called **only** when the flag is truthy, so the compile cache 9A-I measured did not come from the calculator; something else in the stack wrote it. Both findings stand, and cache isolation is enforced regardless. |
 | 8 | How `device` is passed | `AIMNet2Calculator(device=...)`, recorded as `cuda:0` |
 | 9 | How ASE `LBFGS` should be used | **not established by 9A-I** — it ran no optimizer at all (`geometry_optimizations: 0`) |
 | 10 | Any temporary compatibility patch | **UNANSWERABLE** — the script does not exist |

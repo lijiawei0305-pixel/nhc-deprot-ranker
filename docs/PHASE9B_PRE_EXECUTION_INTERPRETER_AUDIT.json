@@ -1,0 +1,147 @@
+{
+  "actions_not_taken": [
+    "preflight beyond this read-only probe",
+    "deploy",
+    "permit placement",
+    "permit consumption",
+    "launch",
+    "any remote write",
+    "any process start"
+  ],
+  "decision": "no_single_interpreter",
+  "enumeration": "names collapsed by (st_dev, st_ino) before counting",
+  "environments_examined": [
+    "aimnet2",
+    "gpupyscf",
+    "mace",
+    "mlff"
+  ],
+  "findings": [
+    {
+      "distributions": {
+        "aimnet": "0.2.0",
+        "ase": "3.29.0",
+        "geometric": "ABSENT:PackageNotFoundError",
+        "pyscf": "ABSENT:PackageNotFoundError",
+        "pyscf-dispersion": "ABSENT:PackageNotFoundError",
+        "torch": "2.8.0"
+      },
+      "environment": "aimnet2",
+      "interpreter_names": [
+        "python",
+        "python3",
+        "python3.1",
+        "python3.11",
+        "python3.11-config"
+      ],
+      "python": "3.11.15",
+      "satisfies_full_assisted_route": false,
+      "unique_inodes": 2
+    },
+    {
+      "distributions": {
+        "aimnet": "ABSENT:PackageNotFoundError",
+        "ase": "ABSENT:PackageNotFoundError",
+        "geometric": "1.1.1",
+        "pyscf": "2.13.1",
+        "pyscf-dispersion": "1.5.0",
+        "torch": "ABSENT:PackageNotFoundError"
+      },
+      "environment": "gpupyscf",
+      "interpreter_names": [
+        "python",
+        "python3",
+        "python3.1",
+        "python3.11",
+        "python3.11-config"
+      ],
+      "python": "3.11.15",
+      "satisfies_full_assisted_route": false,
+      "unique_inodes": 2
+    },
+    {
+      "distributions": {
+        "aimnet": "ABSENT:PackageNotFoundError",
+        "ase": "3.29.0",
+        "geometric": "ABSENT:PackageNotFoundError",
+        "pyscf": "ABSENT:PackageNotFoundError",
+        "pyscf-dispersion": "ABSENT:PackageNotFoundError",
+        "torch": "2.8.0"
+      },
+      "environment": "mace",
+      "interpreter_names": [
+        "python",
+        "python3",
+        "python3.1",
+        "python3.11",
+        "python3.11-config"
+      ],
+      "python": "3.11.15",
+      "satisfies_full_assisted_route": false,
+      "unique_inodes": 2
+    },
+    {
+      "distributions": {
+        "aimnet": "0.2.0",
+        "ase": "3.29.0",
+        "geometric": "ABSENT:PackageNotFoundError",
+        "pyscf": "ABSENT:PackageNotFoundError",
+        "pyscf-dispersion": "ABSENT:PackageNotFoundError",
+        "torch": "2.8.0"
+      },
+      "environment": "mlff",
+      "interpreter_names": [
+        "python",
+        "python3",
+        "python3.1",
+        "python3.11",
+        "python3.11-config"
+      ],
+      "python": "3.11.15",
+      "satisfies_full_assisted_route": false,
+      "unique_inodes": 2
+    }
+  ],
+  "forbidden_workarounds_not_attempted": [
+    "installing or upgrading any package",
+    "combining two environments on one PYTHONPATH",
+    "running the direct route alone and presenting it as a paired experiment",
+    "deferring the discovery until after a permit was consumed"
+  ],
+  "interpreters_satisfying_full_route": [],
+  "irreversible_action_taken": false,
+  "mlff_activation_reverified": {
+    "bytes": 783,
+    "drift": false,
+    "sha256": "9a8ae2b2fff81b317ef2569af51f9fa374b071551dfa4cb3e2948fe598e437b6"
+  },
+  "phase": "9B pre-execution audit (authorization section 11)",
+  "read_only_proof": {
+    "dont_write_bytecode": true,
+    "isolated": true,
+    "method": "importlib.metadata only; nothing imported",
+    "offline_flags": {
+      "HF_DATASETS_OFFLINE": "1",
+      "HF_HUB_OFFLINE": "1",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "TRANSFORMERS_OFFLINE": "1"
+    },
+    "third_party_modules_imported": []
+  },
+  "receipt_sha256": "1d9d6cfb586c07ef57a353d193f91b8481407c21a1e28c8cf5f5f106d274d0d9",
+  "remote_receipt_sha256": "29371624707866e6546f394b7269ff58208de1418d2c4cb0a9a1fdd41abd974e",
+  "required_versions": {
+    "aimnet": "0.2.0",
+    "ase": "3.29.0",
+    "geometric": "1.1.1",
+    "pyscf": "2.13.1",
+    "pyscf-dispersion": "1.5.0",
+    "python": "3.11.15",
+    "torch": "2.8.0"
+  },
+  "requirement": "one exact interpreter carrying python 3.11.15, torch 2.8.0+cu128, aimnet 0.2.0, ase 3.29.0, pyscf 2.13.1, geometric 1.1.1 and pyscf-dispersion 1.5.0, able to run the whole assisted route in one process",
+  "schema_version": "phase9b.pre_execution_interpreter_audit.v1",
+  "server_modified": false,
+  "status": "hard_stop_no_single_interpreter",
+  "why_this_blocks": "Route A must run AIMNet2 preoptimization and then PySCF inside one guarded worker process. The MLFF stack (torch, aimnet, ase) and the PySCF stack (pyscf, geometric, pyscf-dispersion) are installed in disjoint conda environments, so no single interpreter can execute the assisted route."
+}

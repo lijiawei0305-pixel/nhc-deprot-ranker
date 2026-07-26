@@ -1,6 +1,6 @@
 # Phase Status
 
-Updated: 2026-07-26
+Updated: 2026-07-27
 
 | Phase | Status | Gate |
 | --- | --- | --- |
@@ -23,7 +23,7 @@ Updated: 2026-07-26
 | Phase 9A-S3 — activation-bound source inspection | Inconclusive; mlff.sh binding resolved, loader decision unresolved | 2026-07-27; read-only; 1 of 1 SSH used, stopped on interpreter enumeration; server unchanged |
 | Phase 9A-S4 — deduplicated interpreter and source inspection | Passed; loader decision A, source_proven | 2026-07-27; read-only; 1 of 1 SSH used; 16 AIMNet + 25 ASE files read; server unchanged |
 | Phase 9B item 8/10 — production execution runtime | Complete; loader, ASE/LBFGS optimizer, trajectory evidence, v8 rebaseline | 2026-07-27; local only; no model, no GPU, no server; eleven gates still false |
-| Phase 9B — paired direct / assisted smoke | Implementation in progress; 7 of 10 complete, 8/10 incomplete | 2026-07-27; item 8/10 blocked on the production AIMNet2 adapters; gates closed |
+| Phase 9B — paired direct / assisted smoke | Framework 8 of 10 complete; execution stopped before any irreversible action | 2026-07-27; no single interpreter carries both the MLFF and PySCF stacks; nothing deployed, placed, consumed, or launched |
 
 ## Current completed work
 
@@ -158,12 +158,12 @@ calculator's default model string exposes a remote-fetch path, which is why the
 production loader must use an explicit local path and why the exact mechanism for
 doing so has to be recovered rather than guessed.
 
-The Phase 9B implementation plan was **re-baselined from six components to
-eight** after building item 5 surfaced three real integration gaps: the launch
-argv had no CLI to parse it, the supervisor's production execution path was
-unwired (`execute=None`), and nothing placed the one-shot permit, which the
-payload manifest excludes by design. Six of eight are now built, all with their
-source gates closed:
+The Phase 9B implementation plan was re-baselined twice — from six components to
+eight, then to ten — as building each item surfaced real integration gaps: the
+launch argv had no CLI to parse it, the supervisor's production execution path
+was unwired (`execute=None`), nothing placed the one-shot permit, and the
+production AIMNet2 adapters were refusal stubs. Eight of ten are now built, all
+with their source gates closed:
 
 ```text
 1/10  preparation/phase9b_preopt.py      AIMNet2 preoptimization contract  complete
@@ -173,10 +173,25 @@ source gates closed:
 5/10  preparation/phase9b_launch.py      two-route guardian launch         complete
 6/10  pre-launch integration closure     CLI, adapter, permit stage        complete
 7/10  quantum/phase9b_guardian.py        guardian, transport, handoff      complete
-8/10  execution runtime closure          compute-claim, adapters, gates    INCOMPLETE
-                                         production AIMNet2 adapters pending
+8/10  execution runtime closure          production loader, optimizer,     complete
+                                         trajectory evidence, v8 rebaseline
 9/10  preparation/phase9b_postflight.py  evidence harvest and acceptance   not started
 10/10 closed-gate full-chain rehearsal   dry run and final freeze          not started
+```
+
+Item 8/10 is complete as of PR #45. The production AIMNet2 loader and the
+production ASE/LBFGS optimizer are implemented; neither is a refusal stub.
+
+```text
+runner source schema        nhc-two-endpoint-runner-source-v8
+runner_source_sha256        5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2
+AIMNet2 runtime schema      nhc-phase9b-aimnet2-runtime-v2
+trajectory schema           nhc-phase9b-aimnet2-trajectory-v1
+production loader           A, source_proven from installed source in Phase 9A-S4
+AseLBFGSOptimizer           implemented
+execution gates             eleven, all false
+real model or PySCF run     none
+Phase 9B state              prepared_not_authorized
 ```
 
 Item 7 also resolved a contract contradiction the plan had carried since Phase
@@ -222,119 +237,42 @@ acknowledgement rather than hours for a computation.
 
 No module has been run against a server: each takes an injected runner or spawn
 seam and refuses a real invocation while its `EXECUTION_AUTHORIZED` is false.
-There are ten such gates and all ten are false.
+There are **eleven** such gates and all eleven are false.
 
 ## Next action
 
-**Item 8/10 — production AIMNet2 adapters. Blocked pending one read-only fact.**
+**Phase 9B execution is stopped, fail-closed, before any irreversible action.**
 
-Item 8/10 is **not complete**. PR #39 delivered the security contract and a
-testable shell for Route A -- compute-claim parameterization, the closed worker
-CLI, route-aware execution adapters, structural gates, durable evidence, and the
-byte-closed PySCF handoff -- but two production adapters are still refusal paths:
-
-```text
-_load_base_model()          raises unconditionally even when the gate is open;
-                            there is no production model construction
-AseLBFGSOptimizer           does not exist; only the Optimizer Protocol and mock
-                            implementations do
-run_assisted_stage()        refuses when no optimizer is injected, so Route A
-                            cannot run a real preoptimization
-```
-
-Writing them is blocked on **one unrecovered fact**, not on effort. The Phase
-9A-I inference script was carried inline over SSH and never committed, so the
-mechanism by which the explicit local weight reached `AIMNet2Calculator` is not
-recorded anywhere: its `model` parameter is typed `str | torch.nn.Module`, and
-whether 9A-I passed the absolute path as the string or loaded the file into a
-module first is unknown.
-
-That difference matters. Every safeguard in this phase exists because
-`model='aimnet2'` can resolve against a remote hub; if the `str` branch treats
-every string as a registry key, guessing wrong would trigger exactly that lookup.
-The full audit, including what *is* authoritatively recovered from Phase 9A-R
-introspection, is in `docs/PHASE9A_I_API_RECOVERY.md`.
-
-Phase 9A-S was authorized and executed to resolve it, and **did not**. Two
-read-only SSH invocations were used: the first crashed on a bug in my own script
-before printing, and the second ran cleanly but probed the login interpreter
-(python 3.12.3) rather than the `mlff` environment (python 3.11.15) where the
-AIMNet2 stack lives, so it located no source. The server was left unchanged --
-caches, weight, and sources all identical before and after, and no third-party
-module was imported. See `docs/PHASE9A_S_INSTALLED_SOURCE_INSPECTION.md`.
-
-One more read-only invocation, locating the environment script by listing rather
-than assuming its name, answers all twenty questions. It needs its own
-authorization.
-
-### Settled AIMNet2 facts
-
-These are measured results, not open questions:
+A one-shot execution authorization was granted and its section 11 pre-execution
+audit failed: there is no single interpreter on the compute host that can run
+the assisted route. The MLFF stack and the PySCF stack live in disjoint conda
+environments.
 
 ```text
-Phase 9A-I                       executed and passed, 2026-07-26
-                                 six single-point calls, three processes,
-                                 no optimization, no PySCF, no label
-ensemble                         single member _0, accepted by the user
-ensemble uncertainty             none; recorded as unavailable_single_member
-element coverage                 C/F/H/N, measured empirically
-energy unit                      eV
-forces unit                      eV/A, dtype float32
-cross-process repeatability      measured; spread 2.4e-7 eV
-first call in a process          21.9 s including torch.compile
-later calls                      1.6 s and 0.2 s
+mlff / aimnet2   torch 2.8.0, aimnet 0.2.0, ase 3.29.0     no pyscf stack
+gpupyscf         pyscf 2.13.1, geometric 1.1.1,            no MLFF stack
+                 pyscf-dispersion 1.5.0
 ```
 
-Safeguards for the single member are in
-`docs/PHASE9B_SINGLE_MEMBER_SAFEGUARDS.md`; the run is in
-`docs/PHASE9A_I_REPORT.md` and `docs/PHASE9A_I_RESULT_V001.json`.
+Every version present is exactly the frozen one; nothing drifted. They simply do
+not coexist, and Route A must run AIMNet2 and PySCF in one guarded worker
+process because that is what the byte-closed handoff and the assisted permit
+bind.
 
-The current blocker is the production loader and optimizer, **not** whether the
-software is installed, which elements are covered, what the units are, or whether
-the model is deterministic. All of those are answered.
+Nothing was deployed, no permit was placed or consumed, no remote root was
+created, and no process was started. The only remote action was one read-only
+metadata probe. Route D alone was deliberately not run: a direct-only result is
+not a paired experiment.
 
-### Both blockers are closed
+The reasoning, the options, and the single safe next action are in
+`docs/PHASE9B_EXECUTION_BLOCKED.md`; the evidence is in
+`docs/PHASE9B_PRE_EXECUTION_INTERPRETER_AUDIT.json`.
 
-```text
-compute-claim validation   parameterized through a per-chain ClaimIdentityView;
-                           both Phase 9B routes pass the real validator
-Route A runtime            quantum/phase9b_aimnet2_runtime.py runs inside the
-                           guarded route and closes the handoff into PySCF
-```
+Items 9/10 — postflight and the closed-gate full-chain rehearsal — remain not
+started. They are unaffected by this blocker and are the natural next build
+whenever the interpreter question is resolved.
 
-The closure was re-frozen once, at the end: schema v6 -> v7,
-`72125b67...0de3` -> `d7060a31...9c22`, 21 -> 23 files. Both routes' final
-request, manifest, and permit identities are regenerated against v7 and recorded
-in `docs/PHASE9B_IDENTITY_REBASELINE.md`. Their state is
-`prepared_not_authorized`: nothing was deployed, placed, launched, or consumed.
+## High-fidelity production labels
 
-Phase 9B still requires separate explicit execution authorization. No model or
-dataset ingestion may occur from the rejected Phase 8B attempt.
-
-## Known issues, recorded and not fixed
-
-Two pre-existing issues are recorded here rather than repaired, because fixing
-either would expand a scope that was deliberately bounded. Both are in files
-untouched by the work that found them.
-
-**Flaky supervisor timing test.**
-`tests/test_phase8a_process_supervisor.py::test_delayed_completion_observation_is_fail_closed_as_timeout`
-failed once during a loaded full-suite run on 2026-07-26 and passed on every
-subsequent attempt (six isolated reruns and two consecutive full-suite runs, all
-green at 562 passed). No source or test file changed between the last green run
-and the failure. The cause is construction: the test races a 20 ms timeout and a
-10 ms grace against an injected 80 ms observation delay and a 50 ms child, so
-scheduling jitter on a loaded machine can flip the observed outcome. It is a
-test-determinism defect, not evidence that the supervisor stopped failing
-closed. A fix would widen the margins or drive the clock deterministically.
-
-**Stale pre-commit ruff pin.** `pre-commit` fails one hook, `UP038` in
-`tests/test_phase8b_runtime.py`, because the hook pins ruff `v0.12.4` while the
-project uses `0.15.16`, where that rule was removed. Running ruff with the
-repository configuration passes, and no pre-commit git hook is installed, so it
-does not gate commits.
-
-Any new calculation requires a separate document-first plan, a new
-candidate/attempt/root/permit authority chain, and new explicit user
-authorization. No model or dataset ingestion may occur from the rejected
-Phase 8B attempt.
+71. Unchanged. No Phase 9B smoke label exists, and none may enter the production
+table without a separate data-contract acceptance.

@@ -174,7 +174,7 @@ the circularity this round removed.
 
 ## What is still not wired
 
-**Postflight does not exist.** That is item 8/8 and is deliberately not started
+**Postflight does not exist.** That is item 9/10 and is deliberately not started
 until every interface above is frozen.
 
 **The AIMNet2 stage has no runtime implementation inside the route.** The handoff
