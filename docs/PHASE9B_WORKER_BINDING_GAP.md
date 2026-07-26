@@ -159,14 +159,46 @@ validate_exact_phase8b_authority      authority validation and its types
                                          closure until wiring)
 _issue_phase8b_compute_capability     capability issue, including the frozen
                                       worker-authority match in two_endpoint.py
+                                      -> the capability validator is now
+                                         parameterized: it compares against a
+                                         registered CapabilityIdentityExpectation
+                                         selected by the capability's own
+                                         identity key, instead of module
+                                         constants. Phase 8B behavior is
+                                         unchanged. Phase 9B has NO registry
+                                         entry yet and therefore cannot be
+                                         claimed -- see the two prerequisites
+                                         below.
 _require_phase8b_arguments            name and message kept: the message is
                                       pinned by an existing test and the
                                       argument shape is already phase-agnostic
 ```
+
+## Two prerequisites before Phase 9B gets a capability expectation
+
+Attempting the capability parameterization surfaced a gap in the earlier Phase 9B
+design that must be closed before a registry entry can exist:
+
+**Resources are not frozen yet.** The expectation binds `resources_sha256`, but
+the Phase 9B resource budget is deliberately fixed in the execution request, not
+earlier. A registry entry built before that freeze would either bind the wrong
+budget or invite a later edit to a hash-bound value.
+
+**`Phase9BExactAuthority` carries no geometry-validation binding.**
+The Phase 8B expectation binds `endpoint_atom_map_sha256`,
+`legacy_atom_map_sha256`, and `geometry_validation_sha256`. The Phase 9B exact
+authority carries none of them, yet the Phase 7 geometry-validation hash remains
+meaningful for Route D, whose inputs are exactly the Phase 7 geometry. Dropping
+that binding for Phase 9B would be a real loss of provenance, so the authority
+record needs extending rather than the expectation being weakened.
+
+Both are wiring-step work. Until then the registry holds Phase 8B only, and a
+capability presenting any other identity key fails closed with
+`no frozen identity expectation` rather than falling back to a chain.
 
 ## Current state
 
 All three execution gates remain closed, the closure remains at 14 files with no
 Phase 9B module wired in, `phase8b_authority.py`, `phase8b_permit.py`, and
 `two_endpoint.py` are untouched, `PHASE8B_DFT_SMOKE_V001.json` is unchanged, and
-the suite passes at 661.
+the suite passes at 674.

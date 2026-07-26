@@ -388,4 +388,19 @@ def test_compute_capability_constructor_rejects_normal_construction() -> None:
             authority=object(),  # type: ignore[arg-type]
             protocol_sha256=FROZEN_PROTOCOL_SHA256,
             compute_claim_sha256="f" * 64,
+            identity_key=runner.PHASE8B_CAPABILITY_IDENTITY_KEY,
+        )
+
+
+def test_compute_capability_constructor_requires_an_identity_key() -> None:
+    """Omitting the key must still fail closed, not default to a chain."""
+
+    with pytest.raises(TypeError):
+        runner._Phase8BComputeCapability(  # pyright: ignore[reportPrivateUsage,call-arg]
+            seal=object(),
+            pid=os.getpid(),
+            absolute_deadline_ns=time.monotonic_ns() + 1_000_000_000,
+            authority=object(),  # type: ignore[arg-type]
+            protocol_sha256=FROZEN_PROTOCOL_SHA256,
+            compute_claim_sha256="f" * 64,
         )
