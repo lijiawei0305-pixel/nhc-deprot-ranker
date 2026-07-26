@@ -7,7 +7,9 @@ built to close it, as one source-freeze unit.
 > production adapters are still refusal paths: `_load_base_model` raises even
 > when the gate is open, and no ASE/LBFGS optimizer exists. Route A therefore
 > still cannot run a real preoptimization. The blocker is one unrecovered API
-> fact, recorded in `docs/PHASE9A_I_API_RECOVERY.md`.
+> fact, recorded in `docs/PHASE9A_I_API_RECOVERY.md`. Phase 9A-S attempted to
+> recover it from the installed source on 2026-07-27 and did not succeed; see
+> `docs/PHASE9A_S_INSTALLED_SOURCE_INSPECTION.md`.
 
 ## What was unreachable
 

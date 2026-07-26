@@ -1,0 +1,129 @@
+{
+  "cache_after": {
+    "aimnet_cache": {
+      "bytes": 8836941,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784037872646661935,
+      "pyc_files": 0,
+      "root": "<AIMNET_CACHE_ROOT>"
+    },
+    "hf_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/huggingface"
+    },
+    "inductor_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/torchinductor_<REMOTE_USER>"
+    },
+    "nv_compute_cache": {
+      "bytes": 26405248,
+      "exists": true,
+      "files": 682,
+      "newest_mtime_ns": 1784976789984713350,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.nv/ComputeCache"
+    },
+    "torch_hub": {
+      "bytes": 109872,
+      "exists": true,
+      "files": 2,
+      "newest_mtime_ns": 1784701106804299388,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/torch"
+    },
+    "triton_cache": {
+      "bytes": 26560,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784038187250059368,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.triton"
+    }
+  },
+  "cache_before": {
+    "aimnet_cache": {
+      "bytes": 8836941,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784037872646661935,
+      "pyc_files": 0,
+      "root": "<AIMNET_CACHE_ROOT>"
+    },
+    "hf_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/huggingface"
+    },
+    "inductor_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/torchinductor_<REMOTE_USER>"
+    },
+    "nv_compute_cache": {
+      "bytes": 26405248,
+      "exists": true,
+      "files": 682,
+      "newest_mtime_ns": 1784976789984713350,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.nv/ComputeCache"
+    },
+    "torch_hub": {
+      "bytes": 109872,
+      "exists": true,
+      "files": 2,
+      "newest_mtime_ns": 1784701106804299388,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/torch"
+    },
+    "triton_cache": {
+      "bytes": 26560,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784038187250059368,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.triton"
+    }
+  },
+  "distributions_found": {
+    "aimnet": false,
+    "ase": false,
+    "torch": false
+  },
+  "installation_roots": {},
+  "interpreter_probed": {
+    "dont_write_bytecode": true,
+    "isolated_mode": true,
+    "note": "the login shell interpreter; the AIMNet2 stack lives in the mlff env at 3.11.15",
+    "offline_flags": {
+      "HF_DATASETS_OFFLINE": "1",
+      "HF_HUB_OFFLINE": "1",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "TRANSFORMERS_OFFLINE": "1"
+    },
+    "python_version": "3.12.3"
+  },
+  "invariance": {
+    "cache_unchanged": true,
+    "no_third_party_imported": true,
+    "sources_unchanged": true,
+    "weights_unchanged": true
+  },
+  "loader_decision": "unresolved",
+  "phase": "9A-S",
+  "record_files": {},
+  "schema_version": "phase9a_s.source_file_manifest.v1",
+  "scope": "read_only_installed_source_inspection",
+  "source_files_read": 0,
+  "source_manifest": [],
+  "ssh_invocations": 2,
+  "status": "incomplete_wrong_interpreter",
+  "third_party_modules_imported": [],
+  "weight_observed": [
+    {
+      "bytes": 8836941,
+      "is_file": true,
+      "is_symlink": false,
+      "mtime_ns": 1784037872646661935,
+      "path": "<AIMNET_CACHE_ROOT>/aimnet2_wb97m_d3_0.pt"
+    }
+  ]
+}

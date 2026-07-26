@@ -117,6 +117,20 @@ Choosing between (a) and (b) from the prose in
 fact. The instruction for this round is explicit that an unrecoverable API means
 stop, and this is that case.
 
+## Attempted and not resolved: Phase 9A-S
+
+Phase 9A-S was authorized and executed on 2026-07-27 to settle this by reading
+the installed source. It did not settle it. Two read-only SSH invocations were
+used; the second ran cleanly and proved the server unchanged, but probed the
+login interpreter rather than the `mlff` environment, so no `aimnet` source was
+located. The ambiguity below therefore stands unchanged.
+
+What 9A-S did establish: the weight is at `<AIMNET_CACHE_ROOT>/aimnet2_wb97m_d3_0.pt`
+at exactly 8836941 bytes, the aimnet cache holds that file and nothing else, and
+**no Hugging Face cache exists on the account at all** -- so whatever Phase 9A-I
+did, it populated no hub cache. Details in
+`docs/PHASE9A_S_INSTALLED_SOURCE_INSPECTION.md`.
+
 ## What would resolve it, cheaply and read-only
 
 Any one of these settles it. All are read-only and load no model:
