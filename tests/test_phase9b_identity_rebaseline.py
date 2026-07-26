@@ -34,18 +34,21 @@ from nhc_deprot_ranker.quantum.phase9b_resources import (
 # surprise at launch time. Permit digests are absent by design: they depend on the
 # private project root.
 SUPERSEDED_SOURCE_SHA256 = "2059b35d0e62bc844e7fc602929e9e53b79cd3e9fcc6644fb4e67580e1a5a52c"
-FINAL_SOURCE_SCHEMA = "nhc-two-endpoint-runner-source-v5"
-FINAL_SOURCE_SHA256 = "c914afe3f166ea1ef47dd2e27901aac660c918d110f51299c806ee605164fea8"
+SUPERSEDED_V5_SOURCE_SHA256 = "c914afe3f166ea1ef47dd2e27901aac660c918d110f51299c806ee605164fea8"
+FINAL_SOURCE_SCHEMA = "nhc-two-endpoint-runner-source-v6"
+FINAL_SOURCE_SHA256 = "72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3"
 FINAL_RESOURCES_SHA256 = "0fec2c1914f413a2762e1fafc7daa9900551981b5af72897746864edffac7df8"
-DIRECT_REQUEST_SHA256 = "8f8d892b8f161f4aafb6fb03c712f531c0acdb590850ccf7ffcc8c772387546a"
-DIRECT_MANIFEST_SHA256 = "1c0ef215b234033dc545ac5f5e613bc9757c34bf2a8e7e77d5a8df387a2d1c0f"
+DIRECT_REQUEST_SHA256 = "413832f9aa7c3dd6e012d0504bebfadb070e9be9fe5fb0bc12a2ab8ba86eb38c"
+DIRECT_MANIFEST_SHA256 = "78a129c1042c90f0d35c88c1696e1a3bb78013fcbf3117f777b378bdd9d38cec"
+ASSISTED_REQUEST_SHA256 = "5afab3221ae76fcfae91f1525a2f6830804f8a9829127bd5eb6fe4637bd1ebe6"
+ASSISTED_MANIFEST_SHA256 = "2bda7d47de97bf6865b0ecb8a9dfc2ad2767486d4ce42b97c4c9cd6f940f43b6"
 
 _DOC = Path("docs/PHASE9B_IDENTITY_REBASELINE.md")
 
 
-def _direct_chain() -> tuple[str, str]:
+def _chain(route: str) -> tuple[str, str]:
     request = build_route_request(
-        route=ROUTE_DIRECT,
+        route=route,
         runner_source_sha256=runner.current_runner_source_sha256(),
         protocol=runner.LOCKED_PROTOCOL,
         cation_xyz_sha256=PHASE9B_CANDIDATE.cation_xyz_sha256,
@@ -56,7 +59,7 @@ def _direct_chain() -> tuple[str, str]:
 
 def test_the_source_schema_was_upgraded() -> None:
     assert runner.RUNNER_SOURCE_SCHEMA_VERSION == FINAL_SOURCE_SCHEMA
-    assert FINAL_SOURCE_SCHEMA.endswith("-v5")
+    assert FINAL_SOURCE_SCHEMA.endswith("-v6")
 
 
 def test_the_source_closure_is_re_frozen_at_the_recorded_digest() -> None:
@@ -64,7 +67,7 @@ def test_the_source_closure_is_re_frozen_at_the_recorded_digest() -> None:
 
     assert runner.current_runner_source_sha256() == FINAL_SOURCE_SHA256
     assert FINAL_SOURCE_SHA256 != SUPERSEDED_SOURCE_SHA256
-    assert len(runner._RUNNER_SOURCE_RELATIVE_PATHS) == 18  # pyright: ignore[reportPrivateUsage]
+    assert len(runner._RUNNER_SOURCE_RELATIVE_PATHS) == 21  # pyright: ignore[reportPrivateUsage]
 
 
 def test_the_three_edited_files_are_inside_the_closure() -> None:
@@ -79,11 +82,54 @@ def test_the_resource_budget_did_not_move() -> None:
     assert phase9b_resources_sha256() == FINAL_RESOURCES_SHA256
 
 
-def test_the_direct_chain_is_regenerated_against_the_final_digest() -> None:
-    request_sha256, manifest_sha256 = _direct_chain()
-    assert request_sha256 == DIRECT_REQUEST_SHA256
-    assert manifest_sha256 == DIRECT_MANIFEST_SHA256
-    assert request_sha256 != manifest_sha256
+def test_both_chains_are_regenerated_against_the_final_digest() -> None:
+    """The assisted chain is now concrete rather than pending."""
+
+    assert _chain(ROUTE_DIRECT) == (DIRECT_REQUEST_SHA256, DIRECT_MANIFEST_SHA256)
+    assert _chain(ROUTE_ASSISTED) == (ASSISTED_REQUEST_SHA256, ASSISTED_MANIFEST_SHA256)
+    assert len({DIRECT_REQUEST_SHA256, ASSISTED_REQUEST_SHA256}) == 2
+    assert len({DIRECT_MANIFEST_SHA256, ASSISTED_MANIFEST_SHA256}) == 2
+
+
+def test_both_routes_start_from_the_same_frozen_initial_geometry() -> None:
+    """The invariant that makes the paired comparison interpretable."""
+
+    from nhc_deprot_ranker.preparation.phase9b_bundle import validate_route_parity
+
+    payloads = {}
+    for route in (ROUTE_DIRECT, ROUTE_ASSISTED):
+        request = build_route_request(
+            route=route,
+            runner_source_sha256=runner.current_runner_source_sha256(),
+            protocol=runner.LOCKED_PROTOCOL,
+            cation_xyz_sha256=PHASE9B_CANDIDATE.cation_xyz_sha256,
+            neutral_xyz_sha256=PHASE9B_CANDIDATE.neutral_xyz_sha256,
+        )
+        assert request.cation_xyz_sha256 == PHASE9B_CANDIDATE.cation_xyz_sha256
+        assert request.neutral_xyz_sha256 == PHASE9B_CANDIDATE.neutral_xyz_sha256
+        payloads[route] = build_route_payload(request)
+    validate_route_parity(payloads[ROUTE_DIRECT], payloads[ROUTE_ASSISTED])
+
+
+def test_neither_chain_depends_on_a_pre_existing_preoptimized_geometry() -> None:
+    """Requiring one made step 5 depend on step 10.  It no longer does."""
+
+    for route in (ROUTE_DIRECT, ROUTE_ASSISTED):
+        request = build_route_request(
+            route=route,
+            runner_source_sha256=runner.current_runner_source_sha256(),
+            protocol=runner.LOCKED_PROTOCOL,
+            cation_xyz_sha256=PHASE9B_CANDIDATE.cation_xyz_sha256,
+            neutral_xyz_sha256=PHASE9B_CANDIDATE.neutral_xyz_sha256,
+        )
+        body = json.loads(request.request_bytes.decode())
+        assert body["endpoints"]["cation"]["xyz_sha256"] == PHASE9B_CANDIDATE.cation_xyz_sha256
+        stage = body["preoptimization"]
+        if route == ROUTE_ASSISTED:
+            assert stage["runs_inside_route"] is True
+            assert stage["external_preparation_authorized"] is False
+        else:
+            assert stage == {"stage": "none", "aimnet2_authorized": False}
 
 
 def test_every_new_identity_references_the_same_final_source_digest() -> None:
@@ -137,16 +183,15 @@ def test_an_identity_built_against_the_superseded_digest_is_refused() -> None:
     assert body["runner_source_sha256"] != runner.current_runner_source_sha256()
 
 
-def test_the_assisted_chain_is_pending_rather_than_fabricated() -> None:
-    """Its inputs are preoptimized geometry, which does not exist yet."""
+def test_both_superseded_generations_are_recorded(tmp_path: Path) -> None:
+    """v4 and v5 are both preserved; neither is deleted or relabelled."""
 
-    assert ROUTE_ATTEMPT_IDS[ROUTE_ASSISTED] == "attempt-phase9b-lbnp-assisted-v001"
+    del tmp_path
     text = _DOC.read_text(encoding="utf-8")
-    assert "pending AIMNet2 preoptimization" in text
-    assert "request_sha256         pending" in text
-    # No fabricated assisted digests anywhere in the record.
-    assisted_section = text.split("### Route A")[1].split("### Both permits")[0]
-    assert not re.search(r"\b[0-9a-f]{64}\b", assisted_section.replace(FINAL_SOURCE_SHA256, ""))
+    assert SUPERSEDED_SOURCE_SHA256 in text
+    assert SUPERSEDED_V5_SOURCE_SHA256 in text
+    assert text.count("superseded_before_execution") >= 2
+    assert FINAL_SOURCE_SHA256 not in {SUPERSEDED_SOURCE_SHA256, SUPERSEDED_V5_SOURCE_SHA256}
 
 
 def test_the_superseded_identities_are_recorded_and_correctly_labelled() -> None:
@@ -161,8 +206,9 @@ def test_the_superseded_identities_are_recorded_and_correctly_labelled() -> None
 
 def test_the_rebaseline_record_names_what_is_still_not_wired() -> None:
     text = _DOC.read_text(encoding="utf-8")
-    assert "guardian transaction does not exist" in text
-    assert "launch transport is not reconciled" in text
+    assert "Postflight does not exist" in text
+    assert "no runtime implementation inside the route" in text
+    assert "Nothing here has been executed" in text
 
 
 def test_the_record_leaks_no_private_path_or_host() -> None:

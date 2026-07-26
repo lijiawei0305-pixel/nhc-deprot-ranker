@@ -35,6 +35,7 @@ from nhc_deprot_ranker.preparation.phase9b_deploy import (
 )
 from nhc_deprot_ranker.preparation.phase9b_launch import (
     ALLOWED_ARGUMENTS,
+    GUARDIAN_ENTRY,
     SUPERVISOR_ENTRY,
     LaunchState,
     LaunchTimeout,
@@ -89,9 +90,14 @@ _XYZ_MEMBERS = ("xyz/cation.xyz", "xyz/neutral.xyz")
 
 
 def _endpoints(route: str) -> tuple[str, str]:
-    if route == ROUTE_DIRECT:
-        return PHASE9B_CANDIDATE.cation_xyz_sha256, PHASE9B_CANDIDATE.neutral_xyz_sha256
-    return _PRE_C, _PRE_N
+    """Both routes start from the same frozen Phase 7 initial geometry.
+
+    Route A's preoptimized structure is produced inside the route at runtime, so
+    it is never a build-time input and never a permit binding.
+    """
+
+    del route
+    return PHASE9B_CANDIDATE.cation_xyz_sha256, PHASE9B_CANDIDATE.neutral_xyz_sha256
 
 
 def _payload(route: str) -> RoutePayload:
@@ -296,37 +302,53 @@ class _FakeSsh:
         raise_for: str | None = None,
         identity_for: dict[str, dict[str, Any]] | None = None,
         stdout_for: dict[str, bytes] | None = None,
+        permits: dict[str, str] | None = None,
     ) -> None:
         self.codes = codes or {}
         self.timeout_for = timeout_for
         self.raise_for = raise_for
         self.identity_for = identity_for or {}
         self.stdout_for = stdout_for or {}
+        self.permits: dict[str, str] = permits or {}
         self.commands: list[tuple[str, ...]] = []
 
-    def _route_of(self, command: Sequence[str]) -> str:
-        """Re-parse the remote string the way a shell would, and read --route."""
+    def _argv_of(self, command: Sequence[str]) -> dict[str, str]:
+        """Re-parse the remote string the way a shell would, and read the flags.
+
+        The fake answers with the permit digest the argv actually names, exactly
+        as a guardian would report the permit it consumed.
+        """
 
         tokens = shlex.split(command[-1].split("&& exec ", 1)[1])
-        assert tokens[:5] == ["python3", "-B", "-s", "-m", SUPERVISOR_ENTRY]
-        return tokens[tokens.index("--route") + 1]
+        assert tokens[:5] == ["python3", "-B", "-s", "-m", GUARDIAN_ENTRY]
+        rest = tokens[5:]
+        return dict(zip(rest[::2], rest[1::2], strict=True))
 
     def __call__(self, command: Sequence[str], *, timeout: float) -> tuple[int, bytes, bytes]:
         assert timeout > 0
         self.commands.append(tuple(command))
-        route = self._route_of(command)
+        flags = self._argv_of(command)
+        route = flags["--route"]
         if self.timeout_for == route:
             raise LaunchTimeout("no reply within the bound")
         if self.raise_for == route:
             raise OSError("connection reset")
         if route in self.stdout_for:
             return self.codes.get(route, 0), self.stdout_for[route], b""
+        pid = 4242 if route == ROUTE_DIRECT else 4243
         evidence: dict[str, Any] = {
-            "supervisor_identity": f"supervisor-{route}-0001",
-            "attempt_id": ROUTE_ATTEMPT_IDS[route],
+            "schema_version": "phase9b.guardian_acknowledgement.v1",
+            "entry": GUARDIAN_ENTRY,
+            "supervisor_entry": SUPERVISOR_ENTRY,
             "route": route,
-            "entry": SUPERVISOR_ENTRY,
-            "pid": 4242 if route == ROUTE_DIRECT else 4243,
+            "attempt_id": ROUTE_ATTEMPT_IDS[route],
+            "guardian_identity": f"guardian-{route}-0001",
+            "supervisor_pid": pid,
+            "supervisor_process_group_id": pid,
+            "state": "permit_consumed_spawned",
+            "permit_sha256": self.permits.get(route, flags["--expected-permit-sha256"]),
+            "consumption_receipt_sha256": "c" * 64,
+            "launch_receipt_sha256": "d" * 64,
         }
         evidence.update(self.identity_for.get(route, {}))
         return self.codes.get(route, 0), json.dumps(evidence).encode(), b""
@@ -341,7 +363,7 @@ def _launch(**kw: Any) -> lc.LaunchReceipt:
         "deploy_outcome": _outcome(plans),
         "preflight": _preflight(),
         "placement": _placement(plans),
-        "run_command": _FakeSsh(),
+        "run_command": _FakeSsh(permits={p.route: p.permit_sha256 for p in plans}),
         "clock": lambda: "2026-07-26T00:00:00Z",
     }
     params.update(kw)
@@ -722,15 +744,15 @@ def test_a_route_already_launched_is_never_launched_again() -> None:
 # --- structured argv ---------------------------------------------------------
 
 
-def test_canonical_argv_is_whitelisted_and_starts_only_the_supervisor() -> None:
+def test_canonical_argv_is_whitelisted_and_starts_only_the_guardian() -> None:
     argv = render_launch_argv(_plan(ROUTE_DIRECT))
-    assert argv[:5] == ("python3", "-B", "-s", "-m", SUPERVISOR_ENTRY)
+    assert argv[:5] == ("python3", "-B", "-s", "-m", GUARDIAN_ENTRY)
     flags = argv[5::2]
     assert sorted(flags) == sorted(ALLOWED_ARGUMENTS)
     assert len(set(flags)) == len(ALLOWED_ARGUMENTS)
     command = build_launch_command(ssh_alias=_ALIAS, project_root=_PROJECT, argv=argv)
     assert command[0] == "ssh" and "BatchMode=yes" in command
-    assert SUPERVISOR_ENTRY in command[-1]
+    assert GUARDIAN_ENTRY in command[-1]
     for backend in ("aimnet", "pyscf", "torch", "bash", "sh -c"):
         assert backend not in command[-1]
 
@@ -766,7 +788,7 @@ def test_a_non_whitelisted_or_extra_argument_is_refused() -> None:
         build_launch_command(
             ssh_alias=_ALIAS, project_root=_PROJECT, argv=(*argv, "--unregistered", "1")
         )
-    with pytest.raises(Phase9BLaunchError, match="guarded Phase 9B supervisor entry"):
+    with pytest.raises(Phase9BLaunchError, match="guarded Phase 9B guardian entry"):
         build_launch_command(
             ssh_alias=_ALIAS,
             project_root=_PROJECT,
@@ -778,7 +800,7 @@ def test_a_non_whitelisted_or_extra_argument_is_refused() -> None:
 def test_recorded_argv_is_redacted_of_absolute_paths() -> None:
     receipt = _launch()
     for record in receipt.routes:
-        assert record.redacted_argv[:5] == ("python3", "-B", "-s", "-m", SUPERVISOR_ENTRY)
+        assert record.redacted_argv[:5] == ("python3", "-B", "-s", "-m", GUARDIAN_ENTRY)
         assert not any(token.startswith("/") for token in record.redacted_argv)
         assert "<PATH>" in record.redacted_argv
     assert redact_argv(("/srv/x", "plain")) == ("<PATH>", "plain")
@@ -796,6 +818,7 @@ def test_both_routes_launch_in_the_frozen_order_and_report_distinct_identities()
     identities = {record.supervisor_identity for record in receipt.routes}
     assert len(identities) == 2 and None not in identities
     assert {record.supervisor_pid for record in receipt.routes} == {4242, 4243}
+    assert all(record.supervisor_identity is not None for record in receipt.routes)
     assert {record.attempt_id for record in receipt.routes} == set(ROUTE_ATTEMPT_IDS.values())
     assert next_action_for(receipt) is NextAction.PROCEED_TO_POSTFLIGHT
 
@@ -863,13 +886,25 @@ def test_a_timeout_after_one_route_launched_stays_indeterminate() -> None:
         {"attempt_id": ROUTE_ATTEMPT_IDS[ROUTE_ASSISTED]},
         {"route": ROUTE_ASSISTED},
         {"entry": "nhc_deprot_ranker.quantum.worker"},
-        {"supervisor_identity": ""},
-        {"pid": 0},
+        {"supervisor_entry": "nhc_deprot_ranker.quantum.worker"},
+        {"guardian_identity": ""},
+        {"supervisor_pid": 0},
+        {"supervisor_pid": None},
+        {"supervisor_process_group_id": 9999},
+        {"state": "permit_consumed_spawn_failed"},
+        {"state": "indeterminate"},
+        {"permit_sha256": "e" * 64},
+        {"consumption_receipt_sha256": "short"},
+        {"launch_receipt_sha256": None},
     ],
 )
-def test_a_wrong_supervisor_identity_is_indeterminate(evidence: dict[str, Any]) -> None:
-    fake = _FakeSsh(identity_for={ROUTE_DIRECT: evidence})
-    receipt = _launch(run_command=fake)
+def test_a_wrong_guardian_acknowledgement_is_indeterminate(evidence: dict[str, Any]) -> None:
+    plans = _plans()
+    fake = _FakeSsh(
+        identity_for={ROUTE_DIRECT: evidence},
+        permits={plan.route: plan.permit_sha256 for plan in plans},
+    )
+    receipt = _launch(plans=plans, run_command=fake)
     assert receipt.overall_state is LaunchState.INDETERMINATE
     assert receipt.routes[0].state is RouteLaunchState.INDETERMINATE
     assert len(fake.commands) == 1
@@ -971,3 +1006,32 @@ def test_every_terminal_state_still_reports_both_routes() -> None:
         assert isinstance(routes, list)
         assert [entry["route"] for entry in routes] == [ROUTE_DIRECT, ROUTE_ASSISTED]
         assert all(entry["final_root"] for entry in routes)
+
+
+def test_a_launch_timeout_may_not_span_the_computation() -> None:
+    """Launch waits for a guardian acknowledgement, never for the science.
+
+    A bound anywhere near the frozen wall-time would mean the SSH channel was
+    holding the computation open, which is the design the guardian replaced.
+    """
+
+    plans = _plans()
+    wall_time = float(PHASE9B_RESOURCES["hard_wall_timeout_seconds"])  # type: ignore[arg-type]
+    assert wall_time > lc.MAX_LAUNCH_ACKNOWLEDGEMENT_SECONDS
+    assert lc.LAUNCH_ACKNOWLEDGEMENT_TIMEOUT_SECONDS <= lc.MAX_LAUNCH_ACKNOWLEDGEMENT_SECONDS
+
+    for bad in (0.0, -1.0, lc.MAX_LAUNCH_ACKNOWLEDGEMENT_SECONDS + 1.0, wall_time, 7200.0):
+        with pytest.raises(ValueError, match="timeout"):
+            _launch(plans=plans, timeout_seconds=bad)
+
+
+def test_launch_starts_the_guardian_and_never_the_supervisor() -> None:
+    fake = _FakeSsh()
+    receipt = _launch(run_command=fake)
+    assert receipt.overall_state is LaunchState.LAUNCHED
+    for command in fake.commands:
+        remote = command[-1]
+        assert GUARDIAN_ENTRY in remote
+        assert f"-m {SUPERVISOR_ENTRY}" not in remote
+        for backend in ("aimnet", "pyscf", "torch"):
+            assert backend not in remote

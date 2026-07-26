@@ -28,11 +28,9 @@ _PRE_N = "5" * 64
 
 
 def _request(route: str, **kw: object) -> bundle.RouteRequest:
-    if route == ROUTE_DIRECT:
-        cation = PHASE9B_CANDIDATE.cation_xyz_sha256
-        neutral = PHASE9B_CANDIDATE.neutral_xyz_sha256
-    else:
-        cation, neutral = _PRE_C, _PRE_N
+    # Both routes start from the frozen Phase 7 initial geometry.
+    cation = PHASE9B_CANDIDATE.cation_xyz_sha256
+    neutral = PHASE9B_CANDIDATE.neutral_xyz_sha256
     params: dict[str, object] = {
         "route": route,
         "runner_source_sha256": current_runner_source_sha256(),
@@ -76,23 +74,44 @@ def test_request_bytes_are_deterministic() -> None:
     assert _request(ROUTE_DIRECT).request_bytes == _request(ROUTE_DIRECT).request_bytes
 
 
-def test_direct_route_must_carry_the_frozen_initial_geometry() -> None:
+@pytest.mark.parametrize("route", [ROUTE_DIRECT, ROUTE_ASSISTED])
+def test_both_routes_must_carry_the_frozen_initial_geometry(route: str) -> None:
+    """Single-transaction Route A: neither route may start from anything else.
+
+    An earlier design required Route A to declare a *preoptimized* geometry,
+    which cannot exist when the request is built. Both routes now start from the
+    identical frozen Phase 7 structure, and the preoptimized geometry is produced
+    inside the route.
+    """
+
     with pytest.raises(Phase9BBundleError, match="frozen initial geometry"):
-        _request(ROUTE_DIRECT, cation_xyz_sha256=_PRE_C)
-
-
-def test_assisted_route_must_not_carry_the_initial_geometry() -> None:
-    with pytest.raises(Phase9BBundleError, match="not the initial geometry"):
-        _request(
-            ROUTE_ASSISTED,
-            cation_xyz_sha256=PHASE9B_CANDIDATE.cation_xyz_sha256,
-            neutral_xyz_sha256=PHASE9B_CANDIDATE.neutral_xyz_sha256,
-        )
+        _request(route, cation_xyz_sha256=_PRE_C)
+    with pytest.raises(Phase9BBundleError, match="frozen initial geometry"):
+        _request(route, neutral_xyz_sha256=_PRE_N)
 
 
 def test_endpoints_cannot_share_one_geometry_hash() -> None:
     with pytest.raises(Phase9BBundleError, match="cannot share one geometry hash"):
         _request(ROUTE_ASSISTED, cation_xyz_sha256=_PRE_C, neutral_xyz_sha256=_PRE_C)
+
+
+def test_the_assisted_request_declares_its_in_route_stage() -> None:
+    """The permit binds the stage, not a geometry that cannot exist yet."""
+
+    direct = json.loads(_request(ROUTE_DIRECT).request_bytes)["preoptimization"]
+    assisted = json.loads(_request(ROUTE_ASSISTED).request_bytes)["preoptimization"]
+    assert direct == {"stage": "none", "aimnet2_authorized": False}
+    assert assisted["stage"] == "aimnet2"
+    assert assisted["runs_inside_route"] is True
+    assert assisted["external_preparation_authorized"] is False
+    for key in (
+        "weight_sha256",
+        "optimizer_protocol_sha256",
+        "structural_gates_sha256",
+        "handoff_contract_sha256",
+        "stage_sha256",
+    ):
+        assert len(assisted[key]) == 64
 
 
 def test_unknown_route_and_bad_hashes_fail_closed() -> None:
@@ -130,12 +149,15 @@ def test_manifest_binds_the_frozen_provenance_and_resources() -> None:
     assert manifest["electron_count"] == 160
 
 
-def test_assisted_manifest_keeps_the_initial_geometry_as_parent_lineage() -> None:
-    """Route A's files are preoptimized; its provenance still names the parents."""
+def test_the_assisted_manifest_registers_the_initial_geometry() -> None:
+    """Route A ships the initial structure, not a preoptimized one."""
 
     manifest = json.loads(_payload(ROUTE_ASSISTED).manifest_bytes)
-    assert manifest["files"][bundle.CATION_XYZ_RELATIVE] == _PRE_C
-    assert manifest["provenance"]["initial_cation_xyz_sha256"] != _PRE_C
+    assert manifest["files"][bundle.CATION_XYZ_RELATIVE] == PHASE9B_CANDIDATE.cation_xyz_sha256
+    assert (
+        manifest["provenance"]["initial_cation_xyz_sha256"] == PHASE9B_CANDIDATE.cation_xyz_sha256
+    )
+    assert manifest["preoptimization"]["stage"] == "aimnet2"
 
 
 def test_route_parity_accepts_the_two_built_payloads() -> None:
@@ -143,7 +165,7 @@ def test_route_parity_accepts_the_two_built_payloads() -> None:
 
 
 def test_route_parity_rejects_a_differing_timeout() -> None:
-    """The only sanctioned differences are geometry hashes and attempt identity."""
+    """The only sanctioned differences are the stage and the attempt identity."""
 
     direct = _payload(ROUTE_DIRECT)
     tampered = json.loads(direct.request.request_bytes)
@@ -161,7 +183,7 @@ def test_route_parity_rejects_a_differing_timeout() -> None:
         manifest_bytes=direct.manifest_bytes,
         manifest_sha256=direct.manifest_sha256,
     )
-    with pytest.raises(Phase9BBundleError, match="differ outside geometry: timeout_seconds"):
+    with pytest.raises(Phase9BBundleError, match="differ outside the stage: timeout_seconds"):
         validate_route_parity(broken, _payload(ROUTE_ASSISTED))
 
 
@@ -182,7 +204,7 @@ def test_route_parity_rejects_a_differing_endpoint_charge() -> None:
         manifest_bytes=assisted.manifest_bytes,
         manifest_sha256=assisted.manifest_sha256,
     )
-    with pytest.raises(Phase9BBundleError, match="endpoint neutral differs outside geometry"):
+    with pytest.raises(Phase9BBundleError, match="endpoint neutral differs outside the stage"):
         validate_route_parity(_payload(ROUTE_DIRECT), broken)
 
 
@@ -194,15 +216,22 @@ def test_route_parity_rejects_swapped_labels_and_shared_identity() -> None:
         validate_route_parity(same, same)
 
 
-def test_geometry_hashes_are_the_only_endpoint_difference() -> None:
-    """Positive statement of the parity rule the comparison enforces."""
+def test_the_preoptimization_stage_is_the_only_request_difference() -> None:
+    """Positive statement of the parity rule the comparison enforces.
+
+    Under the single-transaction design the endpoints are now byte-identical
+    between routes -- same geometry, same charge, same multiplicity -- and the
+    AIMNet2 stage is the sole experimental variable.
+    """
 
     left = json.loads(_payload(ROUTE_DIRECT).request.request_bytes)
     right = json.loads(_payload(ROUTE_ASSISTED).request.request_bytes)
     for endpoint in ("cation", "neutral"):
         a, b = left["endpoints"][endpoint], right["endpoints"][endpoint]
         differing = {k for k in set(a) | set(b) if a.get(k) != b.get(k)}
-        assert differing == {"xyz_sha256"}, (endpoint, differing)
+        assert differing == set(), (endpoint, differing)
+    top = {k for k in set(left) | set(right) if left.get(k) != right.get(k)}
+    assert top == {"preoptimization"}, top
 
 
 def test_module_declares_no_label_and_imports_no_chemistry() -> None:
@@ -245,3 +274,39 @@ def test_route_parity_rejects_one_request_reused_as_both_routes() -> None:
     assisted = _clone(_payload(ROUTE_ASSISTED), request_sha256=direct.request.request_sha256)
     with pytest.raises(Phase9BBundleError, match="distinct requests"):
         validate_route_parity(direct, assisted)
+
+
+def test_route_parity_rejects_a_differing_initial_geometry() -> None:
+    """Both routes must start from the same structure or the comparison is void."""
+
+    direct = _payload(ROUTE_DIRECT)
+    assisted = _payload(ROUTE_ASSISTED)
+    drifted = bundle.RoutePayload(
+        request=bundle.RouteRequest(
+            route=ROUTE_ASSISTED,
+            attempt_id=assisted.request.attempt_id,
+            request_bytes=assisted.request.request_bytes,
+            request_sha256=assisted.request.request_sha256,
+            cation_xyz_sha256="6" * 64,
+            neutral_xyz_sha256=assisted.request.neutral_xyz_sha256,
+        ),
+        manifest_bytes=assisted.manifest_bytes,
+        manifest_sha256=assisted.manifest_sha256,
+    )
+    with pytest.raises(Phase9BBundleError, match="share the frozen initial cation geometry"):
+        validate_route_parity(direct, drifted)
+
+    drifted_neutral = bundle.RoutePayload(
+        request=bundle.RouteRequest(
+            route=ROUTE_ASSISTED,
+            attempt_id=assisted.request.attempt_id,
+            request_bytes=assisted.request.request_bytes,
+            request_sha256=assisted.request.request_sha256,
+            cation_xyz_sha256=assisted.request.cation_xyz_sha256,
+            neutral_xyz_sha256="7" * 64,
+        ),
+        manifest_bytes=assisted.manifest_bytes,
+        manifest_sha256=assisted.manifest_sha256,
+    )
+    with pytest.raises(Phase9BBundleError, match="share the frozen initial neutral geometry"):
+        validate_route_parity(direct, drifted_neutral)

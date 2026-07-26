@@ -67,9 +67,14 @@ _PRE_N = "5" * 64
 
 
 def _endpoints(route: str) -> tuple[str, str]:
-    if route == ROUTE_DIRECT:
-        return PHASE9B_CANDIDATE.cation_xyz_sha256, PHASE9B_CANDIDATE.neutral_xyz_sha256
-    return _PRE_C, _PRE_N
+    """Both routes start from the same frozen Phase 7 initial geometry.
+
+    Route A's preoptimized structure is produced inside the route at runtime, so
+    it is never a build-time input and never a permit binding.
+    """
+
+    del route
+    return PHASE9B_CANDIDATE.cation_xyz_sha256, PHASE9B_CANDIDATE.neutral_xyz_sha256
 
 
 def _plan(route: str, *, project_root: str = _PROJECT) -> RoutePermitPlan:

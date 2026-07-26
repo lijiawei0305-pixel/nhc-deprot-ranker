@@ -33,12 +33,8 @@ _RES: dict[str, object] = {"threads": 4, "hard_wall_timeout_seconds": 7200}
 
 
 def _render(route: str, *, cation: str | None = None, neutral: str | None = None) -> bytes:
-    if route == ROUTE_DIRECT:
-        cation = cation or PHASE9B_CANDIDATE.cation_xyz_sha256
-        neutral = neutral or PHASE9B_CANDIDATE.neutral_xyz_sha256
-    else:
-        cation = cation or _PRE_C
-        neutral = neutral or _PRE_N
+    cation = cation or PHASE9B_CANDIDATE.cation_xyz_sha256
+    neutral = neutral or PHASE9B_CANDIDATE.neutral_xyz_sha256
     return render_phase9b_permit(
         route=route,
         project_root="/srv/project",
@@ -74,13 +70,19 @@ def test_direct_route_must_carry_the_frozen_initial_geometry() -> None:
         _render(ROUTE_DIRECT, cation=_PRE_C)
 
 
-def test_assisted_route_must_not_carry_the_initial_geometry() -> None:
-    with pytest.raises(Phase9BPermitValidationError, match="not the initial geometry"):
-        _render(
-            ROUTE_ASSISTED,
-            cation=PHASE9B_CANDIDATE.cation_xyz_sha256,
-            neutral=PHASE9B_CANDIDATE.neutral_xyz_sha256,
-        )
+@pytest.mark.parametrize("route", [ROUTE_DIRECT, ROUTE_ASSISTED])
+def test_neither_route_may_carry_a_non_initial_geometry(route: str) -> None:
+    """Single-transaction Route A: the permit binds the frozen initial structure.
+
+    Requiring a preoptimized digest here was circular -- the file only exists
+    after the route runs -- so both routes now bind the same starting geometry
+    and the assisted permit binds the AIMNet2 *stage* instead.
+    """
+
+    with pytest.raises(Phase9BPermitValidationError, match="frozen initial geometry"):
+        _render(route, cation="7" * 64)
+    with pytest.raises(Phase9BPermitValidationError, match="frozen initial geometry"):
+        _render(route, neutral="8" * 64)
 
 
 def test_unknown_route_fails_closed() -> None:

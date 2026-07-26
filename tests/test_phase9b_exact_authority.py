@@ -23,7 +23,7 @@ from nhc_deprot_ranker.quantum.phase9b_permit import (
 from nhc_deprot_ranker.quantum.phase9b_resources import PHASE9B_RESOURCES
 from nhc_deprot_ranker.quantum.two_endpoint import (
     LOCKED_PROTOCOL_SHA256,
-    REQUEST_SCHEMA_VERSION,
+    REQUEST_SCHEMA_VERSION_V2,
 )
 
 _FROZEN_TIMEOUT: int = int(cast(int, PHASE9B_RESOURCES["hard_wall_timeout_seconds"]))
@@ -102,7 +102,7 @@ def _consumed(tmp_path: Path) -> ConsumedPhase9BPermit:
 def _request(consumed: ConsumedPhase9BPermit) -> _Request:
     permit = consumed.permit
     return _Request(
-        schema_version=REQUEST_SCHEMA_VERSION,
+        schema_version=REQUEST_SCHEMA_VERSION_V2,
         execution_authorized=True,
         protocol_sha256=LOCKED_PROTOCOL_SHA256,
         timeout_seconds=_FROZEN_TIMEOUT,

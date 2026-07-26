@@ -64,20 +64,56 @@ Phase 7 initial neutral XYZ
 
 ### Route A — AIMNet2-assisted PySCF
 
+**One guarded transaction, not two steps.** The preoptimization runs *inside* the
+route, under the same permit, and its output is a runtime intermediate:
+
 ```text
 same Phase 7 initial cation XYZ
-  -> AIMNet2 preoptimization (total_charge = +1)
+  -> AIMNet2 preoptimization (total_charge = +1)   [inside the route]
   -> structure validation gates
+  -> byte-identical handoff
   -> PySCF B3LYP-D3(BJ)/def2-SVP
   -> geomeTRIC residual optimization to the SAME frozen convergence
   -> final cation electronic energy
 
 same Phase 7 initial neutral XYZ
-  -> AIMNet2 preoptimization (total_charge = 0)
-  -> structure validation gates
+  -> AIMNet2 preoptimization (total_charge = 0)    [inside the route]
   -> (same)
   -> final neutral electronic energy
 ```
+
+The request, manifest, and permit therefore bind the **frozen initial** geometry
+for both routes, plus — for Route A only — the AIMNet2 stage identity: the local
+weight digest, the optimizer protocol, the structural gates, and the handoff
+contract.
+
+An earlier design had Route A's permit bind the *preoptimized* geometry digest.
+That was circular: the file only exists after the route runs, so the permit
+depended on its own execution. It is recorded here because the contradiction
+survived several rounds before being noticed.
+
+Preoptimization is never an external preparation step, and the geometry is never
+edited, reordered, or regenerated between the stages. The request declares
+`external_preparation_authorized: false`, and the handoff refuses anything but
+byte identity.
+
+### The AIMNet2-to-PySCF handoff
+
+```text
+AIMNet2 writes output XYZ, hash-closed inside the route
+  -> Aimnet2PreoptimizationReceipt   input/output digests, atom-order digests,
+                                     charge, multiplicity, weight, optimizer and
+                                     gate digests, step and evaluation counts,
+                                     initial/final max force, wall time, cache
+                                     bytes, every structural gate, state
+  -> every gate must pass
+  -> PySCFHandoffReceipt             proves pyscf_input_bytes == aimnet2_output_bytes
+  -> only then may PySCF start
+```
+
+`pyscf_may_start` is the single gate PySCF consults. It refuses an absent
+handoff, a refused one, a drifted contract digest, a receipt whose digest does
+not match its body, and any case where the two byte digests differ.
 
 ## Controlled variables
 
@@ -303,6 +339,97 @@ phase, candidate, per-route route/attempt/final-root, the observed file's path,
 byte size and SHA256, the request/manifest/permit/source/resource identities, the
 host digest, the time, the state and failure reason, and a canonical digest over
 its own body.
+
+## Guardian transaction
+
+The launch control plane starts the **guardian**, never the supervisor. Its order
+is fixed and nothing in it may be reordered:
+
+```text
+parse and verify the closed argv
+-> verify the execution gates
+-> verify request / manifest / permit / source / resources
+-> verify the ready permit exists and no consumed permit exists
+-> irreversibly consume the ready permit          <- linearization point
+-> build and verify the Phase 9B worker handshake
+-> establish evidence / log / output roots
+-> spawn the guarded supervisor into its own session
+-> obtain a verifiable spawn acknowledgement
+-> write, fsync, and re-read the guardian launch receipt
+-> return the minimal identity JSON and exit promptly
+```
+
+Nothing spawns before consumption; an explicit guard refuses to spawn unless the
+consumed record is on disk. Nothing restores a permit after it. There is no
+retry, resume, rollback, backfill, or restoration, and the module offers no entry
+point named for any of them.
+
+### Permit consumption
+
+The transaction lives in `quantum/one_shot_permit.py`, shared with Phase 8B so
+the race-critical code exists exactly once:
+
+```text
+O_DIRECTORY | O_NOFOLLOW on the private directory, then every operation relative
+to that descriptor, so the path cannot be swapped between checks
+O_NOFOLLOW on the ready file, so a symlink is refused rather than followed
+full validation before the irreversible point, so a bad permit is never spent
+a device/inode recheck, so the file validated is the file consumed
+O_CREAT | O_EXCL | O_NOFOLLOW for the consumed record   <- linearization point
+fsync, unlink ready, fsync, re-read and compare type, mode, size, and bytes
+```
+
+There is deliberately **no rename**. A check-then-rename pair is racy however the
+check is written; exclusive create is atomic and the kernel decides who wins. A
+consumer that loses the race is told so and never overwrites the winner.
+
+If consumption succeeds and the spawn then fails, the attempt is still spent.
+That is `permit_consumed_spawn_failed` — terminal, never retried.
+
+### Launch transport
+
+A supervisor runs for up to 7200 s. A bounded SSH call cannot wait for that, so
+it does not:
+
+```text
+guardian   consumes, spawns, acknowledges, exits          seconds
+supervisor runs in its own session, stdout and stderr in  up to 7200 s
+           the frozen evidence tree, surviving SSH close
+```
+
+`start_new_session=True` makes the supervisor a session and process-group leader,
+so it survives the guardian exiting and the channel closing. stdin is
+`/dev/null`, so a stage that reads stdin cannot block forever once SSH
+disconnects. No `&`, no `nohup`, no shell, no free text.
+
+**A zero return code is never proof of launch.** The guardian reads the
+supervisor's own identity line back — its entry, route, attempt, and PID — and
+requires the observed session leader to be that same PID, which is what closes
+the PID-reuse question as far as it can be closed. Launch in turn requires the
+guardian's acknowledgement to name its own entry, the supervisor entry, the route,
+the attempt, the permit it consumed, a `permit_consumed_spawned` state, both
+receipt digests, and a supervisor PID that leads its own group.
+
+If the supervisor may have started but the acknowledgement or the receipt cannot
+be confirmed, the state is `indeterminate`. Nothing is killed, nothing is
+respawned, and nothing claims success.
+
+### Guardian receipts
+
+`PermitConsumptionReceipt` carries schema version, phase, candidate, route,
+attempt, both permit paths, the permit and consumed digests, the
+request/manifest/source/resource digests, the host digest, the timestamp, state,
+failure reason, and its own canonical digest.
+
+`GuardianLaunchReceipt` carries schema version, route, attempt, guardian
+identity, supervisor entry, supervisor PID, process-group and session identity,
+normalized argv digest, the request/manifest/permit/source/resource digests, the
+output/evidence/log root identities, spawn and acknowledgement timestamps, one of
+`not_started / permit_consumed_spawned / permit_consumed_spawn_failed /
+indeterminate`, a failure reason, and its own canonical digest.
+
+Neither carries an energy, a force, an SCF or geometry convergence status, or a
+label.
 
 ## Launch transaction
 

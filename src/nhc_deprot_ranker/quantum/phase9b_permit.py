@@ -33,6 +33,10 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Final, Protocol, cast
 
+from nhc_deprot_ranker.quantum.one_shot_permit import (
+    PermitErrors,
+    consume_one_shot_permit,
+)
 from nhc_deprot_ranker.quantum.phase9b_authority import (
     PHASE9B_CANDIDATE,
     CandidateProfile,
@@ -40,8 +44,21 @@ from nhc_deprot_ranker.quantum.phase9b_authority import (
     validate_endpoint_pair,
     validate_profile_self_consistency,
 )
+from nhc_deprot_ranker.quantum.phase9b_handoff import (
+    AIMNET2_WEIGHT_BYTES,
+    AIMNET2_WEIGHT_FILENAME,
+    AIMNET2_WEIGHT_SHA256,
+    aimnet2_optimizer_protocol_sha256,
+    aimnet2_structural_gates_sha256,
+    handoff_contract_sha256,
+    preoptimization_stage_sha256,
+)
 
-PERMIT_SCHEMA_VERSION: Final = "nhc-phase9b-private-permit-v1"
+# v2: the assisted route no longer binds a preoptimized geometry digest that
+# cannot exist when the permit is rendered.  Both routes bind the frozen Phase 7
+# initial geometry, and the assisted route additionally binds the AIMNet2 stage
+# identity -- weight, optimizer protocol, structural gates, and handoff contract.
+PERMIT_SCHEMA_VERSION: Final = "nhc-phase9b-private-permit-v2"
 REQUEST_ID: Final = "phase9b-lbnp-paired-smoke-v001"
 REMOTE_ROOT_RELATIVE: Final = "data/runs/nhc_deprot_ranker_phase9b_paired_smoke_v001"
 
@@ -58,6 +75,7 @@ READY_RELATIVE: Final = "private/permit.ready.json"
 CONSUMED_RELATIVE: Final = "private/permit.consumed.json"
 
 _MAX_PERMIT_BYTES: Final = 64 * 1024
+_READY_MODE: Final = 0o400
 _CONSUMED_MODE: Final = 0o400
 
 
@@ -67,6 +85,10 @@ class Phase9BPermitError(RuntimeError):
 
 class Phase9BPermitValidationError(Phase9BPermitError):
     """Permit bytes, layout, or identity failed strict validation."""
+
+
+class Phase9BPermitConsumedError(Phase9BPermitError):
+    """The one-shot permit is already consumed, or lost the consume race."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,6 +166,31 @@ def _route_paths(project_root: PurePosixPath, route: str) -> dict[str, str]:
     }
 
 
+def _preoptimization_section(route: str) -> dict[str, object]:
+    """What the assisted route binds about its in-route AIMNet2 stage.
+
+    The direct route runs no preoptimization, so its section says exactly that
+    rather than being absent: a missing key would be indistinguishable from a
+    dropped one.
+    """
+
+    if route == ROUTE_DIRECT:
+        return {"stage": "none", "aimnet2_authorized": False}
+    return {
+        "stage": "aimnet2",
+        "aimnet2_authorized": True,
+        "runs_inside_route": True,
+        "external_preparation_authorized": False,
+        "weight_filename": AIMNET2_WEIGHT_FILENAME,
+        "weight_sha256": AIMNET2_WEIGHT_SHA256,
+        "weight_bytes": AIMNET2_WEIGHT_BYTES,
+        "optimizer_protocol_sha256": aimnet2_optimizer_protocol_sha256(),
+        "structural_gates_sha256": aimnet2_structural_gates_sha256(),
+        "handoff_contract_sha256": handoff_contract_sha256(),
+        "stage_sha256": preoptimization_stage_sha256(),
+    }
+
+
 def render_phase9b_permit(
     *,
     profile: CandidateProfile = PHASE9B_CANDIDATE,
@@ -170,26 +217,18 @@ def render_phase9b_permit(
     cation_hash = _require_sha256(cation_xyz_sha256, label="cation_xyz_sha256")
     neutral_hash = _require_sha256(neutral_xyz_sha256, label="neutral_xyz_sha256")
 
-    if chosen_route == ROUTE_DIRECT:
-        if cation_hash != profile.cation_xyz_sha256 or neutral_hash != profile.neutral_xyz_sha256:
-            raise Phase9BPermitValidationError(
-                "direct-route inputs must be exactly the profile's frozen initial geometry"
-            )
-    else:
-        if cation_hash == profile.cation_xyz_sha256 and neutral_hash == profile.neutral_xyz_sha256:
-            raise Phase9BPermitValidationError(
-                "assisted-route inputs must be preoptimized geometry, not the initial geometry"
-            )
+    # Both routes start from the *same* frozen Phase 7 initial geometry.  The
+    # assisted route's preoptimized structure is a runtime intermediate produced
+    # inside the route, so a permit is never asked to bind a digest that cannot
+    # exist yet.  That circularity was the old schema's contradiction.
+    if cation_hash != profile.cation_xyz_sha256 or neutral_hash != profile.neutral_xyz_sha256:
+        raise Phase9BPermitValidationError(
+            "both routes must start from the profile's frozen initial geometry"
+        )
 
     if not resources or any(type(key) is not str or not key for key in resources):
         raise Phase9BPermitValidationError("resources must be a non-empty string-keyed mapping")
 
-    input_sha256: dict[str, str] = {
-        "cation_xyz": cation_hash,
-        "neutral_xyz": neutral_hash,
-        "initial_cation_xyz": profile.cation_xyz_sha256,
-        "initial_neutral_xyz": profile.neutral_xyz_sha256,
-    }
     permit = {
         "schema_version": PERMIT_SCHEMA_VERSION,
         "authorization": {
@@ -211,8 +250,14 @@ def render_phase9b_permit(
             "request_sha256": request_hash,
             "runner_source_sha256": source_hash,
             "payload_manifest_sha256": payload_hash,
-            "input_sha256": input_sha256,
+            "input_sha256": {"cation_xyz": cation_hash, "neutral_xyz": neutral_hash},
+            "atom_order_sha256": profile.endpoint_atom_map_sha256,
+            "endpoints": {
+                "cation": {"charge": 1, "multiplicity": 1},
+                "neutral": {"charge": 0, "multiplicity": 1},
+            },
         },
+        "preoptimization": _preoptimization_section(chosen_route),
         "resources": resources,
         "paths": _route_paths(root, chosen_route),
     }
@@ -265,7 +310,14 @@ def parse_phase9b_permit(
     except Phase9BAuthorityError as exc:
         raise Phase9BPermitValidationError(f"candidate profile is invalid: {exc}") from exc
     payload = _strict_object(raw, label="phase9b permit")
-    if set(payload) != {"schema_version", "authorization", "identity", "resources", "paths"}:
+    if set(payload) != {
+        "schema_version",
+        "authorization",
+        "identity",
+        "preoptimization",
+        "resources",
+        "paths",
+    }:
         raise Phase9BPermitValidationError("permit top-level keys drifted")
     if payload["schema_version"] != PERMIT_SCHEMA_VERSION:
         raise Phase9BPermitValidationError("permit schema version drifted")
@@ -306,6 +358,8 @@ def parse_phase9b_permit(
             "runner_source_sha256",
             "payload_manifest_sha256",
             "input_sha256",
+            "atom_order_sha256",
+            "endpoints",
         },
     )
     route = _require_route(identity["route"])
@@ -321,28 +375,29 @@ def parse_phase9b_permit(
         raise Phase9BPermitValidationError("permit electron count drifted")
 
     inputs = identity["input_sha256"]
-    if not isinstance(inputs, dict) or set(inputs) != {
-        "cation_xyz",
-        "neutral_xyz",
-        "initial_cation_xyz",
-        "initial_neutral_xyz",
-    }:
+    if not isinstance(inputs, dict) or set(inputs) != {"cation_xyz", "neutral_xyz"}:
         raise Phase9BPermitValidationError("permit input hash set drifted")
-    if (
-        inputs["initial_cation_xyz"] != profile.cation_xyz_sha256
-        or inputs["initial_neutral_xyz"] != profile.neutral_xyz_sha256
-    ):
-        raise Phase9BPermitValidationError("permit initial-geometry linkage drifted")
     cation_hash = _require_sha256(inputs["cation_xyz"], label="permit cation_xyz")
     neutral_hash = _require_sha256(inputs["neutral_xyz"], label="permit neutral_xyz")
-    if route == ROUTE_DIRECT and (
-        cation_hash != profile.cation_xyz_sha256 or neutral_hash != profile.neutral_xyz_sha256
-    ):
-        raise Phase9BPermitValidationError("direct-route permit inputs drifted from the profile")
-    if route == ROUTE_ASSISTED and (
-        cation_hash == profile.cation_xyz_sha256 and neutral_hash == profile.neutral_xyz_sha256
-    ):
-        raise Phase9BPermitValidationError("assisted-route permit inputs are not preoptimized")
+    # Both routes, one starting geometry.  This is the invariant that makes the
+    # paired comparison interpretable, so it is checked identically for each.
+    if cation_hash != profile.cation_xyz_sha256 or neutral_hash != profile.neutral_xyz_sha256:
+        raise Phase9BPermitValidationError(
+            "permit inputs are not the profile's frozen initial geometry"
+        )
+    if identity["atom_order_sha256"] != profile.endpoint_atom_map_sha256:
+        raise Phase9BPermitValidationError("permit atom-order linkage drifted")
+    endpoints = identity["endpoints"]
+    if not isinstance(endpoints, dict) or set(endpoints) != {"cation", "neutral"}:
+        raise Phase9BPermitValidationError("permit endpoint set drifted")
+    if endpoints["cation"] != {"charge": 1, "multiplicity": 1}:
+        raise Phase9BPermitValidationError("permit cation charge or multiplicity drifted")
+    if endpoints["neutral"] != {"charge": 0, "multiplicity": 1}:
+        raise Phase9BPermitValidationError("permit neutral charge or multiplicity drifted")
+
+    preoptimization = payload["preoptimization"]
+    if preoptimization != _preoptimization_section(route):
+        raise Phase9BPermitValidationError("permit preoptimization stage identity drifted")
 
     paths = _section(
         payload,
@@ -385,6 +440,58 @@ def parse_phase9b_permit(
         consumed_path=Path(expected_paths["consumed_path"]),
         raw_bytes=raw,
         permit_sha256=hashlib.sha256(raw).hexdigest(),
+    )
+
+
+def consume_phase9b_permit(
+    ready_path: Path,
+    *,
+    expected_permit_sha256: str,
+    expected_request_sha256: str,
+    expected_runner_source_sha256: str,
+    expected_payload_manifest_sha256: str,
+    profile: CandidateProfile = PHASE9B_CANDIDATE,
+) -> ConsumedPhase9BPermit:
+    """Validate and irreversibly consume one route's permit before any spawn.
+
+    The filesystem transaction is :func:`consume_one_shot_permit`, shared with
+    Phase 8B so the race-critical code exists once.  This function supplies the
+    Phase 9B validation, which runs strictly before the linearization point, and
+    rebuilds the Phase 9B record from the bytes that were consumed.
+    """
+
+    def validate(raw: bytes) -> object:
+        permit = parse_phase9b_permit(raw, profile=profile)
+        if permit.permit_sha256 != expected_permit_sha256:
+            raise Phase9BPermitValidationError("permit digest differs from the expected value")
+        if permit.request_sha256 != expected_request_sha256:
+            raise Phase9BPermitValidationError("permit request digest differs from the expected")
+        if permit.runner_source_sha256 != expected_runner_source_sha256:
+            raise Phase9BPermitValidationError("permit source digest differs from the expected")
+        if permit.payload_manifest_sha256 != expected_payload_manifest_sha256:
+            raise Phase9BPermitValidationError("permit manifest digest differs from the expected")
+        if permit.ready_path != ready_path:
+            raise Phase9BPermitValidationError("permit is not at its own registered ready path")
+        return permit
+
+    consumed = consume_one_shot_permit(
+        ready_path,
+        ready_relative_name=PurePosixPath(READY_RELATIVE).name,
+        consumed_relative_name=PurePosixPath(CONSUMED_RELATIVE).name,
+        ready_mode=_READY_MODE,
+        consumed_mode=_CONSUMED_MODE,
+        validate=validate,
+        errors=PermitErrors(
+            error=Phase9BPermitError,
+            validation=Phase9BPermitValidationError,
+            consumed=Phase9BPermitConsumedError,
+        ),
+    )
+    permit = cast(Phase9BPermit, consumed.validation_result)
+    return ConsumedPhase9BPermit(
+        permit=permit,
+        consumed_path=permit.consumed_path,
+        consumed_sha256=consumed.consumed_sha256,
     )
 
 
@@ -592,12 +699,12 @@ def validate_exact_phase9b_authority(
     from nhc_deprot_ranker.quantum.phase9b_resources import PHASE9B_RESOURCES
     from nhc_deprot_ranker.quantum.two_endpoint import (
         LOCKED_PROTOCOL_SHA256,
-        REQUEST_SCHEMA_VERSION,
+        REQUEST_SCHEMA_VERSION_V2,
     )
 
     # Parity with the Phase 8B frozen-worker match: without these four the Phase
     # 9B path would be weaker than the chain it replaces.
-    if request.schema_version != REQUEST_SCHEMA_VERSION:
+    if request.schema_version != REQUEST_SCHEMA_VERSION_V2:
         raise Phase9BPermitValidationError("request schema version drifted")
     if request.execution_authorized is not True:
         raise Phase9BPermitValidationError("request does not authorize execution")

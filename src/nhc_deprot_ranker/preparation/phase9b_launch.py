@@ -67,17 +67,27 @@ from nhc_deprot_ranker.quantum.phase9b_resources import (
 # Real launching is a separate authorization.  Source-level gate.
 EXECUTION_AUTHORIZED: Final[bool] = False
 
-LAUNCH_RECEIPT_SCHEMA_VERSION: Final = "phase9b.launch_receipt.v1"
+# v2: the launch target is the guardian, and success requires a verified
+# acknowledgement rather than an SSH return code.
+LAUNCH_RECEIPT_SCHEMA_VERSION: Final = "phase9b.launch_receipt.v2"
+GUARDIAN_LAUNCHED_STATE: Final = "permit_consumed_spawned"
 
 CANDIDATE_INCHIKEY: Final = "LBNPGYISTSLAHY-UHFFFAOYSA-N"
 
 # The only entry that may be started.  Anything else is a bypass.
+#
+# The launch control plane starts the **guardian**, never the supervisor.  The
+# guardian consumes the permit, builds the handshake, spawns the supervisor into
+# its own session, and exits promptly with a short acknowledgement.  Starting the
+# supervisor directly would bind this bounded SSH call to a 7200 s computation
+# and would skip permit consumption entirely.
+GUARDIAN_ENTRY: Final = "nhc_deprot_ranker.quantum.phase9b_guardian"
 SUPERVISOR_ENTRY: Final = "nhc_deprot_ranker.quantum.phase9b_supervisor"
 
 # ``-B`` writes no bytecode and ``-s`` drops the user site directory.  ``-I`` is
 # deliberately not used here: it implies ``-E``, which would discard the
 # PYTHONPATH that resolves the supervisor from the deployed source tree.
-_INTERPRETER_PREFIX: Final[tuple[str, ...]] = ("python3", "-B", "-s", "-m", SUPERVISOR_ENTRY)
+_INTERPRETER_PREFIX: Final[tuple[str, ...]] = ("python3", "-B", "-s", "-m", GUARDIAN_ENTRY)
 
 # Structured argv whitelist.  Nothing outside this set may ever be rendered.
 ALLOWED_ARGUMENTS: Final[tuple[str, ...]] = (
@@ -121,6 +131,10 @@ _FORBIDDEN_RECEIPT_KEY_SUBSTRINGS: Final[tuple[str, ...]] = (
     "succe",
     "scf",
 )
+
+# The acknowledgement window, not the computation window.
+LAUNCH_ACKNOWLEDGEMENT_TIMEOUT_SECONDS: Final = 120.0
+MAX_LAUNCH_ACKNOWLEDGEMENT_SECONDS: Final = 300.0
 
 _MAX_STDOUT_BYTES: Final = 256 * 1024
 _MAX_STDERR_BYTES: Final = 64 * 1024
@@ -510,7 +524,7 @@ def build_launch_command(
         raise Phase9BLaunchError("launch needs a safe absolute project root")
     _reject_retired(project_root, label="project_root")
     if tuple(argv[: len(_INTERPRETER_PREFIX)]) != _INTERPRETER_PREFIX:
-        raise Phase9BLaunchError("only the guarded Phase 9B supervisor entry may be started")
+        raise Phase9BLaunchError("only the guarded Phase 9B guardian entry may be started")
     if len(argv) != len(_INTERPRETER_PREFIX) + 2 * len(ALLOWED_ARGUMENTS):
         raise Phase9BLaunchError("the launch argv carries an unexpected argument count")
     remote = " && ".join(
@@ -769,7 +783,13 @@ def _record(
 
 
 def _parse_supervisor_evidence(stdout: bytes, *, plan: RouteLaunchPlan) -> tuple[str, int | None]:
-    """The supervisor must name itself and the attempt it is bound to."""
+    """The guardian must prove what it consumed and what it started.
+
+    A zero exit code is never enough. What counts is the guardian naming its own
+    entry, the route and attempt it consumed the permit for, the state it reached,
+    and the supervisor PID it observed -- all of which only the process that ran
+    the transaction can supply.
+    """
 
     try:
         decoded = json.loads(stdout.decode("utf-8"))
@@ -778,20 +798,35 @@ def _parse_supervisor_evidence(stdout: bytes, *, plan: RouteLaunchPlan) -> tuple
     if not isinstance(decoded, dict):
         raise Phase9BLaunchError("launch evidence must be one JSON object")
     evidence = cast(dict[str, object], decoded)
-    identity = evidence.get("supervisor_identity")
-    if not isinstance(identity, str) or not identity:
-        raise Phase9BLaunchError("launch evidence names no supervisor identity")
+    if evidence.get("entry") != GUARDIAN_ENTRY:
+        raise Phase9BLaunchError("the started process is not the guarded guardian entry")
+    if evidence.get("supervisor_entry") != SUPERVISOR_ENTRY:
+        raise Phase9BLaunchError("the guardian did not start the guarded supervisor entry")
     if evidence.get("attempt_id") != plan.attempt_id:
-        raise Phase9BLaunchError("the supervisor is bound to another attempt identity")
+        raise Phase9BLaunchError("the guardian is bound to another attempt identity")
     if evidence.get("route") != plan.route:
-        raise Phase9BLaunchError("the supervisor is bound to another route")
-    if evidence.get("entry") != SUPERVISOR_ENTRY:
-        raise Phase9BLaunchError("the started process is not the guarded supervisor entry")
-    pid = evidence.get("pid")
+        raise Phase9BLaunchError("the guardian is bound to another route")
+    if evidence.get("permit_sha256") != plan.permit_sha256:
+        raise Phase9BLaunchError("the guardian consumed another permit")
+    if evidence.get("state") != GUARDIAN_LAUNCHED_STATE:
+        raise Phase9BLaunchError(
+            f"the guardian did not reach a launched state: {evidence.get('state')}"
+        )
+    for key in ("consumption_receipt_sha256", "launch_receipt_sha256"):
+        digest = evidence.get(key)
+        if not isinstance(digest, str) or len(digest) != 64:
+            raise Phase9BLaunchError(f"the guardian named no usable {key}")
+    identity = evidence.get("guardian_identity")
+    if not isinstance(identity, str) or not identity:
+        raise Phase9BLaunchError("launch evidence names no guardian identity")
+    pid = evidence.get("supervisor_pid")
     if pid is None:
-        return identity, None
+        raise Phase9BLaunchError("the guardian reported no supervisor process identity")
     if type(pid) is not int or pid <= 0:
         raise Phase9BLaunchError("launch evidence carries an invalid process identity")
+    group = evidence.get("supervisor_process_group_id")
+    if type(group) is not int or group != pid:
+        raise Phase9BLaunchError("the supervisor is not its own process-group leader")
     return identity, pid
 
 
@@ -806,7 +841,7 @@ def launch_both_routes(
     already_launched: Sequence[str] = (),
     run_command: CommandRunner | None = None,
     clock: Clock | None = None,
-    timeout_seconds: float = 120.0,
+    timeout_seconds: float = LAUNCH_ACKNOWLEDGEMENT_TIMEOUT_SECONDS,
 ) -> LaunchReceipt:
     """Start both routes as one experiment identity, or start neither.
 
@@ -819,8 +854,18 @@ def launch_both_routes(
         raise Phase9BLaunchNotAuthorizedError("a real Phase 9B launch is not authorized")
     if run_command is None:  # pragma: no cover - unreachable while the gate is closed
         raise Phase9BLaunchNotAuthorizedError("no production launch runner is wired")
-    if not 0.0 < timeout_seconds <= 600.0:
-        raise ValueError("launch timeout must be in (0, 600]")
+    # This bound covers guardian verification, permit consumption, supervisor
+    # spawn, and the acknowledgement round trip -- never the computation, which
+    # runs for up to the frozen wall-time in its own session after the guardian
+    # has exited.  A bound anywhere near the wall-time would mean the SSH channel
+    # was holding the computation open, which is the design this replaces.
+    if not 0.0 < timeout_seconds <= MAX_LAUNCH_ACKNOWLEDGEMENT_SECONDS:
+        raise ValueError(
+            "the launch acknowledgement timeout must be in "
+            f"(0, {MAX_LAUNCH_ACKNOWLEDGEMENT_SECONDS}]"
+        )
+    if timeout_seconds >= float(cast(int, PHASE9B_RESOURCES["hard_wall_timeout_seconds"])):
+        raise ValueError("the launch timeout must not span the computation wall-time")
 
     stamp = clock() if clock is not None else "1970-01-01T00:00:00Z"
     host_hash = _sha256_bytes(ssh_alias.encode("utf-8"))
@@ -1033,7 +1078,10 @@ __all__ = [
     "ALLOWED_ARGUMENTS",
     "CANDIDATE_INCHIKEY",
     "EXECUTION_AUTHORIZED",
+    "GUARDIAN_ENTRY",
+    "LAUNCH_ACKNOWLEDGEMENT_TIMEOUT_SECONDS",
     "LAUNCH_RECEIPT_SCHEMA_VERSION",
+    "MAX_LAUNCH_ACKNOWLEDGEMENT_SECONDS",
     "SUPERVISOR_ENTRY",
     "Clock",
     "CommandRunner",

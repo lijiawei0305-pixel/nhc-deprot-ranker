@@ -2,14 +2,18 @@
 
 ## Why
 
-The Phase 9B pre-launch integration closure edited three files inside the runner
-source closure:
+Two rounds of closure work have now moved the source identity. The first, the
+pre-launch integration closure, took it from v4 to v5. The second, the guardian
+and handoff round, takes it from v5 to v6:
 
 ```text
-quantum/phase9b_supervisor.py   gained the formal thirteen-flag CLI
-quantum/two_endpoint.py         capability expectation became a multi-attempt
-                                registry; handshake attempt gate became a
-                                registry; guarded Phase 9B executor adapter added
+quantum/one_shot_permit.py      new: the shared consumption transaction, so the
+                                race-critical code exists once for both chains
+quantum/phase9b_guardian.py     new: the guardian transaction
+quantum/phase9b_handoff.py      new: the AIMNet2-to-PySCF handoff contract
+quantum/phase8b_permit.py       consumption now delegates to the shared primitive
+quantum/phase9b_permit.py       permit schema v2, single-transaction Route A
+quantum/two_endpoint.py         request schema v2, closure membership 18 -> 21
 ```
 
 Editing any file in `_RUNNER_SOURCE_RELATIVE_PATHS` changes
@@ -21,6 +25,13 @@ permit is bound to that digest, so all of them are **superseded**.
 ```text
 runner source schema   nhc-two-endpoint-runner-source-v4
 runner_source_sha256   2059b35d0e62bc844e7fc602929e9e53b79cd3e9fcc6644fb4e67580e1a5a52c
+state                  superseded_before_execution
+
+runner source schema   nhc-two-endpoint-runner-source-v5
+runner_source_sha256   c914afe3f166ea1ef47dd2e27901aac660c918d110f51299c806ee605164fea8
+direct request         8f8d892b8f161f4aafb6fb03c712f531c0acdb590850ccf7ffcc8c772387546a
+direct manifest        1c0ef215b234033dc545ac5f5e613bc9757c34bf2a8e7e77d5a8df387a2d1c0f
+assisted chain         never generated
 state                  superseded_before_execution
 ```
 
@@ -37,10 +48,12 @@ overwritten and nothing was deleted; this record preserves them.
 ## The final closure
 
 ```text
-runner source schema   nhc-two-endpoint-runner-source-v5
-runner_source_sha256   c914afe3f166ea1ef47dd2e27901aac660c918d110f51299c806ee605164fea8
-closure files          18 (unchanged membership; three contents changed)
+runner source schema   nhc-two-endpoint-runner-source-v6
+runner_source_sha256   72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3
+closure files          21 (three added)
 resources_sha256       0fec2c1914f413a2762e1fafc7daa9900551981b5af72897746864edffac7df8
+request schema         nhc-two-endpoint-request-v2
+permit schema          nhc-phase9b-private-permit-v2
 ```
 
 The resource budget is byte-identical, so `resources_sha256` did not move. The
@@ -48,56 +61,77 @@ candidate profile, its two geometry digests, the atom map, the locked protocol,
 the request ID, and both attempt IDs are also unchanged. Only the source digest
 moved, and everything downstream of it was rebuilt.
 
+The AIMNet2 stage identity the assisted permit binds:
+
+```text
+optimizer protocol     1b4e4f136ae74d56a70444386ec3a5d92d9329790fd9dc7e34a9f6cb571dc8bc
+structural gates       92cf1219ee7fe25129bc26a69243428390ff763d6df4842f01fe33ac49ee85ae
+handoff contract       8a2acad53db472ae0c70b8c944cf1820ee022cf376974bd830eb7922db2d3e85
+stage digest           e1a3bab60805fac242b870692cb18a750442d7576cee34447749b7b53a923cb1
+weight                 aimnet2_wb97m_d3_0.pt, 8836941 bytes
+                       f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28
+```
+
 ## Regenerated identities
+
+Both routes are now fully determined. The assisted chain is no longer pending:
+under the single-transaction design it starts from the same frozen Phase 7
+initial geometry as the direct route, and binds the AIMNet2 *stage* rather than a
+preoptimized geometry that cannot exist before the route runs.
 
 ### Route D — direct
 
-Fully determined by the final closure and the frozen Phase 7 geometry:
-
 ```text
-request_id             phase9b-lbnp-paired-smoke-v001
-attempt_id             attempt-phase9b-lbnp-direct-v001
-runner_source_sha256   c914afe3f166ea1ef47dd2e27901aac660c918d110f51299c806ee605164fea8
-request_sha256         8f8d892b8f161f4aafb6fb03c712f531c0acdb590850ccf7ffcc8c772387546a
-payload_manifest_sha256 1c0ef215b234033dc545ac5f5e613bc9757c34bf2a8e7e77d5a8df387a2d1c0f
+request_id              phase9b-lbnp-paired-smoke-v001
+attempt_id              attempt-phase9b-lbnp-direct-v001
+runner_source_sha256    72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3
+request_sha256          413832f9aa7c3dd6e012d0504bebfadb070e9be9fe5fb0bc12a2ab8ba86eb38c
+payload_manifest_sha256 78a129c1042c90f0d35c88c1696e1a3bb78013fcbf3117f777b378bdd9d38cec
+preoptimization         stage: none
 ```
 
 ### Route A — assisted
 
-**Not yet determinable, and deliberately not fabricated.**
-
-The assisted request declares the SHA256 of the *preoptimized* cation and neutral
-geometries. Those files do not exist: producing them requires running AIMNet2,
-which this authorization prohibits. The manifest binds the request digest and the
-permit binds the manifest digest, so the whole assisted chain is blocked on that
-one output.
-
-What is fixed now:
-
 ```text
-request_id             phase9b-lbnp-paired-smoke-v001   (shared)
-attempt_id             attempt-phase9b-lbnp-assisted-v001
-runner_source_sha256   c914afe3f166ea1ef47dd2e27901aac660c918d110f51299c806ee605164fea8
-protocol_sha256        identical to Route D
-resources_sha256       identical to Route D
-cation/neutral xyz     pending AIMNet2 preoptimization
-request_sha256         pending
-payload_manifest_sha256 pending
+request_id              phase9b-lbnp-paired-smoke-v001   (shared)
+attempt_id              attempt-phase9b-lbnp-assisted-v001
+runner_source_sha256    72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3
+request_sha256          5afab3221ae76fcfae91f1525a2f6830804f8a9829127bd5eb6fe4637bd1ebe6
+payload_manifest_sha256 2bda7d47de97bf6865b0ecb8a9dfc2ad2767486d4ce42b97c4c9cd6f940f43b6
+preoptimization         stage: aimnet2, runs_inside_route: true
+cation/neutral xyz      identical to Route D
 ```
 
-Writing placeholder digests here would produce a permit that could never validate
-against the real files, which is worse than recording the gap. The assisted chain
-is generated in the same step that produces its geometry, against this same source
-digest — `tests/test_phase9b_identity_rebaseline.py` asserts that binding.
+### What the two share and what differs
+
+```text
+initial cation xyz      identical
+initial neutral xyz     identical
+atom order              identical
+charge and multiplicity identical per endpoint
+PySCF protocol          identical
+resources               identical
+runner source           identical
+request id              identical
+attempt id              distinct
+request digest          distinct
+manifest digest         distinct
+permit                  distinct
+remote root             distinct, frozen per route
+preoptimization stage   THE experimental variable
+```
+
+`validate_route_parity` now enforces exactly that: shared geometry, one differing
+field. It also refuses a pair where both declare the same stage, or where the
+direct route declares AIMNet2.
 
 ### Both permits
 
 Permit digests are **not recorded in this repository**, and that is deliberate
 rather than an omission. A permit's canonical bytes include `paths`, which is
-built from the private absolute project root on the server. Recording the digest
-would not leak the path, but the digest is only meaningful alongside it, and the
-permit is rendered at placement time in any case. It is recorded in the private
-`PermitPlacementReceipt`, which never enters Git.
+built from the private absolute project root on the server. The permit is
+rendered at placement time and recorded in the private `PermitPlacementReceipt`,
+which never enters Git.
 
 ## Ordering
 
@@ -107,34 +141,30 @@ reordered:
 ```text
 1  edit and test every closure file with the gate closed
 2  freeze runner_source_sha256                            <- this document
-3  build the request against the frozen digest
-4  build the payload manifest against the request
-5  render the permit against the manifest
-6  deploy the payload            (permit excluded)
-7  place the permit             (after promotion, before launch)
-8  launch both routes
+3  build both requests against the frozen digest
+4  build both payload manifests against their requests
+5  render both permits against their manifests
+6  deploy both payloads          (permits excluded)
+7  place both permits            (after promotion, before launch)
+8  launch: start the guardian on each route
+9  guardian consumes the permit, spawns the supervisor, returns an ack
+10 Route A runs AIMNet2 inside the route, closes the handoff, then PySCF
 ```
 
 Building a permit before step 2 and editing source afterwards would leave a
-permit bound to a digest the code no longer has, which is precisely the situation
-this document closes out.
+permit bound to a digest the code no longer has. Requiring the assisted permit to
+name a preoptimized geometry would have made step 5 depend on step 10, which is
+the circularity this round removed.
 
 ## What is still not wired
 
-Recorded here rather than left implicit:
+**Postflight does not exist.** That is item 8/8 and is deliberately not started
+until every interface above is frozen.
 
-**The Phase 9B guardian transaction does not exist.** In Phase 8B the thing that
-runs on the server is `phase8b_runtime` in `guardian` mode: it consumes the permit
-irreversibly, then re-executes itself in `supervisor` mode, and only that mode
-constructs the `Phase8BWorkerLaunch` handshake and calls the supervised runner.
-Phase 9B has the supervisor CLI and the executor adapter, but no guardian, so
-`main` takes the handshake through an injected factory and refuses when none is
-wired. A real Phase 9B run needs that module before anything can start.
+**The AIMNet2 stage has no runtime implementation inside the route.** The handoff
+contract, its receipts, and the gate that stops PySCF are built and tested; what
+produces the preoptimized geometry under the permit is not. Route A cannot run
+until it exists, and Route D is unaffected.
 
-**The launch transport is not reconciled with a 7200 s run.** The supervisor CLI
-prints its identity and then blocks in supervised execution for up to the frozen
-wall-time, while `phase9b_launch` reads stdout under a bounded timeout. A real
-launch therefore needs either a transport that returns after the identity line or
-a detached guardian. Neither is built, and the launch control plane would report
-`indeterminate` rather than claim success — which is the correct failure, but it
-is not a working configuration.
+**Nothing here has been executed.** No server was contacted, no permit was placed
+or consumed, no guardian ran, and no supervisor was spawned. Every gate is closed.

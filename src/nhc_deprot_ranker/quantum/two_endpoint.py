@@ -51,16 +51,25 @@ EndpointName = Literal["cation", "neutral"]
 SCFStrategy = Literal["standard", "soscf"]
 
 REQUEST_SCHEMA_VERSION: Final = "nhc-two-endpoint-request-v1"
+# v2 adds the mandatory ``preoptimization`` section.  Phase 8B's retired request
+# is v1 and stays readable; Phase 9B is v2, where Route A declares its in-route
+# AIMNet2 stage and Route D declares the absence of one.  An optional section
+# would make a dropped stage indistinguishable from "direct".
+REQUEST_SCHEMA_VERSION_V2: Final = "nhc-two-endpoint-request-v2"
+_REQUEST_SCHEMA_VERSIONS: Final[frozenset[str]] = frozenset(
+    {REQUEST_SCHEMA_VERSION, REQUEST_SCHEMA_VERSION_V2}
+)
 RESULT_SCHEMA_VERSION: Final = "nhc-two-endpoint-result-v2"
 ATTEMPT_SCHEMA_VERSION: Final = "nhc-two-endpoint-attempt-v2"
 SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-success-v2"
 SUPERVISOR_SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-supervisor-success-v1"
 FAILURE_SCHEMA_VERSION: Final = "nhc-two-endpoint-failure-v1"
-# v5: the Phase 9B supervisor gained its formal CLI, the capability expectation
-# became a multi-attempt registry, and the guarded Phase 9B executor adapter was
-# wired.  Every Phase 9B request, payload manifest, and permit built against v4 is
-# superseded before execution; see docs/PHASE9B_IDENTITY_REBASELINE.md.
-RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v5"
+# v6: the closure gained the shared one-shot consumption primitive, the Phase 9B
+# guardian, and the AIMNet2-to-PySCF handoff contract; the permit schema moved to
+# v2 for the single-transaction Route A.  Every Phase 9B request, payload
+# manifest, and permit built against v4 or v5 is superseded before execution; see
+# docs/PHASE9B_IDENTITY_REBASELINE.md.
+RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v6"
 
 # This is a source-level gate, not a caller-provided option.  A later phase must
 # review and deliberately change it before any backend can load PySCF.
@@ -111,6 +120,10 @@ _RUNNER_SOURCE_RELATIVE_PATHS: Final[tuple[str, ...]] = (
     "nhc_deprot_ranker/data/provenance.py",
     "nhc_deprot_ranker/quantum/__init__.py",
     "nhc_deprot_ranker/quantum/linux_guardian.py",
+    # The one-shot consumption transaction both chains share.  Closure-internal
+    # code imports it, so leaving it out would let the race-critical code be
+    # edited without moving runner_source_sha256.
+    "nhc_deprot_ranker/quantum/one_shot_permit.py",
     "nhc_deprot_ranker/quantum/phase8b_authority.py",
     "nhc_deprot_ranker/quantum/phase8b_execution.py",
     "nhc_deprot_ranker/quantum/phase8b_permit.py",
@@ -119,6 +132,8 @@ _RUNNER_SOURCE_RELATIVE_PATHS: Final[tuple[str, ...]] = (
     # call time, so their content already determines closure-internal behaviour
     # and must be hash-bound like the rest.
     "nhc_deprot_ranker/quantum/phase9b_authority.py",
+    "nhc_deprot_ranker/quantum/phase9b_guardian.py",
+    "nhc_deprot_ranker/quantum/phase9b_handoff.py",
     "nhc_deprot_ranker/quantum/phase9b_permit.py",
     "nhc_deprot_ranker/quantum/phase9b_resources.py",
     "nhc_deprot_ranker/quantum/phase9b_supervisor.py",
@@ -976,22 +991,36 @@ def load_two_endpoint_request(request_path: Path) -> TwoEndpointRequest:
         request_path, label="two-endpoint request", max_bytes=_MAX_REQUEST_BYTES
     )
     payload = _json_without_duplicates(raw, label="two-endpoint request")
-    _require_exact_keys(
-        payload,
-        {
-            "schema_version",
-            "request_id",
-            "inchikey",
-            "execution_authorized",
-            "timeout_seconds",
-            "runner_source_sha256",
-            "protocol",
-            "endpoints",
-        },
-        "two-endpoint request",
-    )
-    if payload["schema_version"] != REQUEST_SCHEMA_VERSION:
+    schema_version = payload.get("schema_version")
+    if schema_version not in _REQUEST_SCHEMA_VERSIONS:
         raise RequestValidationError("unsupported request schema_version")
+    fields = {
+        "schema_version",
+        "request_id",
+        "inchikey",
+        "execution_authorized",
+        "timeout_seconds",
+        "runner_source_sha256",
+        "protocol",
+        "endpoints",
+    }
+    if schema_version == REQUEST_SCHEMA_VERSION_V2:
+        fields.add("preoptimization")
+    _require_exact_keys(payload, fields, "two-endpoint request")
+    if schema_version == REQUEST_SCHEMA_VERSION_V2:
+        preoptimization = payload["preoptimization"]
+        if not isinstance(preoptimization, dict) or not preoptimization:
+            raise RequestValidationError("preoptimization section must be a non-empty object")
+        stage = preoptimization.get("stage")
+        if stage not in {"none", "aimnet2"}:
+            raise RequestValidationError("unknown preoptimization stage")
+        if stage == "aimnet2":
+            if preoptimization.get("runs_inside_route") is not True:
+                raise RequestValidationError("an AIMNet2 stage must run inside the guarded route")
+            if preoptimization.get("external_preparation_authorized") is not False:
+                raise RequestValidationError(
+                    "external preoptimization preparation is never authorized"
+                )
     request_id = payload["request_id"]
     if not isinstance(request_id, str) or _REQUEST_ID_RE.fullmatch(request_id) is None:
         raise RequestValidationError("request_id must be a safe lowercase identifier")

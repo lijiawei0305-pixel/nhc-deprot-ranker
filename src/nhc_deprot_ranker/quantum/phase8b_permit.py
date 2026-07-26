@@ -15,7 +15,12 @@ import os
 import stat
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Final, cast
+from typing import Any, Final, cast
+
+from nhc_deprot_ranker.quantum.one_shot_permit import (
+    PermitErrors,
+    consume_one_shot_permit,
+)
 
 PERMIT_SCHEMA_VERSION: Final = "nhc-phase8b-private-permit-v1"
 
@@ -457,54 +462,12 @@ def consume_phase8b_permit(
 ) -> ConsumedPhase8BPermit:
     """Validate and irreversibly consume the exact permit before worker spawn.
 
-    The successful ``O_EXCL`` creation of ``permit.consumed.json`` is the
-    linearization point.  Any exception after that point deliberately leaves a
-    consumed or ambiguous state, and no code here can restore the ready file.
+    The filesystem transaction lives in :mod:`one_shot_permit`, which both
+    authority chains share so the race-critical code exists once.  This function
+    supplies the Phase 8B validation and rebuilds the Phase 8B record.
     """
 
-    if not ready_path.is_absolute() or ready_path.name != Path(FROZEN_READY_RELATIVE).name:
-        raise Phase8BPermitValidationError("ready_path must be the exact absolute permit path")
-    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
-        raise Phase8BPermitValidationError("platform lacks required no-follow directory flags")
-
-    private_root = ready_path.parent
-    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
-    try:
-        directory_fd = os.open(private_root, directory_flags)
-    except OSError as exc:
-        raise Phase8BPermitValidationError("permit directory cannot be opened safely") from exc
-
-    ready_name = Path(FROZEN_READY_RELATIVE).name
-    consumed_name = Path(FROZEN_CONSUMED_RELATIVE).name
-    ready_fd: int | None = None
-    try:
-        try:
-            os.stat(consumed_name, dir_fd=directory_fd, follow_symlinks=False)
-        except FileNotFoundError:
-            pass
-        else:
-            raise Phase8BPermitConsumedError("Phase 8B permit is already consumed")
-
-        try:
-            ready_fd = os.open(
-                ready_name,
-                os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC,
-                dir_fd=directory_fd,
-            )
-        except FileNotFoundError as exc:
-            try:
-                os.stat(consumed_name, dir_fd=directory_fd, follow_symlinks=False)
-            except FileNotFoundError:
-                raise Phase8BPermitValidationError(
-                    "ready permit disappeared before validation"
-                ) from exc
-            raise Phase8BPermitConsumedError("Phase 8B permit lost the consume race") from exc
-        except OSError as exc:
-            raise Phase8BPermitValidationError("ready permit cannot be opened safely") from exc
-        opened_stat = os.fstat(ready_fd)
-        _validate_owned_regular_stat(opened_stat, label="ready permit", expected_mode=_READY_MODE)
-        raw = _read_fd(ready_fd)
-
+    def validate(raw: bytes) -> object:
         payload = _strict_json_object(raw)
         paths, identity = _validate_payload(
             payload,
@@ -522,97 +485,40 @@ def consume_phase8b_permit(
             expected_request_sha256=expected_request_sha256,
             expected_payload_manifest_sha256=expected_payload_manifest_sha256,
         )
-        try:
-            current_stat = os.stat(ready_name, dir_fd=directory_fd, follow_symlinks=False)
-        except FileNotFoundError as exc:
-            try:
-                os.stat(consumed_name, dir_fd=directory_fd, follow_symlinks=False)
-            except FileNotFoundError:
-                raise Phase8BPermitValidationError(
-                    "ready permit disappeared during validation"
-                ) from exc
-            raise Phase8BPermitConsumedError("Phase 8B permit lost the consume race") from exc
-        if (current_stat.st_dev, current_stat.st_ino) != (opened_stat.st_dev, opened_stat.st_ino):
-            raise Phase8BPermitValidationError("ready permit changed during validation")
+        return (partial, identity)
 
-        try:
-            consumed_fd = os.open(
-                consumed_name,
-                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
-                _READY_MODE,
-                dir_fd=directory_fd,
-            )
-        except FileExistsError as exc:
-            raise Phase8BPermitConsumedError("Phase 8B permit lost the consume race") from exc
-        except OSError as exc:
-            raise Phase8BPermitError("consumed permit could not be created safely") from exc
-
-        try:
-            view = memoryview(raw)
-            written = 0
-            while written < len(view):
-                count = os.write(consumed_fd, view[written:])
-                if count <= 0:
-                    raise Phase8BPermitError("consumed permit write made no progress")
-                written += count
-            os.fchmod(consumed_fd, _CONSUMED_MODE)
-            os.fsync(consumed_fd)
-        finally:
-            os.close(consumed_fd)
-        os.fsync(directory_fd)
-
-        # No failure after the O_EXCL point may restore ready.  If unlink/fsync
-        # fails, the coexistence of ready and consumed remains fail-closed.
-        os.unlink(ready_name, dir_fd=directory_fd)
-        os.fsync(directory_fd)
-        try:
-            os.stat(ready_name, dir_fd=directory_fd, follow_symlinks=False)
-        except FileNotFoundError:
-            pass
-        else:
-            raise Phase8BPermitError("ready permit still exists after consumption")
-        consumed_stat = os.stat(consumed_name, dir_fd=directory_fd, follow_symlinks=False)
-        _validate_owned_regular_stat(
-            consumed_stat,
-            label="consumed permit",
-            expected_mode=_CONSUMED_MODE,
-        )
-        consumed_path = partial.consumed_path
-        consumed_read_fd = os.open(
-            consumed_name,
-            os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC,
-            dir_fd=directory_fd,
-        )
-        try:
-            consumed_raw = _read_fd(consumed_read_fd)
-        finally:
-            os.close(consumed_read_fd)
-        if consumed_raw != raw:
-            raise Phase8BPermitError("consumed permit bytes changed after fsync")
-
-        permit_hash = _sha256_bytes(raw)
-        permit = Phase8BPermit(
-            request_sha256=expected_request_sha256,
-            runner_source_sha256=cast(str, identity["runner_source_sha256"]),
-            payload_manifest_sha256=expected_payload_manifest_sha256,
-            project_root=partial.project_root,
-            run_root=partial.run_root,
-            request_path=partial.request_path,
-            output_root=partial.output_root,
-            ready_path=partial.ready_path,
-            consumed_path=consumed_path,
-            raw_bytes=raw,
-            permit_sha256=permit_hash,
-        )
-        return ConsumedPhase8BPermit(
-            permit=permit,
-            consumed_path=consumed_path,
-            consumed_sha256=permit_hash,
-        )
-    finally:
-        if ready_fd is not None:
-            os.close(ready_fd)
-        os.close(directory_fd)
+    consumed = consume_one_shot_permit(
+        ready_path,
+        ready_relative_name=Path(FROZEN_READY_RELATIVE).name,
+        consumed_relative_name=Path(FROZEN_CONSUMED_RELATIVE).name,
+        ready_mode=_READY_MODE,
+        consumed_mode=_CONSUMED_MODE,
+        validate=validate,
+        errors=PermitErrors(
+            error=Phase8BPermitError,
+            validation=Phase8BPermitValidationError,
+            consumed=Phase8BPermitConsumedError,
+        ),
+    )
+    partial, identity = cast(tuple[Any, dict[str, object]], consumed.validation_result)
+    permit = Phase8BPermit(
+        request_sha256=expected_request_sha256,
+        runner_source_sha256=cast(str, identity["runner_source_sha256"]),
+        payload_manifest_sha256=expected_payload_manifest_sha256,
+        project_root=partial.project_root,
+        run_root=partial.run_root,
+        request_path=partial.request_path,
+        output_root=partial.output_root,
+        ready_path=partial.ready_path,
+        consumed_path=partial.consumed_path,
+        raw_bytes=consumed.raw_bytes,
+        permit_sha256=consumed.permit_sha256,
+    )
+    return ConsumedPhase8BPermit(
+        permit=permit,
+        consumed_path=partial.consumed_path,
+        consumed_sha256=consumed.permit_sha256,
+    )
 
 
 def load_consumed_phase8b_permit(

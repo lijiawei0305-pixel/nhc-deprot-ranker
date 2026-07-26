@@ -28,6 +28,15 @@ from nhc_deprot_ranker.quantum.phase9b_authority import (
     Phase9BAuthorityError,
     validate_profile_self_consistency,
 )
+from nhc_deprot_ranker.quantum.phase9b_handoff import (
+    AIMNET2_WEIGHT_BYTES,
+    AIMNET2_WEIGHT_FILENAME,
+    AIMNET2_WEIGHT_SHA256,
+    aimnet2_optimizer_protocol_sha256,
+    aimnet2_structural_gates_sha256,
+    handoff_contract_sha256,
+    preoptimization_stage_sha256,
+)
 from nhc_deprot_ranker.quantum.phase9b_permit import (
     REQUEST_ID,
     ROUTE_ASSISTED,
@@ -38,11 +47,15 @@ from nhc_deprot_ranker.quantum.phase9b_resources import (
     PHASE9B_RESOURCES,
     phase9b_resources_sha256,
 )
+from nhc_deprot_ranker.quantum.two_endpoint import REQUEST_SCHEMA_VERSION_V2
 
 # Real bundle materialization is a separate authorization.  Source-level gate.
 EXECUTION_AUTHORIZED: Final[bool] = False
 
-PAYLOAD_SCHEMA_VERSION: Final = "phase9b.payload_manifest.v1"
+# v2: single-transaction Route A.  Both routes register the frozen Phase 7
+# initial geometry; the assisted route additionally registers its in-route
+# AIMNet2 stage identity.
+PAYLOAD_SCHEMA_VERSION: Final = "phase9b.payload_manifest.v2"
 
 CATION_XYZ_RELATIVE: Final = "xyz/cation.xyz"
 NEUTRAL_XYZ_RELATIVE: Final = "xyz/neutral.xyz"
@@ -117,6 +130,26 @@ def _resources_payload() -> dict[str, object]:
     return normalized
 
 
+def _preoptimization_stage(route: str) -> dict[str, object]:
+    """The AIMNet2 stage identity, from the closure module that owns it."""
+
+    if route == ROUTE_DIRECT:
+        return {"stage": "none", "aimnet2_authorized": False}
+    return {
+        "stage": "aimnet2",
+        "aimnet2_authorized": True,
+        "runs_inside_route": True,
+        "external_preparation_authorized": False,
+        "weight_filename": AIMNET2_WEIGHT_FILENAME,
+        "weight_sha256": AIMNET2_WEIGHT_SHA256,
+        "weight_bytes": AIMNET2_WEIGHT_BYTES,
+        "optimizer_protocol_sha256": aimnet2_optimizer_protocol_sha256(),
+        "structural_gates_sha256": aimnet2_structural_gates_sha256(),
+        "handoff_contract_sha256": handoff_contract_sha256(),
+        "stage_sha256": preoptimization_stage_sha256(),
+    }
+
+
 def build_route_request(
     *,
     route: str,
@@ -140,27 +173,26 @@ def build_route_request(
     if cation_hash == neutral_hash:
         raise Phase9BBundleError("the two endpoints cannot share one geometry hash")
 
-    if chosen == ROUTE_DIRECT:
-        if cation_hash != profile.cation_xyz_sha256 or neutral_hash != profile.neutral_xyz_sha256:
-            raise Phase9BBundleError(
-                "direct-route inputs must be exactly the profile's frozen initial geometry"
-            )
-    elif cation_hash == profile.cation_xyz_sha256 and neutral_hash == profile.neutral_xyz_sha256:
+    # Both routes begin from the identical frozen Phase 7 initial structure.  The
+    # assisted route's preoptimized geometry is produced inside the route, so it
+    # is never a build-time input and never a permit binding.
+    if cation_hash != profile.cation_xyz_sha256 or neutral_hash != profile.neutral_xyz_sha256:
         raise Phase9BBundleError(
-            "assisted-route inputs must be preoptimized geometry, not the initial geometry"
+            "both routes must start from the profile's frozen initial geometry"
         )
 
     if not protocol:
         raise Phase9BBundleError("request protocol must not be empty")
 
     payload: dict[str, object] = {
-        "schema_version": "nhc-two-endpoint-request-v1",
+        "schema_version": REQUEST_SCHEMA_VERSION_V2,
         "request_id": REQUEST_ID,
         "inchikey": profile.inchikey,
         "execution_authorized": True,
         "timeout_seconds": PHASE9B_RESOURCES["hard_wall_timeout_seconds"],
         "runner_source_sha256": source_hash,
         "protocol": dict(protocol),
+        "preoptimization": _preoptimization_stage(chosen),
         "endpoints": {
             "cation": {
                 "xyz_path": CATION_XYZ_RELATIVE,
@@ -212,6 +244,7 @@ def build_route_payload(
             CATION_XYZ_RELATIVE: request.cation_xyz_sha256,
             NEUTRAL_XYZ_RELATIVE: request.neutral_xyz_sha256,
         },
+        "preoptimization": _preoptimization_stage(request.route),
         "provenance": {
             "initial_cation_xyz_sha256": profile.cation_xyz_sha256,
             "initial_neutral_xyz_sha256": profile.neutral_xyz_sha256,
@@ -236,11 +269,13 @@ def build_route_payload(
 
 
 def validate_route_parity(direct: RoutePayload, assisted: RoutePayload) -> None:
-    """Both routes must differ only by geometry hashes and attempt identity.
+    """Both routes must differ only by the preoptimization stage and attempt.
 
-    Any other difference makes the measured speedup uninterpretable, so it is
-    rejected while the payloads are still local bytes rather than discovered after
-    two attempts have run.
+    Under the single-transaction design the two requests now share their geometry
+    as well: both start from the identical frozen Phase 7 initial structure, and
+    the AIMNet2 stage is the *only* experimental variable. Anything else that
+    differs makes a measured speedup uninterpretable, so it is rejected while the
+    payloads are still local bytes rather than discovered after two attempts ran.
     """
 
     if direct.request.route != ROUTE_DIRECT or assisted.request.route != ROUTE_ASSISTED:
@@ -250,22 +285,34 @@ def validate_route_parity(direct: RoutePayload, assisted: RoutePayload) -> None:
     if direct.request.request_sha256 == assisted.request.request_sha256:
         raise Phase9BBundleError("the two routes must be distinct requests")
 
-    allowed = {"xyz_sha256"}
+    # The starting geometry is now shared, and that is the point.
+    if direct.request.cation_xyz_sha256 != assisted.request.cation_xyz_sha256:
+        raise Phase9BBundleError("the two routes must share the frozen initial cation geometry")
+    if direct.request.neutral_xyz_sha256 != assisted.request.neutral_xyz_sha256:
+        raise Phase9BBundleError("the two routes must share the frozen initial neutral geometry")
+
+    # ``preoptimization`` is the experimental variable itself; every other
+    # top-level field must be identical.
+    variable = {"preoptimization"}
     left = json.loads(direct.request.request_bytes)
     right = json.loads(assisted.request.request_bytes)
     for key in sorted(set(left) | set(right)):
-        if key == "endpoints":
+        if key in {"endpoints", *variable}:
             continue
         if left.get(key) != right.get(key):
-            raise Phase9BBundleError(f"route requests differ outside geometry: {key}")
+            raise Phase9BBundleError(f"route requests differ outside the stage: {key}")
+    if left["preoptimization"] == right["preoptimization"]:
+        raise Phase9BBundleError("the two routes must differ by their preoptimization stage")
+    if left["preoptimization"].get("stage") != "none":
+        raise Phase9BBundleError("the direct route must declare no preoptimization stage")
+    if right["preoptimization"].get("stage") != "aimnet2":
+        raise Phase9BBundleError("the assisted route must declare the AIMNet2 stage")
     for endpoint in ("cation", "neutral"):
         a, b = left["endpoints"][endpoint], right["endpoints"][endpoint]
         for field in sorted(set(a) | set(b)):
-            if field in allowed:
-                continue
             if a.get(field) != b.get(field):
                 raise Phase9BBundleError(
-                    f"route endpoint {endpoint} differs outside geometry: {field}"
+                    f"route endpoint {endpoint} differs outside the stage: {field}"
                 )
 
 
