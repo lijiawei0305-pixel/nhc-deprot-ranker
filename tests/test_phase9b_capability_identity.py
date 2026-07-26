@@ -53,11 +53,14 @@ def test_expectation_is_deterministic() -> None:
 
 
 def test_registry_holds_only_fully_frozen_chains() -> None:
-    """Phase 9B has no entry yet: its resources are not frozen."""
+    """Both chains now have frozen resources; nothing else may be registered."""
 
     registry = runner._CAPABILITY_IDENTITY_EXPECTATIONS  # pyright: ignore[reportPrivateUsage]
-    assert list(registry) == [runner.PHASE8B_CAPABILITY_IDENTITY_KEY]
-    assert not any("phase9b" in key for key in registry)
+    assert sorted(registry) == ["phase8b-qxh-smoke", "phase9b-lbnp-paired-smoke"]
+    for build in registry.values():
+        expectation = build()
+        assert len(expectation.resources_sha256) == 64
+        assert expectation.electron_count % 2 == 0
 
 
 def test_identity_key_is_part_of_the_capability_binding() -> None:
@@ -122,8 +125,11 @@ def test_registered_key_validates() -> None:
 
 
 def test_unregistered_key_fails_closed() -> None:
+    registry = runner._CAPABILITY_IDENTITY_EXPECTATIONS  # pyright: ignore[reportPrivateUsage]
+    unregistered = "phase10-production-batch"
+    assert unregistered not in registry
     with pytest.raises(runner.ExecutionNotAuthorizedError, match="no frozen identity expectation"):
-        _validate(_FakeCapability("phase9b-lbnp-paired-smoke"))
+        _validate(_FakeCapability(unregistered))
 
 
 def test_empty_key_fails_closed() -> None:
