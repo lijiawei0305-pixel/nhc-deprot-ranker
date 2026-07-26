@@ -14,8 +14,12 @@ built to close it, as one source-freeze unit.
 > ambiguity without spending its second SSH invocation; see
 > `docs/PHASE9A_S2_INTERPRETER_DISCOVERY.md`. Phase 9A-S3 then resolved the
 > environment binding from `mlff.sh` itself and stopped at interpreter
-> enumeration; see `docs/PHASE9A_S3_ACTIVATION_BOUND_INSPECTION.md`. The
-> loader remains unrecovered.
+> enumeration; see `docs/PHASE9A_S3_ACTIVATION_BOUND_INSPECTION.md`. Phase
+> 9A-S4 then deduplicated by inode, read the installed source, and settled the
+> loader as option A with grade `source_proven`; see
+> `docs/PHASE9A_S4_DEDUPLICATED_SOURCE_INSPECTION.md`. **The API blocker is
+> cleared; the adapters themselves are still unimplemented and both gates stay
+> closed.**
 
 ## What was unreachable
 

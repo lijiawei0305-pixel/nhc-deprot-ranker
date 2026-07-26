@@ -1,0 +1,366 @@
+{
+  "attempt": "phase9a-s4-v001",
+  "cache_after": {
+    "aimnet_cache": {
+      "bytes": 8836941,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784037872646661935,
+      "pyc_files": 0,
+      "root": "<AIMNET_CACHE_ROOT>"
+    },
+    "hf_cache": {
+      "bytes": 0,
+      "exists": false,
+      "files": 0,
+      "newest_mtime_ns": 0,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/huggingface"
+    },
+    "inductor_cache": {
+      "bytes": 0,
+      "exists": false,
+      "files": 0,
+      "newest_mtime_ns": 0,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/torchinductor_<REMOTE_USER>"
+    },
+    "nv_compute_cache": {
+      "bytes": 26405248,
+      "exists": true,
+      "files": 682,
+      "newest_mtime_ns": 1784976789984713350,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.nv/ComputeCache"
+    },
+    "torch_hub": {
+      "bytes": 109872,
+      "exists": true,
+      "files": 2,
+      "newest_mtime_ns": 1784701106804299388,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/torch"
+    },
+    "triton_cache": {
+      "bytes": 26560,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784038187250059368,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.triton"
+    }
+  },
+  "cache_before": {
+    "aimnet_cache": {
+      "bytes": 8836941,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784037872646661935,
+      "pyc_files": 0,
+      "root": "<AIMNET_CACHE_ROOT>"
+    },
+    "hf_cache": {
+      "bytes": 0,
+      "exists": false,
+      "files": 0,
+      "newest_mtime_ns": 0,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/huggingface"
+    },
+    "inductor_cache": {
+      "bytes": 0,
+      "exists": false,
+      "files": 0,
+      "newest_mtime_ns": 0,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/torchinductor_<REMOTE_USER>"
+    },
+    "nv_compute_cache": {
+      "bytes": 26405248,
+      "exists": true,
+      "files": 682,
+      "newest_mtime_ns": 1784976789984713350,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.nv/ComputeCache"
+    },
+    "torch_hub": {
+      "bytes": 109872,
+      "exists": true,
+      "files": 2,
+      "newest_mtime_ns": 1784701106804299388,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/torch"
+    },
+    "triton_cache": {
+      "bytes": 26560,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784038187250059368,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.triton"
+    }
+  },
+  "decision": "source_read",
+  "does_not_supersede": {
+    "phase_9a_s": "inconclusive_due_to_inspection_error",
+    "phase_9a_s2": "ambiguous_match",
+    "phase_9a_s3": "inconclusive_due_to_inspector_enumeration_error"
+  },
+  "dont_write_bytecode": true,
+  "driver_is_not_a_conclusion": true,
+  "driver_python": "3.12.3",
+  "invariance": {
+    "activation_unchanged": true,
+    "cache_unchanged": true,
+    "conda_sh_unchanged": true,
+    "interpreter_unchanged": true,
+    "no_bytecode_created": true,
+    "no_new_files": true,
+    "no_third_party_imported": true,
+    "packages_unchanged": true,
+    "sources_unchanged": true,
+    "torch_version_unchanged": true,
+    "weight_stat_unchanged": true
+  },
+  "isolated_mode": true,
+  "loader_decision": "A",
+  "loader_decision_grade": "source_proven",
+  "local_validation": {
+    "all_passed": true,
+    "checks": 96,
+    "found_before_send": [
+      "finish() crashed on the activation-drift path because conda_sh was None rather than absent, which would have produced no output at all and wasted the invocation",
+      "conda_sh before/after compared a record carrying two annotation keys against a plain identity, so the check could never have been true",
+      "a dangling interpreter link was excluded by a later stat failure instead of being named as a dangling link"
+    ],
+    "regression_for_phase_9a_s3": "python, python3, python3.1 and python3.11 as links onto one inode must yield one interpreter, not four",
+    "scenarios": 19
+  },
+  "offline_flags": {
+    "HF_DATASETS_OFFLINE": "1",
+    "HF_HUB_OFFLINE": "1",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TRANSFORMERS_OFFLINE": "1"
+  },
+  "package_after": {
+    "env_bin": {
+      "bytes": 31171751,
+      "exists": true,
+      "files": 53,
+      "newest_mtime_ns": 1784066628784004000,
+      "pyc_files": 0,
+      "root": "<MLFF_ENV_ROOT>/bin"
+    },
+    "env_conda_meta": {
+      "bytes": 2939893,
+      "exists": true,
+      "files": 28,
+      "newest_mtime_ns": 1784011900354267946,
+      "pyc_files": 0,
+      "root": "<MLFF_ENV_ROOT>/conda-meta"
+    },
+    "package_aimnet": {
+      "bytes": 3572994,
+      "exists": true,
+      "files": 74,
+      "newest_mtime_ns": 1784025519304004769,
+      "pyc_files": 34,
+      "root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages/aimnet"
+    },
+    "package_ase": {
+      "bytes": 20989059,
+      "exists": true,
+      "files": 2544,
+      "newest_mtime_ns": 1784025519069600292,
+      "pyc_files": 1219,
+      "root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages/ase"
+    }
+  },
+  "package_before": {
+    "env_bin": {
+      "bytes": 31171751,
+      "exists": true,
+      "files": 53,
+      "newest_mtime_ns": 1784066628784004000,
+      "pyc_files": 0,
+      "root": "<MLFF_ENV_ROOT>/bin"
+    },
+    "env_conda_meta": {
+      "bytes": 2939893,
+      "exists": true,
+      "files": 28,
+      "newest_mtime_ns": 1784011900354267946,
+      "pyc_files": 0,
+      "root": "<MLFF_ENV_ROOT>/conda-meta"
+    },
+    "package_aimnet": {
+      "bytes": 3572994,
+      "exists": true,
+      "files": 74,
+      "newest_mtime_ns": 1784025519304004769,
+      "pyc_files": 34,
+      "root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages/aimnet"
+    },
+    "package_ase": {
+      "bytes": 20989059,
+      "exists": true,
+      "files": 2544,
+      "newest_mtime_ns": 1784025519069600292,
+      "pyc_files": 1219,
+      "root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages/ase"
+    }
+  },
+  "phase": "9A-S4",
+  "receipt_sha256": "2b5dcb8dc2df5f28ac859eb853fb78297c3cabbf7ea4a844f6cb9af6aacf5866",
+  "remote_receipt_sha256": "0f5f9c12290a7a57e39f0f8c4a74897a55c9c61109e37af70da899bc931a1e60",
+  "request": "phase9a-s4-deduplicated-interpreter-and-source",
+  "schema_version": "phase9a_s4.readonly_receipt.v1",
+  "ssh_invocations_authorized": 1,
+  "ssh_invocations_used": 1,
+  "stage_1_activation_reverification": {
+    "activation_targets": [
+      {
+        "is_absolute": true,
+        "line": 13,
+        "target": "<MLFF_ENV_ROOT>",
+        "target_is_literal": true
+      }
+    ],
+    "conda_sh": {
+      "bytes": 2479,
+      "device": 66306,
+      "exists": true,
+      "inode": 23741700,
+      "is_regular_file": true,
+      "is_symlink": false,
+      "mode": "-rw-rw-r--",
+      "mtime_ns": 1781443961300423685,
+      "path": "<CONDA_DISTRIBUTION_ROOT>/etc/profile.d/conda.sh",
+      "realpath": "<CONDA_DISTRIBUTION_ROOT>/etc/profile.d/conda.sh",
+      "role": "shell mechanism file; not executed, not used to determine the environment root",
+      "sha256": "c25916625c93f3c2039799c1aaeee48a480f2109ca2834689f29689f7134db46",
+      "sourced_at_line": 12
+    },
+    "drift": [],
+    "expected": {
+      "activation_line": 13,
+      "bytes": 783,
+      "name": "mlff.sh",
+      "sha256": "9a8ae2b2fff81b317ef2569af51f9fa374b071551dfa4cb3e2948fe598e437b6"
+    },
+    "observed": {
+      "bytes": 783,
+      "device": 66306,
+      "exists": true,
+      "inode": 23648860,
+      "is_regular_file": true,
+      "is_symlink": false,
+      "mode": "-rw-r--r--",
+      "mtime_ns": 1784026310005929761,
+      "path": "<REMOTE_PROJECT_ROOT>/env/envs/mlff.sh",
+      "realpath": "<REMOTE_PROJECT_ROOT>/env/envs/mlff.sh",
+      "sha256": "9a8ae2b2fff81b317ef2569af51f9fa374b071551dfa4cb3e2948fe598e437b6"
+    },
+    "was_never_sourced": true
+  },
+  "stage_2_interpreter": {
+    "chosen": {
+      "bytes": 25409784,
+      "device": 66306,
+      "executable_realpath": "<MLFF_ENV_ROOT>/bin/python3.11",
+      "inode": 23807108,
+      "mode": "-rwxrwxr-x",
+      "python": "3.11.15",
+      "realpath": "<MLFF_ENV_ROOT>/bin/python3.11"
+    },
+    "dedup_key": "(st_dev, st_ino) of the resolved target",
+    "excluded": [
+      {
+        "names": [
+          "python3.11-config"
+        ],
+        "reason": "not_a_python_interpreter"
+      }
+    ],
+    "full_match_count": 1,
+    "inode_buckets": [
+      {
+        "bytes": 25409784,
+        "device": 66306,
+        "inode": 23807108,
+        "mode": "-rwxrwxr-x",
+        "names": [
+          "python",
+          "python3",
+          "python3.1",
+          "python3.11"
+        ],
+        "realpath": "<MLFF_ENV_ROOT>/bin/python3.11"
+      },
+      {
+        "bytes": 3518,
+        "device": 66306,
+        "inode": 23807109,
+        "mode": "-rwxrwxr-x",
+        "names": [
+          "python3.11-config"
+        ],
+        "realpath": "<MLFF_ENV_ROOT>/bin/python3.11-config"
+      }
+    ],
+    "inode_count_after_dedup": 2,
+    "name_count_before_dedup": 5,
+    "names_enumerated": [
+      "python",
+      "python3",
+      "python3.1",
+      "python3.11",
+      "python3.11-config"
+    ]
+  },
+  "stage_2_versions": {
+    "aimnet": "0.2.0",
+    "ase": "3.29.0",
+    "torch": "2.8.0"
+  },
+  "stage_3_torch_local_version": {
+    "bytes": 281,
+    "cuda": "12.8",
+    "cuda_lineno": 6,
+    "cuda_matches_12_8": true,
+    "file": "torch/version.py",
+    "local_version": "2.8.0+cu128",
+    "local_version_lineno": 4,
+    "public_version_matches_2_8_0": true,
+    "sha256": "ba23e699ea8931779f14ccfcb3ed6dc67a14452d5e49ebd91875d418dba2a7f1"
+  },
+  "stage_4_source": {
+    "files_read": {
+      "aimnet": 16,
+      "ase": 25
+    },
+    "historical_script": "inspect_aimnet2_model_d024b2a.sh was not opened",
+    "historical_script_read": false
+  },
+  "status": "source_read",
+  "third_party_modules_imported": [],
+  "weights": {
+    "content_read": false,
+    "observed": [
+      {
+        "bytes": 8836941,
+        "device": 66306,
+        "exists": true,
+        "inode": 25737086,
+        "is_regular_file": true,
+        "is_symlink": false,
+        "mode": "-rw-------",
+        "mtime_ns": 1784037872646661935,
+        "path": "<AIMNET_CACHE_ROOT>/aimnet2_wb97m_d3_0.pt",
+        "realpath": "<AIMNET_CACHE_ROOT>/aimnet2_wb97m_d3_0.pt"
+      }
+    ],
+    "sha256_recomputed": false,
+    "stat_only": true
+  }
+}

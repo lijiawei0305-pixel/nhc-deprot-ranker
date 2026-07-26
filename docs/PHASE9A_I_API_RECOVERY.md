@@ -179,6 +179,28 @@ before deduplication. Two names, one file. No installed source was read, the
 seven-point gate never ran, and the loader decision remains `unresolved`.
 Details in `docs/PHASE9A_S3_ACTIVATION_BOUND_INSPECTION.md`.
 
+## Phase 9A-S4 outcome — the blocker is cleared
+
+Phase 9A-S4 deduplicated interpreter names by `(st_dev, st_ino)` before counting,
+found the single MLFF interpreter, and read the installed source. **The loader
+question is answered: option A, grade `source_proven`.**
+
+```text
+AIMNet2Calculator(model="<absolute .pt path>")
+  L316 isinstance(model, str)
+  L321 _looks_like_hf or _is_hf_dir   -> false for an absolute path
+  L346 else: os.path.isfile(model) is true, so no registry family lookup
+       get_model_path(s) returns an existing file unchanged
+       load_model(p, device) -> torch.load(weights_only=True), then
+                                build_module + load_state_dict(strict=False)
+```
+
+The local-path branch reaches no registry, no Hugging Face, and no network call.
+`revision`, `token` and `ensemble_member` are consumed only by the hub branch.
+`.eval()` is never called — `self.model.train(train)` with `train=False` plus
+`requires_grad_(False)` does the same job. Full evidence, with line numbers and
+digests, in `docs/PHASE9A_S4_DEDUPLICATED_SOURCE_INSPECTION.md`.
+
 ## Note on question 9
 
 Phase 9A-I ran **no optimizer**: `geometry_optimizations: 0`. So the ASE `LBFGS`
