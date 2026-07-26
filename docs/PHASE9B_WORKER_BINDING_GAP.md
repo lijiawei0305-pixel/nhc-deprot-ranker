@@ -256,9 +256,41 @@ pre-existing suite passed unchanged apart from two of this project's own
 assertions that had deliberately asserted the Phase 9B modules were *outside* the
 closure; both were rewritten to assert membership and to say why.
 
+## Worker live wiring complete through permit and authority
+
+The Phase 8B loader and validator bindings are gone from the worker's flow. Both
+chains are reached through a profile-supplied adapter, because their signatures
+genuinely differ: the Phase 9B loader requires a route, and the Phase 8B
+validator requires the closure path list. Adapting them keeps the worker on
+exactly one call path instead of branching on phase in the validation flow.
+
+The profile now also carries the concrete permit and authority **types**, so the
+claim validator's isinstance gate is chain-correct rather than hard-coded. Real
+type objects are imported at module level rather than resolved through
+`importlib` at call time — the latter collided with the fake import hook the
+Phase 8B capability test uses to intercept PySCF.
+
+Endpoint electron validation moved ahead of permit I/O. A pure check on
+already-loaded request data should fail before any file access.
+
+Two honest limitations, both stated in code rather than assumed:
+
+- compute-capability issue is still Phase 8B-shaped, so the Phase 9B profile
+  stops there. The refusal message now names capability specifically instead of
+  claiming the profile is simply "not wired";
+- `_validate_worker_compute_claim` still reads Phase 8B-shaped fields, so after
+  the profile-driven gate it also narrows concretely and says so. The
+  profile-driven gate is not redundant: it catches objects from the wrong chain
+  when the profile disagrees, which a concrete check alone would admit.
+
+Mutation testing found two gaps in the first version of these tests, both now
+covered: a Phase 9B profile declaring the Phase 8B permit type was unobservable
+because the type gate is only reached at capability, and the adapter's route
+guard was unreachable through the resolver. Both are now asserted directly.
+
 ## Current state
 
 All three execution gates remain closed, the closure now holds 18 files with every
 Phase 9B module hash-bound, `phase8b_authority.py`, `phase8b_permit.py`, and
 `two_endpoint.py` are untouched, `PHASE8B_DFT_SMOKE_V001.json` is unchanged, and
-the suite passes at 707.
+the suite passes at 711.

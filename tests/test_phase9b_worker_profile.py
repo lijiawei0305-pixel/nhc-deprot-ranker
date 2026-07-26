@@ -9,12 +9,14 @@ refuses execution until permit and capability wiring exist.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from nhc_deprot_ranker.quantum import phase8b_permit as permit_module
 from nhc_deprot_ranker.quantum import phase9b_authority as p9b_authority
+from nhc_deprot_ranker.quantum import phase9b_permit as p9b_permit_module
 from nhc_deprot_ranker.quantum import phase9b_supervisor as p9b_supervisor
 from nhc_deprot_ranker.quantum import two_endpoint as runner
 from nhc_deprot_ranker.quantum import worker
@@ -186,21 +188,92 @@ def _full_argv(attempt_id: str, tmp_path: Path) -> list[str]:
     ]
 
 
+def _endpoint_pair_120() -> tuple[runner.EndpointRequest, runner.EndpointRequest]:
+    """C20 skeleton: recomputes to exactly 120 electrons for both endpoints."""
+
+    neutral_geometry = runner.XYZGeometry(
+        tuple(runner.XYZAtom("C", float(i), 0.0, 0.0) for i in range(20))
+    )
+    cation_geometry = runner.XYZGeometry(
+        (*neutral_geometry.atoms, runner.XYZAtom("H", 0.0, 1.0, 0.0))
+    )
+    cation = runner.EndpointRequest(
+        name="cation",
+        xyz_relative_path="cation.xyz",
+        xyz_path=Path("cation.xyz"),
+        xyz_sha256="0" * 64,
+        charge=1,
+        multiplicity=1,
+        electron_count=120,
+        geometry=cation_geometry,
+    )
+    neutral = runner.EndpointRequest(
+        name="neutral",
+        xyz_relative_path="neutral.xyz",
+        xyz_path=Path("neutral.xyz"),
+        xyz_sha256="1" * 64,
+        charge=0,
+        multiplicity=1,
+        electron_count=120,
+        geometry=neutral_geometry,
+    )
+    return cation, neutral
+
+
 class _FakeRequest:
+    """Endpoint-bearing stub: electron validation now runs before permit I/O."""
+
     execution_authorized = True
 
+    def __init__(self, electron_count: int = 160) -> None:
+        if electron_count == 120:
+            cation, neutral = _endpoint_pair_120()
+        else:
+            cation, neutral = _endpoint_pair(electron_count=electron_count)
+        self.cation = cation
+        self.neutral = neutral
 
-def test_unwired_phase9b_profile_refuses_before_any_permit_read(
+
+def test_phase9b_profile_stops_at_capability_not_at_the_permit(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Permit and authority are live for every profile; capability is not.
+
+    The Phase 8B permit loader must never be reached by a Phase 9B attempt: that
+    would mean the adapter dispatched to the wrong chain.
+    """
+
+    monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
+    monkeypatch.setattr(runner, "load_two_endpoint_request", lambda path: _FakeRequest())
+
+    def _wrong_chain(*args: object, **kwargs: object) -> object:
+        raise AssertionError("a Phase 9B attempt must not use the Phase 8B permit loader")
+
+    monkeypatch.setattr(permit_module, "load_consumed_phase8b_permit", _wrong_chain)
+
+    reached: list[str] = []
+
+    def _record(*args: object, **kwargs: object) -> object:
+        reached.append("phase9b-loader")
+        raise runner.ExecutionNotAuthorizedError("synthetic 9B permit stop")
+
+    monkeypatch.setattr(p9b_permit_module, "load_consumed_phase9b_permit", _record)
+    with pytest.raises(runner.ExecutionNotAuthorizedError, match="synthetic 9B permit stop"):
+        worker.main(_full_argv(p9b_supervisor.ROUTE_D_ATTEMPT_ID, tmp_path))
+    assert reached == ["phase9b-loader"]
+
+
+def test_phase9b_capability_issue_is_still_refused(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
     monkeypatch.setattr(runner, "load_two_endpoint_request", lambda path: _FakeRequest())
-
-    def _bomb(*args: object, **kwargs: object) -> object:
-        raise AssertionError("permit must not be read for an unwired profile")
-
-    monkeypatch.setattr(permit_module, "load_consumed_phase8b_permit", _bomb)
-    with pytest.raises(runner.ExecutionNotAuthorizedError, match="not wired for execution"):
+    patched = replace(
+        worker.PHASE9B_WORKER_PROFILE,
+        load_permit_and_authority=lambda **kwargs: (object(), object()),
+    )
+    monkeypatch.setattr(worker, "_resolve_worker_profile", lambda attempt_id: patched)
+    with pytest.raises(runner.ExecutionNotAuthorizedError, match="not yet parameterized"):
         worker.main(_full_argv(p9b_supervisor.ROUTE_D_ATTEMPT_ID, tmp_path))
 
 
@@ -224,7 +297,9 @@ def test_phase8b_attempt_still_reaches_the_permit_stage(
     """Profile resolution must not block the historical live path."""
 
     monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
-    monkeypatch.setattr(runner, "load_two_endpoint_request", lambda path: _FakeRequest())
+    monkeypatch.setattr(
+        runner, "load_two_endpoint_request", lambda path: _FakeRequest(electron_count=120)
+    )
 
     class _Marker(RuntimeError):
         pass
@@ -253,3 +328,55 @@ def test_profiles_live_inside_the_runner_source_closure() -> None:
     closure = runner._RUNNER_SOURCE_RELATIVE_PATHS  # pyright: ignore[reportPrivateUsage]
     assert "nhc_deprot_ranker/quantum/worker.py" in closure
     assert "class WorkerAuthorityProfile" in Path(worker.__file__).read_text(encoding="utf-8")
+
+
+def test_each_profile_declares_the_types_its_own_chain_produces() -> None:
+    """Caught by mutation testing: a wrong type here is latent until capability
+    wiring, because the type gate lives in the claim validator the Phase 9B path
+    does not yet reach. Assert it directly so it cannot rot.
+    """
+
+    from nhc_deprot_ranker.quantum.phase8b_authority import ExactPhase8BAuthority
+    from nhc_deprot_ranker.quantum.phase8b_permit import ConsumedPhase8BPermit
+    from nhc_deprot_ranker.quantum.phase9b_permit import (
+        ConsumedPhase9BPermit,
+        Phase9BExactAuthority,
+    )
+
+    assert PHASE8B_WORKER_PROFILE.consumed_permit_type is ConsumedPhase8BPermit
+    assert PHASE8B_WORKER_PROFILE.authority_type is ExactPhase8BAuthority
+    assert PHASE9B_WORKER_PROFILE.consumed_permit_type is ConsumedPhase9BPermit
+    assert PHASE9B_WORKER_PROFILE.authority_type is Phase9BExactAuthority
+
+    eight = {PHASE8B_WORKER_PROFILE.consumed_permit_type, PHASE8B_WORKER_PROFILE.authority_type}
+    nine = {PHASE9B_WORKER_PROFILE.consumed_permit_type, PHASE9B_WORKER_PROFILE.authority_type}
+    assert not eight & nine, "the two chains must not share a permit or authority type"
+
+
+def test_each_profile_dispatches_to_its_own_loader() -> None:
+    assert (
+        PHASE8B_WORKER_PROFILE.load_permit_and_authority
+        is worker._load_phase8b_permit_and_authority
+    )
+    assert (
+        PHASE9B_WORKER_PROFILE.load_permit_and_authority
+        is worker._load_phase9b_permit_and_authority
+    )
+
+
+def test_phase9b_adapter_rejects_an_attempt_id_outside_the_route_table(tmp_path: Path) -> None:
+    """Defence in depth: the resolver normally filters these out first, but the
+    adapter must not index blindly if a future profile lists an unmapped attempt.
+    """
+
+    with pytest.raises(runner.ExecutionNotAuthorizedError, match="exactly one route"):
+        worker._load_phase9b_permit_and_authority(
+            consumed_path=tmp_path / "permit.json",
+            expected_permit_sha256="a" * 64,
+            expected_request_sha256="b" * 64,
+            expected_runner_source_sha256="c" * 64,
+            expected_payload_manifest_sha256="d" * 64,
+            request=object(),
+            output_root=tmp_path / "out",
+            attempt_id="attempt-not-a-phase9b-route",
+        )

@@ -10,9 +10,11 @@ identity — are no longer hard-coded in the validation flow.  They come from a
 source-frozen table in this file, which is itself inside the runner source
 closure, so profile values are hash-bound exactly like code.
 
-There is still exactly one live validation path.  The Phase 8B profile binds it;
-the Phase 9B profile is registered for identity and cross-checking but refuses
-execution until its permit and capability wiring exist.
+There is still exactly one live validation path.  The permit loader and exact
+authority validator are reached through a profile-supplied adapter, because the
+two chains have different signatures; adapting them keeps the worker on one call
+path rather than branching on phase.  Compute-capability issue is not yet
+parameterized, so the Phase 9B profile stops there rather than at the permit.
 """
 
 from __future__ import annotations
@@ -24,19 +26,124 @@ import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Protocol, cast
 
 from nhc_deprot_ranker.quantum import two_endpoint as runner
 from nhc_deprot_ranker.quantum.linux_guardian import (
     read_process_identity,
     read_task_affinities,
 )
+from nhc_deprot_ranker.quantum.phase8b_authority import ExactPhase8BAuthority
 from nhc_deprot_ranker.quantum.phase8b_execution import (
     ComputeClaimEvidence,
     IdentityReader,
     TaskAffinityReader,
     load_and_validate_compute_claim_for_worker,
 )
+from nhc_deprot_ranker.quantum.phase8b_permit import ConsumedPhase8BPermit
+from nhc_deprot_ranker.quantum.phase9b_permit import (
+    ConsumedPhase9BPermit,
+    Phase9BExactAuthority,
+)
+
+
+class _PermitAndAuthorityLoader(Protocol):
+    """Normalizes the two chains' differing loader/validator signatures.
+
+    The Phase 8B loader takes no profile or route; the Phase 9B loader requires a
+    route. The Phase 8B validator requires the source path list; the Phase 9B
+    validator does not. Adapting them here keeps the worker on exactly one call
+    path instead of branching on phase in the validation flow.
+    """
+
+    def __call__(
+        self,
+        *,
+        consumed_path: Path,
+        expected_permit_sha256: str,
+        expected_request_sha256: str,
+        expected_runner_source_sha256: str,
+        expected_payload_manifest_sha256: str,
+        request: object,
+        output_root: Path,
+        attempt_id: str,
+    ) -> tuple[object, object]: ...
+
+
+def _load_phase8b_permit_and_authority(
+    *,
+    consumed_path: Path,
+    expected_permit_sha256: str,
+    expected_request_sha256: str,
+    expected_runner_source_sha256: str,
+    expected_payload_manifest_sha256: str,
+    request: object,
+    output_root: Path,
+    attempt_id: str,
+) -> tuple[object, object]:
+    from nhc_deprot_ranker.quantum.phase8b_authority import (
+        Phase8BRequestLike,
+        validate_exact_phase8b_authority,
+    )
+    from nhc_deprot_ranker.quantum.phase8b_permit import load_consumed_phase8b_permit
+
+    consumed = load_consumed_phase8b_permit(
+        consumed_path,
+        expected_permit_sha256=expected_permit_sha256,
+        expected_request_sha256=expected_request_sha256,
+        expected_runner_source_sha256=expected_runner_source_sha256,
+        expected_payload_manifest_sha256=expected_payload_manifest_sha256,
+    )
+    authority = validate_exact_phase8b_authority(
+        cast(Phase8BRequestLike, request),
+        consumed,
+        output_root=output_root,
+        attempt_id=attempt_id,
+        expected_source_relative_paths=runner._RUNNER_SOURCE_RELATIVE_PATHS,  # pyright: ignore[reportPrivateUsage]
+        require_output_absent=False,
+    )
+    return consumed, authority
+
+
+def _load_phase9b_permit_and_authority(
+    *,
+    consumed_path: Path,
+    expected_permit_sha256: str,
+    expected_request_sha256: str,
+    expected_runner_source_sha256: str,
+    expected_payload_manifest_sha256: str,
+    request: object,
+    output_root: Path,
+    attempt_id: str,
+) -> tuple[object, object]:
+    from nhc_deprot_ranker.quantum.phase9b_permit import (
+        ROUTE_ATTEMPT_IDS,
+        Phase9BRequestLike,
+        load_consumed_phase9b_permit,
+        validate_exact_phase9b_authority,
+    )
+
+    routes = [route for route, ident in ROUTE_ATTEMPT_IDS.items() if ident == attempt_id]
+    if len(routes) != 1:
+        raise runner.ExecutionNotAuthorizedError(
+            "Phase 9B attempt identity does not name exactly one route"
+        )
+    consumed = load_consumed_phase9b_permit(
+        consumed_path,
+        expected_route=routes[0],
+        expected_permit_sha256=expected_permit_sha256,
+        expected_request_sha256=expected_request_sha256,
+        expected_runner_source_sha256=expected_runner_source_sha256,
+        expected_payload_manifest_sha256=expected_payload_manifest_sha256,
+    )
+    authority = validate_exact_phase9b_authority(
+        cast(Phase9BRequestLike, request),
+        consumed,
+        output_root=output_root,
+        attempt_id=attempt_id,
+        require_output_absent=False,
+    )
+    return consumed, authority
 
 
 @dataclass(frozen=True)
@@ -53,6 +160,9 @@ class WorkerAuthorityProfile:
     attempt_ids: tuple[str, ...]
     electron_count: int
     allowed_cpus: frozenset[int]
+    load_permit_and_authority: _PermitAndAuthorityLoader
+    consumed_permit_type: type
+    authority_type: type
 
 
 PHASE8B_WORKER_PROFILE = WorkerAuthorityProfile(
@@ -62,6 +172,9 @@ PHASE8B_WORKER_PROFILE = WorkerAuthorityProfile(
     attempt_ids=("attempt-phase8b-qxh-v001",),
     electron_count=120,
     allowed_cpus=frozenset({0, 1, 2, 3}),
+    load_permit_and_authority=_load_phase8b_permit_and_authority,
+    consumed_permit_type=ConsumedPhase8BPermit,
+    authority_type=ExactPhase8BAuthority,
 )
 
 # Registered for identity closure only; execution refuses until the Phase 9B
@@ -78,6 +191,9 @@ PHASE9B_WORKER_PROFILE = WorkerAuthorityProfile(
     ),
     electron_count=160,
     allowed_cpus=frozenset({0, 1, 2, 3}),
+    load_permit_and_authority=_load_phase9b_permit_and_authority,
+    consumed_permit_type=ConsumedPhase9BPermit,
+    authority_type=Phase9BExactAuthority,
 )
 
 WORKER_AUTHORITY_PROFILES: tuple[WorkerAuthorityProfile, ...] = (
@@ -218,14 +334,22 @@ def _validate_worker_compute_claim(
     worker_scratch_path: Path,
     compute_claim_path: Path,
     attempt_id: str,
+    profile: WorkerAuthorityProfile,
 ) -> None:
-    from nhc_deprot_ranker.quantum.phase8b_authority import ExactPhase8BAuthority
-    from nhc_deprot_ranker.quantum.phase8b_permit import ConsumedPhase8BPermit
-
+    # Profile-driven gate: catches objects from the wrong authority chain, which a
+    # concrete check alone would let through when the profile disagrees.
+    if not isinstance(consumed, profile.consumed_permit_type) or not isinstance(
+        authority, profile.authority_type
+    ):
+        raise runner.ExecutionNotAuthorizedError("worker compute claim authority type drifted")
+    # This function body still reads Phase 8B-shaped fields, so it genuinely
+    # requires that shape today.  Stated explicitly rather than assumed.
     if not isinstance(consumed, ConsumedPhase8BPermit) or not isinstance(
         authority, ExactPhase8BAuthority
     ):
-        raise runner.ExecutionNotAuthorizedError("worker compute claim authority type drifted")
+        raise runner.ExecutionNotAuthorizedError(
+            "compute claim validation still requires the Phase 8B object shape"
+        )
     claim = evidence.claim
     bound = claim.authority
     permit = consumed.permit
@@ -309,36 +433,36 @@ def main(
         release_token,
     ) = _require_phase8b_arguments(arguments)
     profile = _resolve_worker_profile(arguments.attempt_id)
-    if profile is not PHASE8B_WORKER_PROFILE:
-        raise runner.ExecutionNotAuthorizedError(
-            "worker authority profile is registered but not wired for execution"
-        )
-    from nhc_deprot_ranker.quantum.phase8b_authority import (
-        Phase8BRequestLike,
-        validate_exact_phase8b_authority,
-    )
-    from nhc_deprot_ranker.quantum.phase8b_permit import load_consumed_phase8b_permit
-
-    consumed = load_consumed_phase8b_permit(
-        consumed_path,
-        expected_permit_sha256=permit_sha256,
-        expected_request_sha256=request_sha256,
-        expected_runner_source_sha256=runner_source_sha256,
-        expected_payload_manifest_sha256=payload_manifest_sha256,
-    )
     runner._validate_endpoint_pair_electrons(  # pyright: ignore[reportPrivateUsage]
         request.cation,
         request.neutral,
         expected_electron_count=profile.electron_count,
     )
-    exact_authority = validate_exact_phase8b_authority(
-        cast(Phase8BRequestLike, request),
-        consumed,
+    consumed, exact_authority = profile.load_permit_and_authority(
+        consumed_path=consumed_path,
+        expected_permit_sha256=permit_sha256,
+        expected_request_sha256=request_sha256,
+        expected_runner_source_sha256=runner_source_sha256,
+        expected_payload_manifest_sha256=payload_manifest_sha256,
+        request=request,
         output_root=authorized_output_root,
         attempt_id=arguments.attempt_id,
-        expected_source_relative_paths=runner._RUNNER_SOURCE_RELATIVE_PATHS,  # pyright: ignore[reportPrivateUsage]
-        require_output_absent=False,
     )
+    if profile is not PHASE8B_WORKER_PROFILE:
+        # Permit and authority are now live for every profile; compute-capability
+        # issue is still Phase 8B-shaped, so stop here rather than mis-issue one.
+        raise runner.ExecutionNotAuthorizedError(
+            "worker compute-capability issue is not yet parameterized for this profile"
+        )
+    # Past this point only the Phase 8B chain runs, so narrow the adapter's
+    # deliberately generic return.  This is a real guard as well as a type
+    # narrowing: an adapter returning the wrong chain's objects fails closed here.
+    if not isinstance(consumed, ConsumedPhase8BPermit) or not isinstance(
+        exact_authority, ExactPhase8BAuthority
+    ):
+        raise runner.ExecutionNotAuthorizedError(
+            "Phase 8B adapter returned objects from a different authority chain"
+        )
     _validate_worker_scratch(
         arguments.output_root,
         authorized_output_root=authorized_output_root,
@@ -368,6 +492,7 @@ def main(
         worker_scratch_path=arguments.output_root,
         compute_claim_path=compute_claim_path,
         attempt_id=arguments.attempt_id,
+        profile=profile,
     )
     runner._ensure_execution_authorized()  # pyright: ignore[reportPrivateUsage]
     compute_capability = runner._issue_phase8b_compute_capability(  # pyright: ignore[reportPrivateUsage]
