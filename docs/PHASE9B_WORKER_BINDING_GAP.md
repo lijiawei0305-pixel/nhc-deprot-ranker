@@ -317,9 +317,36 @@ The wall-time check specifically prevents a request from enlarging the frozen
 budget at runtime, which is the resource-escalation route the resource freeze
 exists to close.
 
+## All three bindings now parameterized
+
+Compute-capability issue was the last one, and the only one requiring surgery
+inside `two_endpoint.py` beyond the closure change.
+
+`_Phase8BComputeCapability` and `_issue_phase8b_compute_capability` were renamed
+to `_GuardedComputeCapability` and `_issue_guarded_compute_capability`. A
+misleading name on an object that now serves both chains is a real cost in
+safety-critical code, so the rename was taken rather than documented around.
+
+The capability now types its authority against a `CapabilityAuthorityLike`
+Protocol covering the fields it binds. Both chains' exact-authority records
+satisfy it structurally; the Phase 9B record is a superset. Typing against the
+shape rather than one class is what lets one capability serve both without a
+phase branch.
+
+Chain-specific expectations arrive as explicit parameters — permit and authority
+types, capability identity key, allowed CPU set, reload adapter, and an optional
+extra authority match. They are not read from a profile object, because
+`two_endpoint` is inside the closure and importing the worker would be a cycle.
+
+The extra match is where the two chains genuinely differ. Phase 8B's validator
+does not check the frozen constants itself, so that chain supplies
+`_authority_matches_frozen_worker`. Phase 9B's validator checks them inline and
+supplies `None`. That is only sound because the parity was verified item by item
+first, and the four checks Phase 9B was missing were added before this wiring.
+
 ## Current state
 
 All three execution gates remain closed, the closure now holds 18 files with every
 Phase 9B module hash-bound, `phase8b_authority.py`, `phase8b_permit.py`, and
 `two_endpoint.py` are untouched, `PHASE8B_DFT_SMOKE_V001.json` is unchanged, and
-the suite passes at 715.
+the suite passes at 719.

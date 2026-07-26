@@ -1396,10 +1396,71 @@ _CAPABILITY_IDENTITY_EXPECTATIONS: Final[dict[str, Callable[[], CapabilityIdenti
 }
 
 
+class CapabilityAuthorityLike(Protocol):
+    """The authority fields a guarded capability binds.
+
+    Both chains' exact-authority records satisfy this; the Phase 9B record is a
+    superset. Typing against the shape rather than one class is what lets a
+    single capability serve both without a phase branch.
+    """
+
+    @property
+    def request_sha256(self) -> str: ...
+
+    @property
+    def runner_source_sha256(self) -> str: ...
+
+    @property
+    def permit_sha256(self) -> str: ...
+
+    @property
+    def payload_manifest_sha256(self) -> str: ...
+
+    @property
+    def endpoint_atom_map_sha256(self) -> str: ...
+
+    @property
+    def legacy_atom_map_sha256(self) -> str: ...
+
+    @property
+    def geometry_validation_sha256(self) -> str: ...
+
+    @property
+    def resources_sha256(self) -> str: ...
+
+    @property
+    def electron_count(self) -> int: ...
+
+    @property
+    def request_id(self) -> str: ...
+
+    @property
+    def inchikey(self) -> str: ...
+
+    @property
+    def attempt_id(self) -> str: ...
+
+    @property
+    def project_root(self) -> str: ...
+
+    @property
+    def run_root(self) -> str: ...
+
+    @property
+    def request_path(self) -> str: ...
+
+    @property
+    def output_root(self) -> str: ...
+
+
+_ReloadPermitAndAuthority = Callable[..., tuple[object, object]]
+_ExtraAuthorityMatch = Callable[..., bool]
+
+
 _COMPUTE_CAPABILITY_SEAL: Final = object()
 
 
-class _Phase8BComputeCapability:
+class _GuardedComputeCapability:
     """One-use, process-bound authority for the first compute import."""
 
     __slots__ = (
@@ -1435,7 +1496,7 @@ class _Phase8BComputeCapability:
         seal: object,
         pid: int,
         absolute_deadline_ns: int,
-        authority: ExactPhase8BAuthority,
+        authority: CapabilityAuthorityLike,
         protocol_sha256: str,
         compute_claim_sha256: str,
         identity_key: str,
@@ -1471,12 +1532,12 @@ class _Phase8BComputeCapability:
 _ComputeCapabilityBinding = tuple[object, ...]
 _LIVE_COMPUTE_CAPABILITIES: dict[
     int,
-    tuple[_Phase8BComputeCapability, _ComputeCapabilityBinding],
+    tuple[_GuardedComputeCapability, _ComputeCapabilityBinding],
 ] = {}
 
 
 def _compute_capability_binding(
-    capability: _Phase8BComputeCapability,
+    capability: _GuardedComputeCapability,
 ) -> _ComputeCapabilityBinding:
     return (
         capability._identity_key,
@@ -1548,59 +1609,61 @@ def _authority_matches_frozen_worker(
     )
 
 
-def _issue_phase8b_compute_capability(
+def _issue_guarded_compute_capability(
     *,
     request: TwoEndpointRequest,
-    consumed: ConsumedPhase8BPermit,
-    authority: ExactPhase8BAuthority,
+    consumed: object,
+    authority: CapabilityAuthorityLike,
     bootstrap_proof: object,
     output_root: Path,
     attempt_id: str,
     absolute_deadline_ns: int,
     compute_claim_evidence: ComputeClaimEvidence,
-) -> _Phase8BComputeCapability:
-    """Revalidate exact consumed authority, then claim the bootstrap release."""
+    consumed_permit_type: type,
+    authority_type: type,
+    identity_key: str,
+    allowed_cpus: frozenset[int],
+    reload_permit_and_authority: _ReloadPermitAndAuthority,
+    extra_authority_match: _ExtraAuthorityMatch | None,
+) -> _GuardedComputeCapability:
+    """Revalidate exact consumed authority, then claim the bootstrap release.
+
+    Chain-specific expectations arrive as explicit parameters rather than being
+    read from a profile object: this module is inside the runner source closure
+    and must not import the worker, which would be a cycle.
+    """
 
     _ensure_execution_authorized()
     if (
-        not isinstance(consumed, ConsumedPhase8BPermit)
-        or not isinstance(authority, ExactPhase8BAuthority)
+        not isinstance(consumed, consumed_permit_type)
+        or not isinstance(authority, authority_type)
         or not isinstance(compute_claim_evidence, ComputeClaimEvidence)
         or type(absolute_deadline_ns) is not int
     ):
         raise ExecutionNotAuthorizedError("worker compute authority has an invalid type")
-    permit = consumed.permit
-    from nhc_deprot_ranker.quantum.phase8b_authority import (
-        Phase8BRequestLike,
-        validate_exact_phase8b_authority,
-    )
-    from nhc_deprot_ranker.quantum.phase8b_permit import load_consumed_phase8b_permit
-
-    reloaded = load_consumed_phase8b_permit(
-        consumed.consumed_path,
-        expected_permit_sha256=permit.permit_sha256,
-        expected_request_sha256=permit.request_sha256,
-        expected_runner_source_sha256=permit.runner_source_sha256,
-        expected_payload_manifest_sha256=permit.payload_manifest_sha256,
-    )
-    revalidated = validate_exact_phase8b_authority(
-        cast(Phase8BRequestLike, request),
-        reloaded,
+    if identity_key not in _CAPABILITY_IDENTITY_EXPECTATIONS:
+        raise ExecutionNotAuthorizedError(
+            "worker compute capability has no frozen identity expectation"
+        )
+    reloaded, revalidated = reload_permit_and_authority(
+        consumed=consumed,
+        request=request,
         output_root=output_root,
         attempt_id=attempt_id,
-        expected_source_relative_paths=_RUNNER_SOURCE_RELATIVE_PATHS,
-        require_output_absent=False,
     )
-    if (
-        reloaded != consumed
-        or revalidated != authority
-        or not _authority_matches_frozen_worker(
-            request=request,
-            consumed=reloaded,
-            authority=revalidated,
-            output_root=output_root,
-            attempt_id=attempt_id,
+    if reloaded != consumed or revalidated != authority:
+        raise ExecutionNotAuthorizedError(
+            "worker compute authority differs from the revalidated consumed permit"
         )
+    # Phase 8B's validator does not itself check the frozen constants, so that
+    # chain supplies this extra match.  Phase 9B's validator checks them inline
+    # and supplies None; the parity was verified item by item before wiring.
+    if extra_authority_match is not None and not extra_authority_match(
+        request=request,
+        consumed=reloaded,
+        authority=revalidated,
+        output_root=output_root,
+        attempt_id=attempt_id,
     ):
         raise ExecutionNotAuthorizedError(
             "worker compute authority differs from the revalidated consumed permit"
@@ -1632,7 +1695,7 @@ def _issue_phase8b_compute_capability(
     from nhc_deprot_ranker.quantum.worker_bootstrap import _claim_preimport_handshake_proof
 
     try:
-        pid, _parent_pid, allowed_cpus, claim_hash = _claim_preimport_handshake_proof(
+        pid, _parent_pid, handshake_cpus, claim_hash = _claim_preimport_handshake_proof(
             bootstrap_proof,
             expected_absolute_deadline_ns=absolute_deadline_ns,
             expected_compute_claim_path=durable_claim.paths.compute_claim,
@@ -1642,18 +1705,18 @@ def _issue_phase8b_compute_capability(
         raise ExecutionNotAuthorizedError("worker pre-import handshake is not claimable") from exc
     if (
         pid != os.getpid()
-        or allowed_cpus != frozenset({0, 1, 2, 3})
+        or handshake_cpus != allowed_cpus
         or claim_hash != compute_claim_evidence.compute_claim_sha256
     ):
         raise ExecutionNotAuthorizedError("worker handshake binding drifted")
-    capability = _Phase8BComputeCapability(
+    capability = _GuardedComputeCapability(
         seal=_COMPUTE_CAPABILITY_SEAL,
         pid=pid,
         absolute_deadline_ns=absolute_deadline_ns,
         authority=revalidated,
         protocol_sha256=request.protocol_sha256,
         compute_claim_sha256=claim_hash,
-        identity_key=PHASE8B_CAPABILITY_IDENTITY_KEY,
+        identity_key=identity_key,
     )
     _LIVE_COMPUTE_CAPABILITIES[id(capability)] = (
         capability,
@@ -1662,7 +1725,7 @@ def _issue_phase8b_compute_capability(
     return capability
 
 
-def _validate_compute_capability_fields(capability: _Phase8BComputeCapability) -> None:
+def _validate_compute_capability_fields(capability: _GuardedComputeCapability) -> None:
     if (
         capability._seal is not _COMPUTE_CAPABILITY_SEAL
         or capability._pid != os.getpid()
@@ -1703,7 +1766,7 @@ class PySCFBackend:
 
     def _claim_compute_capability(self) -> None:
         capability = self._capability
-        if not isinstance(capability, _Phase8BComputeCapability):
+        if not isinstance(capability, _GuardedComputeCapability):
             raise ExecutionNotAuthorizedError(
                 "PySCF backend requires a bootstrap-issued Phase 8B compute capability"
             )
@@ -1722,7 +1785,7 @@ class PySCFBackend:
     def _validate_claimed_compute_capability(self) -> None:
         capability = self._capability
         if (
-            not isinstance(capability, _Phase8BComputeCapability)
+            not isinstance(capability, _GuardedComputeCapability)
             or not capability._claimed
             or capability._backend_owner is not self
         ):
@@ -1738,7 +1801,7 @@ class PySCFBackend:
             return self._modules
         self._claim_compute_capability()
         thread_environment = _validate_thread_environment(os.environ)
-        capability = cast(_Phase8BComputeCapability, self._capability)
+        capability = cast(_GuardedComputeCapability, self._capability)
         if capability._runner_source_sha256 != current_runner_source_sha256():
             raise ExecutionNotAuthorizedError(
                 "worker source identity drifted before compute import"

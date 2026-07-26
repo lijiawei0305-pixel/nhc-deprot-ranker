@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -164,3 +165,72 @@ def test_expectation_record_is_immutable() -> None:
         expected.electron_count = 160  # type: ignore[misc]
     assert replace(expected, electron_count=160).electron_count == 160
     assert _expectation().electron_count == 120
+
+
+def test_capability_issue_rejects_an_unregistered_identity_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Caught by mutation testing: the registry guard inside capability issue was
+    unobservable because no test drove that function with a bad key.
+    """
+
+    from nhc_deprot_ranker.quantum.phase8b_execution import ComputeClaimEvidence
+
+    monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
+    evidence = object.__new__(ComputeClaimEvidence)
+
+    def _must_not_reload(**kwargs: object) -> tuple[object, object]:
+        raise AssertionError("reload must not run for an unregistered identity key")
+
+    with pytest.raises(runner.ExecutionNotAuthorizedError, match="no frozen identity expectation"):
+        runner._issue_guarded_compute_capability(  # pyright: ignore[reportPrivateUsage]
+            request=cast(Any, object()),
+            consumed=object(),
+            authority=cast(Any, object()),
+            bootstrap_proof=object(),
+            output_root=Path("/nonexistent"),
+            attempt_id="attempt-anything",
+            absolute_deadline_ns=1,
+            compute_claim_evidence=evidence,
+            consumed_permit_type=object,
+            authority_type=object,
+            identity_key="phase10-production-batch",
+            allowed_cpus=frozenset({0}),
+            reload_permit_and_authority=_must_not_reload,
+            extra_authority_match=None,
+        )
+
+
+def test_capability_issue_registry_guard_precedes_any_reload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A registered key must reach the reload; an unregistered one must not."""
+
+    from nhc_deprot_ranker.quantum.phase8b_execution import ComputeClaimEvidence
+
+    monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
+    evidence = object.__new__(ComputeClaimEvidence)
+    reached: list[str] = []
+
+    def _reload(**kwargs: object) -> tuple[object, object]:
+        reached.append("reload")
+        raise runner.ExecutionNotAuthorizedError("synthetic reload stop")
+
+    with pytest.raises(runner.ExecutionNotAuthorizedError, match="synthetic reload stop"):
+        runner._issue_guarded_compute_capability(  # pyright: ignore[reportPrivateUsage]
+            request=cast(Any, object()),
+            consumed=object(),
+            authority=cast(Any, object()),
+            bootstrap_proof=object(),
+            output_root=Path("/nonexistent"),
+            attempt_id="attempt-anything",
+            absolute_deadline_ns=1,
+            compute_claim_evidence=evidence,
+            consumed_permit_type=object,
+            authority_type=object,
+            identity_key=runner.PHASE8B_CAPABILITY_IDENTITY_KEY,
+            allowed_cpus=frozenset({0}),
+            reload_permit_and_authority=_reload,
+            extra_authority_match=None,
+        )
+    assert reached == ["reload"]

@@ -381,7 +381,7 @@ def test_valid_fake_authorized_worker_claims_capability_before_import(
 
 def test_compute_capability_constructor_rejects_normal_construction() -> None:
     with pytest.raises(TypeError, match="cannot be caller-constructed"):
-        runner._Phase8BComputeCapability(  # pyright: ignore[reportPrivateUsage]
+        runner._GuardedComputeCapability(  # pyright: ignore[reportPrivateUsage]
             seal=object(),
             pid=os.getpid(),
             absolute_deadline_ns=time.monotonic_ns() + 1_000_000_000,
@@ -396,7 +396,7 @@ def test_compute_capability_constructor_requires_an_identity_key() -> None:
     """Omitting the key must still fail closed, not default to a chain."""
 
     with pytest.raises(TypeError):
-        runner._Phase8BComputeCapability(  # pyright: ignore[reportPrivateUsage,call-arg]
+        runner._GuardedComputeCapability(  # pyright: ignore[reportPrivateUsage,call-arg]
             seal=object(),
             pid=os.getpid(),
             absolute_deadline_ns=time.monotonic_ns() + 1_000_000_000,
