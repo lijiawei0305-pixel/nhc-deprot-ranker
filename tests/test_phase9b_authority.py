@@ -205,7 +205,7 @@ def test_module_is_hash_bound_inside_the_runner_source_closure() -> None:
 
     closure = two_endpoint._RUNNER_SOURCE_RELATIVE_PATHS  # pyright: ignore[reportPrivateUsage]
     assert "nhc_deprot_ranker/quantum/phase9b_authority.py" in closure
-    assert two_endpoint.RUNNER_SOURCE_SCHEMA_VERSION.endswith("-v6")
+    assert two_endpoint.RUNNER_SOURCE_SCHEMA_VERSION.endswith("-v7")
 
 
 def test_module_imports_no_chemistry_and_declares_no_label() -> None:

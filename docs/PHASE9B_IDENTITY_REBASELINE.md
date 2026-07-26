@@ -50,7 +50,15 @@ overwritten and nothing was deleted; this record preserves them.
 ```text
 runner source schema   nhc-two-endpoint-runner-source-v6
 runner_source_sha256   72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3
-closure files          21 (three added)
+direct request         a53c26201fd1f2989fd242681c3c382fd17cc1c88c1433cd5dcc7c0a58ec04d2
+direct manifest        f73cdb9a3a34fe49738994800a1d7d79bc0b854ae197a385c3151cce2c8305b5
+assisted request       feaecb7b6de9e7ab0f8710b4fd9e094d019b3cc6c1f68d349dc901137ebe7659
+assisted manifest      bc0534f72fe16eb69338af1eb897c3a705b71b7973825f7a4fe9e9732e236d7b
+state                  superseded_before_execution
+
+runner source schema   nhc-two-endpoint-runner-source-v7
+runner_source_sha256   d7060a314993225595c616f4329b08689c6974de621ef663c18f891d6a7d9c22
+closure files          23 (two added: execution adapters, AIMNet2 runtime)
 resources_sha256       0fec2c1914f413a2762e1fafc7daa9900551981b5af72897746864edffac7df8
 request schema         nhc-two-endpoint-request-v2
 permit schema          nhc-phase9b-private-permit-v2
@@ -84,9 +92,9 @@ preoptimized geometry that cannot exist before the route runs.
 ```text
 request_id              phase9b-lbnp-paired-smoke-v001
 attempt_id              attempt-phase9b-lbnp-direct-v001
-runner_source_sha256    72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3
-request_sha256          413832f9aa7c3dd6e012d0504bebfadb070e9be9fe5fb0bc12a2ab8ba86eb38c
-payload_manifest_sha256 78a129c1042c90f0d35c88c1696e1a3bb78013fcbf3117f777b378bdd9d38cec
+runner_source_sha256    d7060a314993225595c616f4329b08689c6974de621ef663c18f891d6a7d9c22
+request_sha256          a53c26201fd1f2989fd242681c3c382fd17cc1c88c1433cd5dcc7c0a58ec04d2
+payload_manifest_sha256 f73cdb9a3a34fe49738994800a1d7d79bc0b854ae197a385c3151cce2c8305b5
 preoptimization         stage: none
 ```
 
@@ -95,9 +103,9 @@ preoptimization         stage: none
 ```text
 request_id              phase9b-lbnp-paired-smoke-v001   (shared)
 attempt_id              attempt-phase9b-lbnp-assisted-v001
-runner_source_sha256    72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3
-request_sha256          5afab3221ae76fcfae91f1525a2f6830804f8a9829127bd5eb6fe4637bd1ebe6
-payload_manifest_sha256 2bda7d47de97bf6865b0ecb8a9dfc2ad2767486d4ce42b97c4c9cd6f940f43b6
+runner_source_sha256    d7060a314993225595c616f4329b08689c6974de621ef663c18f891d6a7d9c22
+request_sha256          feaecb7b6de9e7ab0f8710b4fd9e094d019b3cc6c1f68d349dc901137ebe7659
+payload_manifest_sha256 bc0534f72fe16eb69338af1eb897c3a705b71b7973825f7a4fe9e9732e236d7b
 preoptimization         stage: aimnet2, runs_inside_route: true
 cation/neutral xyz      identical to Route D
 ```

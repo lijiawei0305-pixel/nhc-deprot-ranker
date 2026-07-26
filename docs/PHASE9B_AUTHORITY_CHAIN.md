@@ -200,3 +200,32 @@ other users; that occupancy changes without notice.
 Reaching step 3 requires stopping and restating, in full, the candidate, both
 protocols, the resource budget, the remote root, the number of invocations, the
 failure semantics, and the non-retryability, then obtaining explicit consent.
+
+
+**Third correction, recorded after the execution-runtime closure.** The binding
+inventory was still incomplete. A line-by-line audit of the shipped chain found
+that *neither* route could reach a backend:
+
+- `worker._validate_worker_compute_claim` checked the profile's declared types
+  and then, unconditionally, `isinstance(consumed, ConsumedPhase8BPermit)`. The
+  comparison body already worked for both chains, so a single concrete gate was
+  what blocked Phase 9B from ever obtaining a compute capability.
+- Two shared validators in `phase8b_execution` pinned Phase 8B's attempt and
+  candidate identity, so a Phase 9B compute claim could not be structurally
+  valid.
+- The worker ended with one unconditional `PySCFBackend(...)`, so the direct and
+  assisted attempts executed **identically**. The assisted route was a second copy
+  of the direct route with a different attempt id.
+- Route A had no AIMNet2 runtime at all, so the handoff contract had zero callers.
+
+All four are closed in item 8/10, and all four were closed as one source-freeze
+unit because each one moves the closure hash. The chain is now:
+
+```text
+exact attempt -> WorkerAuthorityProfile -> ClaimIdentityView -> one comparison
+              -> compute capability -> ExecutionAdapter -> backend / runtime
+```
+
+Three profiles exist, each binding exactly one attempt. Phase 8B's behaviour,
+durable bytes, schemas, and refusal semantics are unchanged, and its own
+regressions prove it.

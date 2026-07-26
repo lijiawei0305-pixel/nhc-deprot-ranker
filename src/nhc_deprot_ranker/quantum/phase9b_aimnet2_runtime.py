@@ -693,9 +693,10 @@ def run_assisted_stage(
             endpoint_seconds[endpoint] = monotonic() - endpoint_started
             break
         endpoint_seconds[endpoint] = monotonic() - endpoint_started
-        if not pyscf_may_start(result.handoff):
-            reason = f"{endpoint}: the handoff did not close"
-            break
+        # No third check here: ``_run_one_endpoint`` already refuses to return a
+        # result whose handoff is not closed, and ``may_start`` below recomputes
+        # the gate over every handoff.  A middle copy would be dead code that
+        # only looked like a safeguard.
 
     may_start = (
         reason is None
@@ -922,6 +923,7 @@ __all__ = [
     "CacheObservation",
     "Calculator",
     "EndpointResult",
+    "EndpointState",
     "ModelLoader",
     "Optimizer",
     "OptimizerOutcome",
@@ -930,6 +932,7 @@ __all__ = [
     "infer_connectivity",
     "observe_cache",
     "parse_xyz",
+    "pyscf_may_start",
     "render_xyz",
     "run_assisted_stage",
     "validate_structure",

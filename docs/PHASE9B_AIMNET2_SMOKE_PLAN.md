@@ -560,6 +560,22 @@ geometry convergence status, deprotonation label, or claim that a computation
 succeeded; every serialized key is screened so none can be added. Those belong to
 `phase9b_postflight`.
 
+## Execution runtime
+
+The route's runtime is chosen by exact attempt identity and nothing else:
+
+```text
+exact attempt -> source-frozen WorkerAuthorityProfile -> exact ExecutionAdapter
+```
+
+Route D constructs `PySCFBackend` and never imports the machine-learning stack --
+watched across a real execution, not only scanned in source. Route A runs the
+AIMNet2 stage inside the guarded route, closes a byte-identical handoff per
+endpoint, and only then constructs the same `PySCFBackend`. `pyscf_may_start` is
+the only door into PySCF on the assisted route.
+
+The full design is in `docs/PHASE9B_EXECUTION_RUNTIME_CLOSURE.md`.
+
 ## Stopping conditions
 
 Phase 9B stops immediately and fails closed on:

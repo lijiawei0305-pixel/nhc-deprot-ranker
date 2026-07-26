@@ -161,7 +161,14 @@ def test_execution_module_import_closure_is_chemistry_free() -> None:
         and node.module is not None
         and node.module.startswith("nhc_deprot_ranker")
     }
-    assert local_imports == {"nhc_deprot_ranker.quantum.linux_guardian"}
+    # The shared validators read the registry of exact attempts and candidates
+    # from the modules that own them, so both chains are checked by one path.
+    # None of these is a chemistry package, which is what this test is for.
+    assert local_imports == {
+        "nhc_deprot_ranker.quantum.linux_guardian",
+        "nhc_deprot_ranker.quantum.phase9b_authority",
+        "nhc_deprot_ranker.quantum.phase9b_permit",
+    }
     source = source_path.read_text(encoding="utf-8").lower()
     assert "import pyscf" not in source
     assert "import geometric" not in source
@@ -1214,7 +1221,7 @@ def test_outer_transaction_rejects_nonfrozen_attempt_before_permit(tmp_path: Pat
         consumed = True
         return execution.ConsumedPermitEvidence(_PERMIT_SHA256, object())
 
-    with pytest.raises(execution.Phase8BExecutionError, match="identity drifted"):
+    with pytest.raises(execution.Phase8BExecutionError, match="not a registered attempt"):
         execution.run_guardian_transaction(
             transaction_id="attempt-phase8b-other-v001",
             paths=_paths(tmp_path),

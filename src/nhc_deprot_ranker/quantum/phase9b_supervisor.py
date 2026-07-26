@@ -35,6 +35,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -569,6 +570,152 @@ def supervisor_identity_payload(verified: VerifiedPhase9BLaunch, *, pid: int) ->
     }
 
 
+def build_worker_launch(*, verified: VerifiedPhase9BLaunch) -> _WorkerLaunchLike:
+    """Construct the guarded worker handshake for one Phase 9B route.
+
+    This is the production factory the CLI defaults to, and it closes the gap
+    that made every real Phase 9B launch stop here: the guardian consumed the
+    permit and spawned this process, which then had no handshake to hand the
+    worker and refused.
+
+    Nothing is reimplemented.  The registration, acknowledgement, compute claim,
+    release, and worker-launch records are Phase 8B's audited primitives, now
+    reading a registry of exact attempts rather than one pinned identity.
+    """
+
+    import os
+
+    from nhc_deprot_ranker.quantum import two_endpoint as runner
+    from nhc_deprot_ranker.quantum.linux_guardian import read_process_identity
+    from nhc_deprot_ranker.quantum.phase8b_execution import (
+        ComputeClaimAuthority,
+        TransactionPaths,
+        supervisor_register_and_release,
+    )
+
+    arguments = verified.arguments
+    permit = verified.permit
+    request = verified.request
+    run_root = permit.run_root
+    paths = TransactionPaths(
+        registration=run_root / "private/worker_registration.json",
+        acknowledgement=run_root / "private/guardian_acknowledgement.json",
+        compute_claim=run_root / "private/compute_claim.json",
+        receipt=run_root / "private/guardian_receipt.json",
+    )
+    claim_authority = ComputeClaimAuthority(
+        transport_inventory_sha256=verified.payload_manifest_sha256,
+        payload_manifest_sha256=verified.payload_manifest_sha256,
+        permit_sha256=permit.permit_sha256,
+        request_sha256=request.request_sha256,
+        runner_source_sha256=arguments.expected_runner_source_sha256,
+        protocol_sha256=request.protocol_sha256,
+        resources_sha256=arguments.expected_resources_sha256,
+        cation_xyz_sha256=request.cation.xyz_sha256,
+        neutral_xyz_sha256=request.neutral.xyz_sha256,
+        endpoint_atom_map_sha256=verified.authority.profile.endpoint_atom_map_sha256,
+        legacy_atom_map_sha256=verified.authority.profile.legacy_atom_map_sha256,
+        geometry_validation_sha256=verified.authority.profile.geometry_validation_sha256,
+        electron_count=verified.authority.electron_count,
+        request_id=REQUEST_ID,
+        inchikey=verified.authority.profile.inchikey,
+        attempt_id=arguments.attempt_id,
+        project_root=permit.project_root,
+        run_root=run_root,
+        request_path=permit.request_path,
+        output_root=permit.output_root,
+    )
+    release_token = hashlib.sha256(
+        json.dumps(
+            {
+                "attempt_id": arguments.attempt_id,
+                "permit_sha256": permit.permit_sha256,
+                "pid": os.getpid(),
+            },
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    read_fd, write_fd = os.pipe()
+    os.set_inheritable(read_fd, True)
+    os.set_inheritable(write_fd, False)
+    guardian = read_process_identity(os.getpid())
+    absolute_deadline_ns = time.monotonic_ns() + arguments.timeout_seconds * 1_000_000_000
+
+    def register_and_release(worker_pid: int, worker_pgid: int, worker_scratch: Path) -> None:
+        if worker_pid != worker_pgid:
+            raise Phase9BSupervisorError("worker PID and PGID differ before registration")
+        supervisor_register_and_release(
+            paths=paths,
+            transaction_id=arguments.attempt_id,
+            absolute_deadline_ns=absolute_deadline_ns,
+            allowed_cpus=frozenset(int(part) for part in _expand_affinity(arguments.cpu_affinity)),
+            release_token=release_token,
+            guardian=guardian,
+            worker_pid=worker_pid,
+            worker_scratch_path=worker_scratch,
+            claim_authority=claim_authority,
+            release_write_fd=write_fd,
+        )
+
+    return runner.Phase8BWorkerLaunch(
+        start_read_fd=read_fd,
+        release_write_fd=write_fd,
+        release_token=release_token,
+        absolute_deadline_ns=absolute_deadline_ns,
+        compute_claim_path=paths.compute_claim,
+        on_process_started=register_and_release,
+        authorization_argv=_worker_authorization_argv(
+            verified,
+            compute_claim_path=paths.compute_claim,
+            absolute_deadline_ns=absolute_deadline_ns,
+            release_token=release_token,
+        ),
+    )
+
+
+def _expand_affinity(affinity: str) -> tuple[int, ...]:
+    """``"0-3"`` -> ``(0, 1, 2, 3)``.  The frozen form is the only one accepted."""
+
+    start, _, end = affinity.partition("-")
+    if not start.isdigit() or not end.isdigit() or int(end) < int(start):
+        raise Phase9BSupervisorError(f"CPU affinity is not a frozen range: {affinity!r}")
+    return tuple(range(int(start), int(end) + 1))
+
+
+def _worker_authorization_argv(
+    verified: VerifiedPhase9BLaunch,
+    *,
+    compute_claim_path: Path,
+    absolute_deadline_ns: int,
+    release_token: str,
+) -> tuple[str, ...]:
+    """The worker's closed argv, built from what this process already verified."""
+
+    arguments = verified.arguments
+    return (
+        "--consumed-permit-path",
+        verified.permit.consumed_path.as_posix(),
+        "--expected-permit-sha256",
+        arguments.expected_permit_sha256,
+        "--expected-request-sha256",
+        arguments.expected_request_sha256,
+        "--expected-runner-source-sha256",
+        arguments.expected_runner_source_sha256,
+        "--expected-payload-manifest-sha256",
+        arguments.expected_payload_manifest_sha256,
+        "--expected-transport-inventory-sha256",
+        arguments.expected_payload_manifest_sha256,
+        "--compute-claim-path",
+        compute_claim_path.as_posix(),
+        "--authorized-output-root",
+        verified.permit.output_root.as_posix(),
+        "--absolute-deadline-ns",
+        str(absolute_deadline_ns),
+        "--release-token",
+        release_token,
+    )
+
+
 def main(
     argv: Sequence[str] | None = None,
     *,
@@ -595,15 +742,23 @@ def main(
     if callable(flush):
         flush()
 
-    if worker_launch_factory is None:
-        raise Phase9BNotAuthorizedError(
-            "no guarded worker handshake is wired; the Phase 9B guardian transaction must supply it"
-        )
+    # The gates are checked before the handshake is built: constructing it opens
+    # a pipe and stamps a deadline, and neither should happen on a closed gate.
+    from nhc_deprot_ranker.quantum import two_endpoint as runner
+
+    if EXECUTION_AUTHORIZED is not True:
+        raise Phase9BNotAuthorizedError("Phase 9B execution is not authorized")
+    if runner.EXECUTION_AUTHORIZED is not True:
+        raise Phase9BNotAuthorizedError("the runner source execution gate is closed")
+
+    # The production factory is the default; the seam stays injectable so tests
+    # never open a pipe or register a worker.
+    factory = worker_launch_factory if worker_launch_factory is not None else build_worker_launch
     result = run_phase9b_supervisor(
         verified.request,
         Path(arguments.output_root),
         authority=verified.authority,
-        worker_launch=worker_launch_factory(verified=verified),
+        worker_launch=factory(verified=verified),
         profile=profile,
         execute=execute,
     )

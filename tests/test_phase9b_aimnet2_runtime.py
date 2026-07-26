@@ -662,3 +662,100 @@ def test_the_stage_never_writes_outside_its_run_root(tmp_path: Path) -> None:
     assert not any(outside.iterdir())
     for entry in run_root.rglob("*"):
         assert run_root in entry.parents or entry == run_root
+
+
+def test_a_broken_bond_alone_fails_the_connectivity_gate() -> None:
+    """Isolated from RMSD and displacement, which would otherwise mask it.
+
+    Mutation testing found that a large-displacement test cannot prove the
+    connectivity comparison: RMSD fails first. This moves one atom just far
+    enough to break its bond and no further.
+    """
+
+    elements, before = parse_xyz(_CATION_XYZ)
+    after = [list(point) for point in before]
+    atom_map = PHASE9B_CANDIDATE.atom_map
+    # Stretch C2-N1 past the covalent cutoff while staying inside every distance
+    # gate except the bond-change one.
+    after[atom_map["N1"]] = [2.1, 0.0, 0.0]
+    validation = validate_structure(
+        endpoint="cation",
+        elements_before=elements,
+        before=before,
+        elements_after=elements,
+        after=after,
+    )
+    assert validation.total_rmsd_angstrom < rt.MAX_TOTAL_RMSD_ANGSTROM
+    assert (
+        validation.max_single_atom_displacement_angstrom < rt.MAX_SINGLE_ATOM_DISPLACEMENT_ANGSTROM
+    )
+    assert validation.connectivity_preserved is False
+    assert validation.all_gates_passed is False
+
+
+def test_one_endpoint_may_be_preoptimized_only_once() -> None:
+    """The exactly-once record, driven directly.
+
+    A second stage over the same root fails earlier on exclusive evidence, so
+    that path cannot prove this guard; this drives the record itself.
+    """
+
+    once = rt._EndpointOnce()  # pyright: ignore[reportPrivateUsage]
+    result = rt.EndpointResult(
+        endpoint="cation",
+        state=rt.EndpointState.PYSCF_ALLOWED,
+        preoptimization=None,  # type: ignore[arg-type]
+        handoff=None,  # type: ignore[arg-type]
+        output_xyz_bytes=b"",
+        output_xyz_path="/tmp/out.xyz",
+        failure_reason=None,
+    )
+    once.record(result)
+    assert once.has("cation")
+    assert not once.has("neutral")
+    with pytest.raises(Aimnet2RuntimeError, match="requested twice"):
+        once.record(result)
+
+
+def test_a_refused_cation_handoff_stops_before_the_neutral(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The per-endpoint gate stops the route; it does not merely flag it later.
+
+    ``may_start_pyscf`` is also recomputed over every handoff at the end, so this
+    isolates what the in-loop check uniquely contributes: the neutral never runs.
+    """
+
+    real_gate = rt.pyscf_may_start
+    optimizer = _FakeOptimizer()
+
+    def refuse_the_cation(handoff: Any) -> bool:
+        return real_gate(handoff) and handoff.endpoint != "cation"
+
+    monkeypatch.setattr(rt, "pyscf_may_start", refuse_the_cation)
+    result = _stage(tmp_path, optimizer=optimizer)
+    assert not result.may_start_pyscf
+    assert "handoff did not close" in (result.reason or "")
+    # Only the cation was ever optimized.
+    assert optimizer.calls == [(1, 1)]
+    assert not (tmp_path / "run/runtime/aimnet2/neutral/output.xyz").exists()
+
+
+def test_the_final_gate_is_recomputed_over_every_handoff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The backstop, isolated from the in-loop check."""
+
+    real_gate = rt.pyscf_may_start
+    seen: list[str] = []
+
+    def watch(handoff: Any) -> bool:
+        seen.append(handoff.endpoint)
+        return real_gate(handoff)
+
+    monkeypatch.setattr(rt, "pyscf_may_start", watch)
+    result = _stage(tmp_path)
+    assert result.may_start_pyscf
+    # Each endpoint is checked in the loop and again in the final recomputation.
+    assert seen.count("cation") >= 2
+    assert seen.count("neutral") >= 2

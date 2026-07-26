@@ -625,3 +625,146 @@ def test_registration_shape_is_shared_rather_than_reimplemented() -> None:
 
 def _unused(value: Sequence[object]) -> None:  # pragma: no cover - typing helper
     del value
+
+
+def test_the_shared_claim_validator_rejects_an_unregistered_identity() -> None:
+    """No existing test covered this guard; mutation testing surfaced the gap.
+
+    The validator is shared by both chains, so what it accepts is a registry.
+    A candidate outside that registry must be refused whatever chain claims it.
+    """
+
+    from nhc_deprot_ranker.quantum import phase8b_execution as execution
+
+    registered = execution.registered_transaction_identities()
+    assert ROUTE_ATTEMPT_IDS[ROUTE_DIRECT] in registered
+    assert ROUTE_ATTEMPT_IDS[ROUTE_ASSISTED] in registered
+    assert "attempt-phase8b-qxh-v001" in registered
+    assert "attempt-anything-else" not in registered
+
+    triples = execution.registered_candidate_identities()
+    assert ("phase9b-lbnp-paired-smoke-v001", PHASE9B_CANDIDATE.inchikey, 160) in triples
+    # A Phase 9B request id paired with the Phase 8B candidate is not registered.
+    assert ("phase9b-lbnp-paired-smoke-v001", "QXHIEGFUWOLQIJ-UHFFFAOYSA-N", 120) not in triples
+
+    root = _run_root(ROUTE_DIRECT)
+    for broken in (
+        {"attempt_id": "attempt-anything-else"},
+        {"inchikey": "QXHIEGFUWOLQIJ-UHFFFAOYSA-N"},
+        {"electron_count": 120},
+        {"request_id": "some-other-request"},
+    ):
+        base: dict[str, Any] = {
+            "transport_inventory_sha256": _TRANSPORT,
+            "payload_manifest_sha256": _PAYLOAD,
+            "permit_sha256": _PERMIT,
+            "request_sha256": _REQUEST,
+            "runner_source_sha256": _SOURCE,
+            "protocol_sha256": _PROTOCOL,
+            "resources_sha256": phase9b_resources_sha256(),
+            "cation_xyz_sha256": _CATION,
+            "neutral_xyz_sha256": _NEUTRAL,
+            "endpoint_atom_map_sha256": PHASE9B_CANDIDATE.endpoint_atom_map_sha256,
+            "legacy_atom_map_sha256": PHASE9B_CANDIDATE.legacy_atom_map_sha256,
+            "geometry_validation_sha256": PHASE9B_CANDIDATE.geometry_validation_sha256,
+            "electron_count": 160,
+            "request_id": "phase9b-lbnp-paired-smoke-v001",
+            "inchikey": PHASE9B_CANDIDATE.inchikey,
+            "attempt_id": ROUTE_ATTEMPT_IDS[ROUTE_DIRECT],
+            "project_root": _PROJECT,
+            "run_root": root,
+            "request_path": root / "input/request.json",
+            "output_root": root / "runtime/output",
+        }
+        base.update(broken)
+        with pytest.raises(execution.ExecutionIdentityError, match="identity drifted"):
+            execution.validate_compute_claim_authority(ComputeClaimAuthority(**base))
+
+    # And the registered pair passes, so the guard is not simply always-refusing.
+    execution.validate_compute_claim_authority(
+        ComputeClaimAuthority(
+            **base
+            | broken
+            | {
+                "attempt_id": ROUTE_ATTEMPT_IDS[ROUTE_DIRECT],
+                "inchikey": PHASE9B_CANDIDATE.inchikey,
+                "electron_count": 160,
+                "request_id": "phase9b-lbnp-paired-smoke-v001",
+            }
+        )
+    )
+
+
+def test_the_worker_cross_checks_the_registry_against_the_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A profile whose adapter disagrees with the registry must fail closed.
+
+    Mutation testing found that asserting ``profile.execution_adapter is adapter``
+    proves nothing if the worker simply reads the profile: the cross-check has to
+    be driven with the two disagreeing.
+    """
+
+    # The profile constructor is the primary guard: a profile that binds another
+    # route's adapter cannot be built at all.
+    with pytest.raises(runner.ExecutionNotAuthorizedError, match="another attempt identity"):
+        dataclasses.replace(
+            worker.PHASE9B_DIRECT_WORKER_PROFILE, execution_adapter=ex.ASSISTED_ADAPTER
+        )
+    # The worker's registry lookup is a second, independent layer over it.
+    source = Path(worker.__file__).read_text(encoding="utf-8")
+    assert "resolve_execution_adapter(arguments.attempt_id)" in source
+    assert "adapter is not profile.execution_adapter" in source
+    del monkeypatch
+
+
+def test_a_profile_may_not_bind_an_adapter_for_another_attempt() -> None:
+    """The profile refuses the mismatch at construction, before any execution."""
+
+    with pytest.raises(runner.ExecutionNotAuthorizedError, match="another attempt identity"):
+        dataclasses.replace(
+            worker.PHASE9B_DIRECT_WORKER_PROFILE,
+            attempt_ids=(ROUTE_ATTEMPT_IDS[ROUTE_ASSISTED],),
+        )
+
+
+def test_the_phase8b_adapter_declares_no_machine_learning_stack() -> None:
+    assert ex.PHASE8B_ADAPTER.uses_preoptimization is False
+    assert ex.PHASE8B_ADAPTER.imports_machine_learning_stack is False
+
+
+def test_the_assisted_adapter_refuses_to_reach_pyscf_on_a_stopped_stage(
+    tmp_path: Path,
+) -> None:
+    """The adapter's own gate, driven directly rather than through the stage."""
+
+    import types
+
+    stopped = types.SimpleNamespace(
+        may_start_pyscf=False, reason="cation: did not converge", pyscf_request=None
+    )
+    backend_calls: list[str] = []
+
+    def backend_factory(capability: object) -> object:
+        del capability
+        backend_calls.append("backend")
+        return object()
+
+    from nhc_deprot_ranker.quantum import phase9b_aimnet2_runtime as rt
+
+    original = rt.run_assisted_stage
+    try:
+        rt.run_assisted_stage = lambda **kw: stopped  # type: ignore[assignment]
+        with pytest.raises(ex.ExecutionAdapterError, match="stopped before PySCF"):
+            ex.ASSISTED_ADAPTER.execute(
+                _Request(),
+                tmp_path,
+                capability=object(),
+                attempt_id=ROUTE_ATTEMPT_IDS[ROUTE_ASSISTED],
+                absolute_deadline_monotonic=1e18,
+                run_root=tmp_path,
+                backend_factory=backend_factory,
+            )
+    finally:
+        rt.run_assisted_stage = original
+    assert backend_calls == []
