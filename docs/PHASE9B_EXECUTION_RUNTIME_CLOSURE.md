@@ -3,6 +3,12 @@
 Item 8/10. What the execution-reachability audit found unreachable, and what was
 built to close it, as one source-freeze unit.
 
+> **Status: incomplete.** Everything below is delivered and tested, but two
+> production adapters are still refusal paths: `_load_base_model` raises even
+> when the gate is open, and no ASE/LBFGS optimizer exists. Route A therefore
+> still cannot run a real preoptimization. The blocker is one unrecovered API
+> fact, recorded in `docs/PHASE9A_I_API_RECOVERY.md`.
+
 ## What was unreachable
 
 ```text
@@ -203,7 +209,20 @@ correction, never mixed with PySCF, and never part of the label, which stays
 
 Without Hessians or frequencies, nothing claims a frequency-confirmed minimum.
 
-## 10. What this round did not do
+## 10. What is still missing
+
+```text
+_load_base_model()      raises unconditionally; no production construction
+AseLBFGSOptimizer       does not exist
+run_assisted_stage()    refuses without an injected optimizer
+```
+
+The security contract, the gates, the evidence writer, and the handoff are real
+and tested. What is absent is the code that actually builds an AIMNet2 model and
+runs an optimizer, which is blocked on recovering how Phase 9A-I passed its
+explicit local weight to `AIMNet2Calculator`.
+
+## 11. What this round did not do
 
 No SSH, no server, no deploy, no permit placed, no launch, no guardian or
 supervisor or worker started, no weight loaded, no torch/ASE/aimnet imported for

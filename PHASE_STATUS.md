@@ -18,7 +18,7 @@ Updated: 2026-07-26
 | Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
 | Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
 | Phase 9A-I — minimal inference characterization | Passed; six single-point calls executed | 2026-07-26; no optimization, no PySCF, no label |
-| Phase 9B — paired direct / assisted smoke | Implementation in progress; 8 of 10 components | 2026-07-27; execution runtime closed; both routes now reach a backend; gates closed |
+| Phase 9B — paired direct / assisted smoke | Implementation in progress; 7 of 10 complete, 8/10 incomplete | 2026-07-27; item 8/10 blocked on the production AIMNet2 adapters; gates closed |
 
 ## Current completed work
 
@@ -145,10 +145,13 @@ on 8x Tesla V100-SXM2-32GB, and the calculator accepts total charge and
 multiplicity explicitly. The weight cache was byte- and mtime-identical before
 and after, so the inspection changed nothing.
 
-Two blocking findings were recorded. Only ensemble member `_0` exists locally
-(`aimnet2_wb97m_d3_0.pt`, SHA256 `f0f7c054...4e28`); members `_1`, `_2`, and
-`_3` are absent and may not be downloaded. Separately, the calculator's default
-model string exposes a remote-fetch path that any future run must pin offline.
+Two findings were recorded and both are now handled rather than open. Only
+ensemble member `_0` exists locally (`aimnet2_wb97m_d3_0.pt`, SHA256
+`f0f7c054...4e28`); members `_1`, `_2`, and `_3` are absent and may not be
+downloaded, and the single-member safeguards are frozen. Separately, the
+calculator's default model string exposes a remote-fetch path, which is why the
+production loader must use an explicit local path and why the exact mechanism for
+doing so has to be recovered rather than guessed.
 
 The Phase 9B implementation plan was **re-baselined from six components to
 eight** after building item 5 surfaced three real integration gaps: the launch
@@ -158,15 +161,16 @@ payload manifest excludes by design. Six of eight are now built, all with their
 source gates closed:
 
 ```text
-1/8  preparation/phase9b_preopt.py       AIMNet2 preoptimization stage     built
-2/8  preparation/phase9b_bundle.py       request and payload manifest      built
-3/8  preparation/phase9b_preflight.py    read-only environment recheck     built
-4/8  preparation/phase9b_deploy.py       directed two-route deployment     built
-5/8  preparation/phase9b_launch.py       two-route supervisor launch       built
-6/8  pre-launch integration closure      CLI, adapter, permit stage        built
-7/10 quantum/phase9b_guardian.py         guardian, transport, handoff      built
-8/10 execution runtime closure         compute-claim closure + Route A    built
-9/10 preparation/phase9b_postflight.py   evidence harvest and acceptance   not started
+1/10  preparation/phase9b_preopt.py      AIMNet2 preoptimization contract  complete
+2/10  preparation/phase9b_bundle.py      request and payload manifest      complete
+3/10  preparation/phase9b_preflight.py   read-only environment recheck     complete
+4/10  preparation/phase9b_deploy.py      directed two-route deployment     complete
+5/10  preparation/phase9b_launch.py      two-route guardian launch         complete
+6/10  pre-launch integration closure     CLI, adapter, permit stage        complete
+7/10  quantum/phase9b_guardian.py        guardian, transport, handoff      complete
+8/10  execution runtime closure          compute-claim, adapters, gates    INCOMPLETE
+                                         production AIMNet2 adapters pending
+9/10  preparation/phase9b_postflight.py  evidence harvest and acceptance   not started
 10/10 closed-gate full-chain rehearsal   dry run and final freeze          not started
 ```
 
@@ -217,41 +221,64 @@ There are ten such gates and all ten are false.
 
 ## Next action
 
-**Item 9/10 — Phase 9B postflight.**
+**Item 8/10 — production AIMNet2 adapters. Blocked pending one read-only fact.**
 
-Item 8/10 is complete: both routes now reach a backend through the real
-validators. What remains is evidence harvest and acceptance, then a closed-gate
-full-chain rehearsal.
-
-The plan is re-baselined from 8 components to 10. A line-by-line audit of the
-execution path on `main` found that the chain still cannot reach a backend on
-either route, for two reasons that must be closed as one source-freeze unit:
+Item 8/10 is **not complete**. PR #39 delivered the security contract and a
+testable shell for Route A -- compute-claim parameterization, the closed worker
+CLI, route-aware execution adapters, structural gates, durable evidence, and the
+byte-closed PySCF handoff -- but two production adapters are still refusal paths:
 
 ```text
-8/10   execution runtime closure    compute-claim/capability closure + Route A
-                                    AIMNet2 production runtime
-9/10   postflight                   evidence harvest and acceptance
-10/10  closed-gate rehearsal        full-chain dry run and final freeze
+_load_base_model()          raises unconditionally even when the gate is open;
+                            there is no production model construction
+AseLBFGSOptimizer           does not exist; only the Optimizer Protocol and mock
+                            implementations do
+run_assisted_stage()        refuses when no optimizer is injected, so Route A
+                            cannot run a real preoptimization
 ```
 
-### Corrected: the AIMNet2 ensemble question is settled
+Writing them is blocked on **one unrecovered fact**, not on effort. The Phase
+9A-I inference script was carried inline over SSH and never committed, so the
+mechanism by which the explicit local weight reached `AIMNet2Calculator` is not
+recorded anywhere: its `model` parameter is typed `str | torch.nn.Module`, and
+whether 9A-I passed the absolute path as the string or loaded the file into a
+module first is unknown.
 
-The three options previously listed here were answered and are no longer open:
+That difference matters. Every safeguard in this phase exists because
+`model='aimnet2'` can resolve against a remote hub; if the `str` branch treats
+every string as a registry key, guessing wrong would trigger exactly that lookup.
+The full audit, including what *is* authoritatively recovered from Phase 9A-R
+introspection, is in `docs/PHASE9A_I_API_RECOVERY.md`.
 
-- Phase 9A-I **was executed and passed** on 2026-07-26. Six single-point calls
-  in three processes, no optimization, no PySCF, no label.
-- The user **accepted option 1**: proceed with the single deterministic member
-  `_0`. Ensemble mean, standard deviation, and force disagreement are recorded
-  as `unavailable_single_member` rather than filled with single-member values;
-  the safeguards are in `docs/PHASE9B_SINGLE_MEMBER_SAFEGUARDS.md`.
-- Element coverage `C/F/H/N`, energy and force units, and cross-process
-  repeatability are **measured, not unmeasured**. The results are in
-  `docs/PHASE9A_I_REPORT.md` and `docs/PHASE9A_I_RESULT_V001.json`; the first
-  call in a process took 21.9 s including `torch.compile`, later calls 1.6 s and
-  0.2 s.
+A single read-only inspection of `AIMNet2Calculator.__init__` on the server
+resolves it. It loads no model, touches no GPU, and is the same class of action as
+the Phase 9A-R preflight -- but it needs its own authorization.
 
-Nothing above rewrites a historical result: the earlier text simply outlived the
-decision it was asking for.
+### Settled AIMNet2 facts
+
+These are measured results, not open questions:
+
+```text
+Phase 9A-I                       executed and passed, 2026-07-26
+                                 six single-point calls, three processes,
+                                 no optimization, no PySCF, no label
+ensemble                         single member _0, accepted by the user
+ensemble uncertainty             none; recorded as unavailable_single_member
+element coverage                 C/F/H/N, measured empirically
+energy unit                      eV
+forces unit                      eV/A, dtype float32
+cross-process repeatability      measured; spread 2.4e-7 eV
+first call in a process          21.9 s including torch.compile
+later calls                      1.6 s and 0.2 s
+```
+
+Safeguards for the single member are in
+`docs/PHASE9B_SINGLE_MEMBER_SAFEGUARDS.md`; the run is in
+`docs/PHASE9A_I_REPORT.md` and `docs/PHASE9A_I_RESULT_V001.json`.
+
+The current blocker is the production loader and optimizer, **not** whether the
+software is installed, which elements are covered, what the units are, or whether
+the model is deterministic. All of those are answered.
 
 ### Both blockers are closed
 
