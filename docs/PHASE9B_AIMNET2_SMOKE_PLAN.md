@@ -17,13 +17,18 @@ necessary scientific baseline; including it is not model reselection.
 
 ## Candidate selection
 
-The candidate is drawn from the **three remaining** Phase 7 strongly validated
-smoke candidates. Phase 7 validated four; `QXHIEGFUWOLQIJ-UHFFFAOYSA-N` is
-excluded because its Phase 8B authority chain is permanently retired.
+**Resolved: `LBNPGYISTSLAHY-UHFFFAOYSA-N`**, the candidate characterized in
+Phase 9A-I. `QXHIEGFUWOLQIJ-UHFFFAOYSA-N` is excluded because its Phase 8B
+authority chain is permanently retired.
 
-The specific candidate, its selection reason, and both endpoint input SHA256
-values are frozen in the Phase 9B authorization request before any execution.
-Runtime substitution is prohibited.
+Reusing the 9A-I candidate is legitimate and deliberate. Phase 9A-I consumed no
+DFT permit, created no remote run root, and opened no attempt in the guarded
+runner, so the candidate itself was never spent. Its elements `C F H N` are also
+the only set empirically confirmed to run under `validate_species=True`; every
+other Phase 7 candidate contains oxygen, whose support remains unverified.
+
+Frozen identities and the full rationale are in
+`docs/PHASE9B_AUTHORITY_CHAIN.md`. Runtime substitution remains prohibited.
 
 Reusing the QXH request, attempt, permit, bundle, or remote root is prohibited
 in every form. Phase 9B requires:
@@ -115,6 +120,8 @@ Recorded separately for cation and neutral.
 ### AIMNet2 stage
 
 ```text
+process startup time
+torch.compile / warm-up time
 optimizer steps
 energy evaluations
 force evaluations
@@ -122,14 +129,21 @@ wall-time
 initial max force
 final max force
 converged (bool)
-ensemble energy mean
-ensemble energy std
-ensemble force disagreement
-device and peak memory
-structural integrity result
+total RMSD vs input
+maximum single-atom displacement
+C2-N1 and C2-N3 bond lengths, before and after
+N1-C2-N3 angle, before and after
 proton identity result
+structural integrity result
+isolated-root cache bytes written
+device and peak memory
 failure reason if any
 ```
+
+Ensemble mean, standard deviation, and force disagreement are **unavailable**:
+only member `_0` exists. Those fields are recorded as
+`unavailable_single_member` rather than filled with single-member values. See
+`docs/PHASE9B_SINGLE_MEMBER_SAFEGUARDS.md`.
 
 ### PySCF stage
 
@@ -150,13 +164,24 @@ timeout status
 ### End to end
 
 ```text
-total_assisted_time = aimnet2_time + assisted_pyscf_time
+total_assisted_time = aimnet2_process_startup
+                    + aimnet2_compile
+                    + aimnet2_optimization_steps
+                    + handoff_and_validation
+                    + assisted_pyscf_time
+
 direct_pyscf_time
 ```
 
-The comparison is `total_assisted_time` against `direct_pyscf_time`. Reporting
-a reduction in PySCF time alone, without the AIMNet2 cost included, is
-prohibited.
+The comparison is `total_assisted_time` against `direct_pyscf_time`. Reporting a
+reduction in PySCF time alone, without the AIMNet2 cost included, is prohibited.
+
+Phase 9A-I measured the warm-up term directly and it is not negligible for a
+single candidate: the first AIMNet2 call in a process took **21.9 s** including
+`torch.compile`, while subsequent calls took **1.6 s** (cation) and **0.2 s**
+(neutral). That fixed cost amortizes over many optimization steps but is real
+here, and it must appear in the accounting rather than be written off as
+warm-up.
 
 ## Scientific consistency comparison
 
