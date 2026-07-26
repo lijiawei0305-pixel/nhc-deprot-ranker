@@ -28,13 +28,16 @@ import hashlib
 import json
 import os
 import stat
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Final, cast
+from typing import Final, Protocol, cast
 
 from nhc_deprot_ranker.quantum.phase9b_authority import (
     PHASE9B_CANDIDATE,
     CandidateProfile,
+    Phase9BAuthorityError,
+    validate_endpoint_pair,
     validate_profile_self_consistency,
 )
 
@@ -72,6 +75,8 @@ class Phase9BPermit:
 
     route: str
     attempt_id: str
+    cation_xyz_sha256: str
+    neutral_xyz_sha256: str
     request_sha256: str
     runner_source_sha256: str
     payload_manifest_sha256: str
@@ -357,6 +362,8 @@ def parse_phase9b_permit(
     return Phase9BPermit(
         route=route,
         attempt_id=ROUTE_ATTEMPT_IDS[route],
+        cation_xyz_sha256=cation_hash,
+        neutral_xyz_sha256=neutral_hash,
         request_sha256=_require_sha256(identity["request_sha256"], label="request_sha256"),
         runner_source_sha256=_require_sha256(
             identity["runner_source_sha256"], label="runner_source_sha256"
@@ -464,6 +471,139 @@ def load_consumed_phase9b_permit(
     )
 
 
+class _AuthorityAtomLike(Protocol):
+    @property
+    def element(self) -> str: ...
+
+
+class _AuthorityGeometryLike(Protocol):
+    @property
+    def atoms(self) -> Sequence[_AuthorityAtomLike]: ...
+
+
+class _AuthorityEndpointLike(Protocol):
+    @property
+    def geometry(self) -> _AuthorityGeometryLike: ...
+
+    @property
+    def charge(self) -> int: ...
+
+    @property
+    def multiplicity(self) -> int: ...
+
+    @property
+    def xyz_sha256(self) -> str: ...
+
+
+class Phase9BRequestLike(Protocol):
+    """The request fields the exact authority cross-checks."""
+
+    @property
+    def request_sha256(self) -> str: ...
+
+    @property
+    def runner_source_sha256(self) -> str: ...
+
+    @property
+    def request_id(self) -> str: ...
+
+    @property
+    def inchikey(self) -> str: ...
+
+    @property
+    def request_path(self) -> Path: ...
+
+    @property
+    def cation(self) -> _AuthorityEndpointLike: ...
+
+    @property
+    def neutral(self) -> _AuthorityEndpointLike: ...
+
+
+@dataclass(frozen=True, slots=True)
+class Phase9BExactAuthority:
+    """Portable identity proven before any Phase 9B worker may run one route."""
+
+    route: str
+    request_sha256: str
+    runner_source_sha256: str
+    permit_sha256: str
+    payload_manifest_sha256: str
+    cation_xyz_sha256: str
+    neutral_xyz_sha256: str
+    electron_count: int
+    request_id: str
+    inchikey: str
+    attempt_id: str
+    project_root: str
+    run_root: str
+    request_path: str
+    output_root: str
+
+
+def validate_exact_phase9b_authority(
+    request: Phase9BRequestLike,
+    consumed: ConsumedPhase9BPermit,
+    *,
+    output_root: Path,
+    attempt_id: str,
+    profile: CandidateProfile = PHASE9B_CANDIDATE,
+    require_output_absent: bool = True,
+) -> Phase9BExactAuthority:
+    """Cross-check a loaded request against one route's consumed exact permit."""
+
+    if not isinstance(consumed, ConsumedPhase9BPermit):
+        raise Phase9BPermitValidationError("a consumed Phase 9B permit is required")
+    validate_profile_self_consistency(profile)
+    permit = consumed.permit
+    if consumed.consumed_path != permit.consumed_path:
+        raise Phase9BPermitValidationError("consumed path escaped the permit layout")
+    if consumed.consumed_sha256 != permit.permit_sha256:
+        raise Phase9BPermitValidationError("consumed permit hash is not linearized")
+    if attempt_id != permit.attempt_id or attempt_id != ROUTE_ATTEMPT_IDS[permit.route]:
+        raise Phase9BPermitValidationError("attempt identity disagrees with the consumed permit")
+    if request.request_id != REQUEST_ID:
+        raise Phase9BPermitValidationError("request id disagrees with the Phase 9B chain")
+    if request.inchikey != profile.inchikey:
+        raise Phase9BPermitValidationError("request candidate disagrees with the profile")
+    if request.request_sha256 != permit.request_sha256:
+        raise Phase9BPermitValidationError("request hash disagrees with the consumed permit")
+    if request.runner_source_sha256 != permit.runner_source_sha256:
+        raise Phase9BPermitValidationError("runner source hash disagrees with the permit")
+    if request.request_path != permit.request_path:
+        raise Phase9BPermitValidationError("request path disagrees with the permit layout")
+    if output_root != permit.output_root:
+        raise Phase9BPermitValidationError("output root disagrees with the permit layout")
+    if (
+        request.cation.xyz_sha256 != permit.cation_xyz_sha256
+        or request.neutral.xyz_sha256 != permit.neutral_xyz_sha256
+    ):
+        raise Phase9BPermitValidationError("request geometry disagrees with the permit inputs")
+    if require_output_absent and os.path.lexists(output_root):
+        raise Phase9BPermitValidationError("output root already exists; resume is prohibited")
+    try:
+        validate_endpoint_pair(request.cation, request.neutral, profile=profile)
+    except Phase9BAuthorityError as exc:
+        raise Phase9BPermitValidationError(f"endpoint validation failed: {exc}") from exc
+    return Phase9BExactAuthority(
+        route=permit.route,
+        request_sha256=permit.request_sha256,
+        runner_source_sha256=permit.runner_source_sha256,
+        permit_sha256=permit.permit_sha256,
+        payload_manifest_sha256=permit.payload_manifest_sha256,
+        cation_xyz_sha256=permit.cation_xyz_sha256,
+        neutral_xyz_sha256=permit.neutral_xyz_sha256,
+        electron_count=profile.electron_count,
+        request_id=REQUEST_ID,
+        inchikey=profile.inchikey,
+        attempt_id=permit.attempt_id,
+        project_root=permit.project_root.as_posix(),
+        run_root=permit.run_root.as_posix(),
+        request_path=permit.request_path.as_posix(),
+        output_root=permit.output_root.as_posix(),
+    )
+
+
 __all__ = [
     "CONSUMED_RELATIVE",
     "PERMIT_SCHEMA_VERSION",
@@ -474,10 +614,13 @@ __all__ = [
     "ROUTE_ATTEMPT_IDS",
     "ROUTE_DIRECT",
     "ConsumedPhase9BPermit",
+    "Phase9BExactAuthority",
     "Phase9BPermit",
     "Phase9BPermitError",
     "Phase9BPermitValidationError",
+    "Phase9BRequestLike",
     "load_consumed_phase9b_permit",
     "parse_phase9b_permit",
     "render_phase9b_permit",
+    "validate_exact_phase9b_authority",
 ]
