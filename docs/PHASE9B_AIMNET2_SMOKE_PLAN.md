@@ -272,6 +272,38 @@ succeeded, the outcome is recorded as possibly partial and names all four roots.
 The module does not roll back, because rolling back would mean a destructive
 remote delete, which it never performs.
 
+## Permit placement
+
+The payload manifest excludes the permit, so the permit travels on its own,
+**after** promotion and **before** any supervisor starts. That step is
+`preparation/phase9b_permit_stage.py`.
+
+```text
+require promoted   deploy receipt must be PROMOTED for both routes, with no
+                   failure reason and the registered three SSH calls
+roots absent       both the ready and the consumed permit must not exist
+create             exclusive create, O_NOFOLLOW, mode 0400, one bounded SSH call
+                   per route carrying the frozen permit bytes on stdin
+re-read            reopen O_NOFOLLOW and compare regular-file type, byte size,
+                   and full SHA256 against the permit's own digest
+```
+
+It consumes the permit bytes `parse_phase9b_permit` already accepted and never
+re-renders them. It never overwrites, never deletes, never rolls back, and never
+restores a consumed permit — there is no code path in the module or in the remote
+source it ships that could. A consumed permit already present is a hard stop, not
+something to clean up.
+
+If either route cannot be placed the pair is **not launch-ready**:
+`partially_placed` when one landed, `indeterminate` when a remote state is
+unknowable. Both are terminal, and `is_launch_ready` returns false for both.
+
+The result is an immutable `PermitPlacementReceipt` carrying schema version,
+phase, candidate, per-route route/attempt/final-root, the observed file's path,
+byte size and SHA256, the request/manifest/permit/source/resource identities, the
+host digest, the time, the state and failure reason, and a canonical digest over
+its own body.
+
 ## Launch transaction
 
 Launching is one transaction over both routes, implemented in
@@ -316,13 +348,32 @@ a failure reason naming all four roots, so it can never be read as launchable.
 A record that claims `PROMOTED` while still naming a failure is contradictory and
 is refused for that reason alone.
 
+### Nothing is taken on trust from the caller
+
+Two inputs used to be caller assertions, and both are now records produced by the
+step that actually observed the thing:
+
+```text
+file sizes and hashes   DeployVerificationReceipt, built by the deployment when
+                        it recomputed every file (deploy outcome schema v2)
+permit state            PermitPlacementReceipt, built by the permit stage when it
+                        created the file and re-read it
+```
+
+Each receipt carries a canonical digest over its own body, so a partially edited
+record is detected. That is not authentication of the caller — this project has no
+signing key, and it is worth stating plainly rather than implying more. What makes
+a forged receipt useless is that every field is cross-checked against the permit
+digest, which is derived from permit bytes and therefore cannot be set to match an
+invented value.
+
 ### One-shot semantics
 
-The permit is verified locally before any call: the ready permit must be present,
-its bytes must hash to the permitted digest, and no consumed permit may exist. A
-consumed permit is never restored. The remote half is verified by the supervisor
-itself, which is passed `--expected-permit-sha256` along with the request,
-manifest, runner-source, and resource digests it must re-check before spawning.
+The ready permit must be present and hash to the permitted digest, and no consumed
+permit may exist. A consumed permit is never restored. The remote half is verified
+by the supervisor CLI, which receives `--expected-permit-sha256` along with the
+request, manifest, runner-source, and resource digests and re-checks each against
+the bytes it can see before delegating.
 
 A route already launched under this permit is never launched again.
 
@@ -344,8 +395,21 @@ and PySCF are never invoked directly and no script may stand in for the
 supervisor. The recorded argv has absolute paths replaced by `<PATH>`, so the
 audit trail keeps the shape without the private layout.
 
-The supervisor must print back its own identity, attempt, route, and entry. A
-zero exit that does not prove what it started leaves the remote state unknown.
+`-I` is deliberately not used. It implies `-E`, which would discard the
+`PYTHONPATH` that resolves the supervisor from the deployed source tree; `-B -s`
+gives the isolation that matters here.
+
+The receiving end is a real CLI, hand-parsed rather than built on `argparse`,
+because argparse honours unambiguous flag abbreviations and a contract that names
+thirteen exact flags must reject `--rou direct`. It parses, verifies, announces,
+and delegates. It does not supervise, time out, reap, act as guardian, run a
+worker, or touch chemistry; the single guarded execution path
+`run_phase9b_supervised_execution` builds the same `SupervisionPolicy` and calls
+the same `_execute_supervised_request` as Phase 8B, so there is exactly one copy
+of the process, deadline, and reaping logic.
+
+The supervisor prints back its own identity, attempt, route, and entry. A zero
+exit that does not prove what it started leaves the remote state unknown.
 
 ### States
 

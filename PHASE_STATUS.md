@@ -18,7 +18,7 @@ Updated: 2026-07-26
 | Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
 | Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
 | Phase 9A-I — minimal inference characterization | Passed; six single-point calls executed | 2026-07-26; no optimization, no PySCF, no label |
-| Phase 9B — paired direct / assisted smoke | Implementation in progress; 5 of 6 components | 2026-07-26; gates closed; needs the remaining component then separate execution authorization |
+| Phase 9B — paired direct / assisted smoke | Implementation in progress; 6 of 8 components | 2026-07-26; re-baselined from 6 to 8 after three integration gaps were found; gates closed |
 
 ## Current completed work
 
@@ -150,22 +150,53 @@ Two blocking findings were recorded. Only ensemble member `_0` exists locally
 `_3` are absent and may not be downloaded. Separately, the calculator's default
 model string exposes a remote-fetch path that any future run must pin offline.
 
-Phase 9B execution components are five of six built, all with their source gates
-closed:
+The Phase 9B implementation plan was **re-baselined from six components to
+eight** after building item 5 surfaced three real integration gaps: the launch
+argv had no CLI to parse it, the supervisor's production execution path was
+unwired (`execute=None`), and nothing placed the one-shot permit, which the
+payload manifest excludes by design. Six of eight are now built, all with their
+source gates closed:
 
 ```text
-1/6  preparation/phase9b_preopt.py     AIMNet2 preoptimization stage      built
-2/6  preparation/phase9b_bundle.py     request and payload manifest       built
-3/6  preparation/phase9b_preflight.py  read-only environment recheck      built
-4/6  preparation/phase9b_deploy.py     directed two-route deployment      built
-5/6  preparation/phase9b_launch.py     two-route supervisor launch        built
-6/6  preparation/phase9b_postflight.py evidence harvest and acceptance    not started
+1/8  preparation/phase9b_preopt.py       AIMNet2 preoptimization stage     built
+2/8  preparation/phase9b_bundle.py       request and payload manifest      built
+3/8  preparation/phase9b_preflight.py    read-only environment recheck     built
+4/8  preparation/phase9b_deploy.py       directed two-route deployment     built
+5/8  preparation/phase9b_launch.py       two-route supervisor launch       built
+6/8  pre-launch integration closure      CLI, adapter, permit stage        built
+7/8  preparation/phase9b_postflight.py   evidence harvest and acceptance   not started
+8/8  Phase 9B guardian transaction       permit consumption and handshake  not started
 ```
 
-All five live outside the runner source closure, so `runner_source_sha256`
-remains `2059b35d...52c` over 18 files. None has been run against a server: each
-takes an injected command runner and refuses a real invocation while its
-`EXECUTION_AUTHORIZED` is false.
+Item 6 closed the three gaps and two more found while closing them. The guarded
+worker could not have run the assisted route at all: the capability identity
+expectation carried a single attempt id pinned to the direct route, and the
+pre-import handshake gate compared against Phase 8B's frozen attempt. Both are
+now registries. Item 8 was added because Phase 9B has no analogue of
+`phase8b_runtime`'s guardian mode, which is what consumes the permit and builds
+the worker handshake; the supervisor CLI takes that handshake through an injected
+factory and refuses when none is wired.
+
+Item 6 edited three files inside the runner source closure, so the closure was
+re-frozen:
+
+```text
+runner source schema   nhc-two-endpoint-runner-source-v4 -> v5
+runner_source_sha256   2059b35d...52c -> c914afe3...ea8
+closure files          18 (membership unchanged)
+resources_sha256       0fec2c19...7df8 (unchanged)
+```
+
+The v4 Phase 9B request, payload manifests, and permits are
+`superseded_before_execution` — never deployed, never launched, never consumed,
+and not deleted. The direct chain is regenerated against the final digest; the
+assisted chain is recorded as pending because its inputs are preoptimized
+geometry that does not exist yet. See `docs/PHASE9B_IDENTITY_REBASELINE.md`.
+
+None of the control-plane modules has been run against a server: each takes an
+injected command runner and refuses a real invocation while its
+`EXECUTION_AUTHORIZED` is false. There are nine such gates and all nine are
+false.
 
 ## Next action
 

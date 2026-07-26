@@ -234,3 +234,42 @@ def test_capability_issue_registry_guard_precedes_any_reload(
             extra_authority_match=None,
         )
     assert reached == ["reload"]
+
+
+def test_both_phase9b_route_attempts_can_obtain_a_capability() -> None:
+    """The assisted route must pass the validator, not only the direct one.
+
+    An earlier revision compared against a single attempt id, so the assisted
+    route could never be validated and the paired comparison could never run.
+    """
+
+    from nhc_deprot_ranker.quantum.phase9b_permit import ROUTE_ATTEMPT_IDS
+
+    key = "phase9b-lbnp-paired-smoke"
+    expected = runner._CAPABILITY_IDENTITY_EXPECTATIONS[key]()  # pyright: ignore[reportPrivateUsage]
+    for attempt in ROUTE_ATTEMPT_IDS.values():
+        capability = _FakeCapability(key)
+        capability._request_id = expected.request_id
+        capability._inchikey = expected.inchikey
+        capability._attempt_id = attempt
+        capability._protocol_sha256 = expected.protocol_sha256
+        capability._electron_count = expected.electron_count
+        capability._endpoint_atom_map_sha256 = expected.endpoint_atom_map_sha256
+        capability._legacy_atom_map_sha256 = expected.legacy_atom_map_sha256
+        capability._geometry_validation_sha256 = expected.geometry_validation_sha256
+        capability._resources_sha256 = expected.resources_sha256
+        _validate(capability)  # must not raise for either route
+
+    # An attempt outside the chain is still refused.
+    stray = _FakeCapability(key)
+    stray._request_id = expected.request_id
+    stray._inchikey = expected.inchikey
+    stray._attempt_id = "attempt-not-registered"
+    stray._protocol_sha256 = expected.protocol_sha256
+    stray._electron_count = expected.electron_count
+    stray._endpoint_atom_map_sha256 = expected.endpoint_atom_map_sha256
+    stray._legacy_atom_map_sha256 = expected.legacy_atom_map_sha256
+    stray._geometry_validation_sha256 = expected.geometry_validation_sha256
+    stray._resources_sha256 = expected.resources_sha256
+    with pytest.raises(runner.ExecutionNotAuthorizedError, match="identity drifted"):
+        _validate(stray)

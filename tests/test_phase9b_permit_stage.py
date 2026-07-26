@@ -14,6 +14,7 @@ import dataclasses
 import hashlib
 import json
 import os
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -625,3 +626,117 @@ def test_a_stray_observation_type_is_refused() -> None:
     duplicate = b'{"route": "direct", "route": "assisted"}'
     with pytest.raises(Phase9BPermitStageError, match="duplicate key"):
         parse_placement_evidence(duplicate, plan=plan)
+
+
+# --- the shipped remote source, actually executed ---------------------------
+
+
+def _localize(plan: RoutePermitPlan, root: Path) -> RoutePermitPlan:
+    """Same plan with its absolute roots rebased under tmp_path."""
+
+    return dataclasses.replace(
+        plan,
+        final_root=(root / plan.final_root.lstrip("/")).as_posix(),
+        ready_path=(root / plan.ready_path.lstrip("/")).as_posix(),
+        consumed_path=(root / plan.consumed_path.lstrip("/")).as_posix(),
+    )
+
+
+def _run_placer(plan: RoutePermitPlan, root: Path) -> tuple[int, bytes, bytes]:
+    """Execute REMOTE_PLACER_SOURCE for real, locally, with rewritten roots.
+
+    The fake above reimplements the placer's refusals, so on its own it would
+    keep passing even if those refusals were deleted from the source that
+    actually ships. This runs the shipped string in a subprocess against tmp_path:
+    still no server, still no chemistry, but the guards under test are the real
+    ones.
+    """
+
+    import subprocess
+
+    return_value = subprocess.run(
+        [sys.executable, "-I", "-B", "-c", ps.REMOTE_PLACER_SOURCE],
+        input=build_placement_stream(_localize(plan, root)),
+        capture_output=True,
+        check=False,
+    )
+    return return_value.returncode, return_value.stdout, return_value.stderr
+
+
+def test_the_shipped_placer_places_and_re_reads(tmp_path: Path) -> None:
+    plan = _plan(ROUTE_DIRECT)
+    (tmp_path / plan.final_root.lstrip("/")).mkdir(parents=True)
+    code, stdout, stderr = _run_placer(plan, tmp_path)
+    assert code == 0, stderr
+    evidence = json.loads(stdout.decode())
+    assert evidence["schema_version"] == ps.PLACEMENT_EVIDENCE_SCHEMA_VERSION
+    assert evidence["sha256"] == plan.permit_sha256
+    assert evidence["bytes"] == len(plan.permit_bytes)
+    assert evidence["regular"] is True
+    assert evidence["consumed_present"] is False
+    landed = tmp_path / plan.ready_path.lstrip("/")
+    assert landed.read_bytes() == plan.permit_bytes
+    assert landed.stat().st_mode & 0o777 == 0o400
+    # And the observation it printed satisfies the strict parser.
+    assert parse_placement_evidence(stdout, plan=_localize(plan, tmp_path)).sha256 == (
+        plan.permit_sha256
+    )
+
+
+def test_the_shipped_placer_refuses_an_existing_ready_permit(tmp_path: Path) -> None:
+    plan = _plan(ROUTE_DIRECT)
+    ready = tmp_path / plan.ready_path.lstrip("/")
+    ready.parent.mkdir(parents=True)
+    ready.write_bytes(b"someone else was here\n")
+    code, _, stderr = _run_placer(plan, tmp_path)
+    assert code != 0
+    assert b"overwrite is prohibited" in stderr
+    assert ready.read_bytes() == b"someone else was here\n"
+
+
+def test_the_shipped_placer_refuses_when_a_consumed_permit_exists(tmp_path: Path) -> None:
+    plan = _plan(ROUTE_DIRECT)
+    consumed = tmp_path / plan.consumed_path.lstrip("/")
+    consumed.parent.mkdir(parents=True)
+    consumed.write_bytes(b"spent\n")
+    code, _, stderr = _run_placer(plan, tmp_path)
+    assert code != 0
+    assert b"never restored" in stderr
+    assert not (tmp_path / plan.ready_path.lstrip("/")).exists()
+
+
+def test_the_shipped_placer_refuses_a_symlinked_ready_path(tmp_path: Path) -> None:
+    plan = _plan(ROUTE_DIRECT)
+    ready = tmp_path / plan.ready_path.lstrip("/")
+    ready.parent.mkdir(parents=True)
+    target = ready.parent / "elsewhere.json"
+    target.write_bytes(b"{}\n")
+    ready.symlink_to(target)
+    code, _, stderr = _run_placer(plan, tmp_path)
+    assert code != 0
+    assert target.read_bytes() == b"{}\n"
+    assert stderr
+
+
+def test_the_shipped_placer_refuses_an_unpromoted_root(tmp_path: Path) -> None:
+    plan = _plan(ROUTE_DIRECT)
+    code, _, stderr = _run_placer(plan, tmp_path)
+    assert code != 0
+    assert b"not a promoted directory" in stderr
+
+
+def test_the_shipped_placer_refuses_a_truncated_stream(tmp_path: Path) -> None:
+    import subprocess
+
+    plan = _plan(ROUTE_DIRECT)
+    (tmp_path / plan.final_root.lstrip("/")).mkdir(parents=True)
+    stream = build_placement_stream(_localize(plan, tmp_path))
+    result = subprocess.run(
+        [sys.executable, "-I", "-B", "-c", ps.REMOTE_PLACER_SOURCE],
+        input=stream[:-10],
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert b"length mismatch" in result.stderr
+    assert not (tmp_path / plan.ready_path.lstrip("/")).exists()

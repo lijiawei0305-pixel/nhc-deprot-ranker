@@ -557,3 +557,55 @@ def test_the_source_gate_is_still_closed() -> None:
     assert sup.EXECUTION_AUTHORIZED is False
     source = Path(sup.__file__).read_text(encoding="utf-8")
     assert "EXECUTION_AUTHORIZED: Final[bool] = False" in source
+
+
+def test_a_permit_for_the_other_route_at_this_path_is_refused(tmp_path: Path) -> None:
+    """The argv can be self-consistent while the permit file is the wrong one.
+
+    The route/attempt pairing check passes here, so what has to bite is the
+    comparison of the argv against the *permit's own* declared route.
+    """
+
+    direct_root, direct_values = _build_root(tmp_path / "d", ROUTE_DIRECT)
+    assisted_root, _ = _build_root(tmp_path / "a", ROUTE_ASSISTED)
+    # Swap the assisted route's permit bytes into the direct route's ready path.
+    foreign = (assisted_root / READY_RELATIVE).read_bytes()
+    (direct_root / READY_RELATIVE).unlink()
+    (direct_root / READY_RELATIVE).write_bytes(foreign)
+    argv = _argv(
+        direct_values,
+        **{"--expected-permit-sha256": hashlib.sha256(foreign).hexdigest()},
+    )
+    with pytest.raises(sup.Phase9BNotAuthorizedError, match="another route or attempt"):
+        _verify(argv)
+
+
+def test_the_adapter_refuses_an_attempt_that_is_not_a_phase9b_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Driven directly: the Phase 8B attempt must not reach the Phase 9B adapter."""
+
+    from nhc_deprot_ranker.quantum import two_endpoint
+    from nhc_deprot_ranker.quantum.phase8b_permit import FROZEN_ATTEMPT_ID
+
+    monkeypatch.setattr(two_endpoint, "EXECUTION_AUTHORIZED", True)
+    for attempt in (FROZEN_ATTEMPT_ID, "attempt-anything-else"):
+        with pytest.raises(
+            two_endpoint.ExecutionNotAuthorizedError, match="not a registered Phase 9B route"
+        ):
+            two_endpoint.run_phase9b_supervised_execution(
+                None,  # type: ignore[arg-type]
+                Path("/nonexistent"),
+                attempt_id=attempt,
+                worker_launch=None,  # type: ignore[arg-type]
+            )
+    # And a real route gets past that check, failing later on the handshake type.
+    with pytest.raises(
+        two_endpoint.ExecutionNotAuthorizedError, match="guarded worker launch handshake"
+    ):
+        two_endpoint.run_phase9b_supervised_execution(
+            None,  # type: ignore[arg-type]
+            Path("/nonexistent"),
+            attempt_id=ROUTE_ATTEMPT_IDS[ROUTE_ASSISTED],
+            worker_launch=None,  # type: ignore[arg-type]
+        )
