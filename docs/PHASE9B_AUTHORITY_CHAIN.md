@@ -94,7 +94,14 @@ attempt, permit, root, and hashes.
 
 Phase 9B needs a **new authority module** parameterized by candidate identity
 rather than carrying Phase 8B's constants, plus a new supervisor entry bound to
-the new chain. That is real implementation work with its own tests, and it is
+the new chain.
+
+**Correction, recorded after implementation began:** this understated the work.
+The guarded worker is bound to Phase 8B far more deeply than closure wiring
+implies, including a hard-coded 120-electron pin that would reject the Phase 9B
+candidate's 160 electrons before any other check ran. The full binding inventory
+and the resulting architecture decision are in
+`docs/PHASE9B_WORKER_BINDING_GAP.md`. That is real implementation work with its own tests, and it is
 inside the runner source closure — so it changes `runner_source_sha256` and must
 be completed and frozen **before** the request, manifest, and permit are
 generated.
