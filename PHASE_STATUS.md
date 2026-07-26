@@ -18,6 +18,7 @@ Updated: 2026-07-26
 | Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
 | Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
 | Phase 9A-I — minimal inference characterization | Passed; six single-point calls executed | 2026-07-26; no optimization, no PySCF, no label |
+| Phase 9A-S — installed AIMNet source inspection | Incomplete; loader decision unresolved | 2026-07-27; read-only; wrong interpreter probed; server unchanged |
 | Phase 9B — paired direct / assisted smoke | Implementation in progress; 7 of 10 complete, 8/10 incomplete | 2026-07-27; item 8/10 blocked on the production AIMNet2 adapters; gates closed |
 
 ## Current completed work
@@ -250,9 +251,17 @@ every string as a registry key, guessing wrong would trigger exactly that lookup
 The full audit, including what *is* authoritatively recovered from Phase 9A-R
 introspection, is in `docs/PHASE9A_I_API_RECOVERY.md`.
 
-A single read-only inspection of `AIMNet2Calculator.__init__` on the server
-resolves it. It loads no model, touches no GPU, and is the same class of action as
-the Phase 9A-R preflight -- but it needs its own authorization.
+Phase 9A-S was authorized and executed to resolve it, and **did not**. Two
+read-only SSH invocations were used: the first crashed on a bug in my own script
+before printing, and the second ran cleanly but probed the login interpreter
+(python 3.12.3) rather than the `mlff` environment (python 3.11.15) where the
+AIMNet2 stack lives, so it located no source. The server was left unchanged --
+caches, weight, and sources all identical before and after, and no third-party
+module was imported. See `docs/PHASE9A_S_INSTALLED_SOURCE_INSPECTION.md`.
+
+One more read-only invocation, locating the environment script by listing rather
+than assuming its name, answers all twenty questions. It needs its own
+authorization.
 
 ### Settled AIMNet2 facts
 
