@@ -9,7 +9,10 @@ built to close it, as one source-freeze unit.
 > still cannot run a real preoptimization. The blocker is one unrecovered API
 > fact, recorded in `docs/PHASE9A_I_API_RECOVERY.md`. Phase 9A-S attempted to
 > recover it from the installed source on 2026-07-27 and did not succeed; see
-> `docs/PHASE9A_S_INSTALLED_SOURCE_INSPECTION.md`.
+> `docs/PHASE9A_S_INSTALLED_SOURCE_INSPECTION.md`. Phase 9A-S2 retried the same
+> day, found two candidate environments rather than one, and stopped on the
+> ambiguity without spending its second SSH invocation; see
+> `docs/PHASE9A_S2_INTERPRETER_DISCOVERY.md`.
 
 ## What was unreachable
 

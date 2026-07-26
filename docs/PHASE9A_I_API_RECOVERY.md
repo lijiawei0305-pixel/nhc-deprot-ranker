@@ -147,6 +147,24 @@ Option 4 is the smallest, and is the same class of action as the Phase 9A-R
 preflight that has already been authorized and executed once. It needs its own
 authorization; it is not requested implicitly here.
 
+## Phase 9A-S2 outcome
+
+Phase 9A-S2 was authorized to find the exact interpreter and then read the
+installed source. It found **two** environments carrying python 3.11.15, aimnet
+0.2.0, and ase 3.29.0, so it stopped after one of its two SSH invocations rather
+than guess which one Phase 9A-I used. The loader question is still open. Details
+in `docs/PHASE9A_S2_INTERPRETER_DISCOVERY.md`.
+
+One lead came out of it. A legacy server script in the *other* matching
+environment records `official_load_model_called=false` and
+`mode=CPU_MEMBER0_MANUAL_EXACT_CLASSES_STRICT_STATE_DICT`, i.e. that line loaded
+a strict state dict into hand-constructed classes instead of calling the official
+loader, under `TORCH_FORCE_WEIGHTS_ONLY_LOAD=1` and a deliberately invalid
+`AIMNET_CACHE_DIR`. It concerns a different weight family
+(`aimnet2_2025_b973c_d3_*.pt`, four members) than Phase 9B's
+`aimnet2_wb97m_d3_0.pt`, so it does not answer what Phase 9A-I did — but it shows
+the project has previously judged the official loader unsafe to call offline.
+
 ## Note on question 9
 
 Phase 9A-I ran **no optimizer**: `geometry_optimizations: 0`. So the ASE `LBFGS`

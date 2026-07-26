@@ -19,6 +19,7 @@ Updated: 2026-07-26
 | Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
 | Phase 9A-I — minimal inference characterization | Passed; six single-point calls executed | 2026-07-26; no optimization, no PySCF, no label |
 | Phase 9A-S — installed AIMNet source inspection | Incomplete; loader decision unresolved | 2026-07-27; read-only; wrong interpreter probed; server unchanged |
+| Phase 9A-S2 — exact interpreter discovery | Inconclusive; two environments match, loader decision unresolved | 2026-07-27; read-only; 1 of 2 SSH used, stopped on ambiguity; server unchanged |
 | Phase 9B — paired direct / assisted smoke | Implementation in progress; 7 of 10 complete, 8/10 incomplete | 2026-07-27; item 8/10 blocked on the production AIMNet2 adapters; gates closed |
 
 ## Current completed work
