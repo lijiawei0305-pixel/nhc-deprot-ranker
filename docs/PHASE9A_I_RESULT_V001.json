@@ -1,0 +1,148 @@
+{
+  "schema_version": "phase9a_i.minimal_inference_result.v1",
+  "phase": "9A-I",
+  "status": "passed",
+  "candidate_inchikey": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+  "scope": "six_single_point_energy_and_force_calls",
+  "geometry_optimizations": 0,
+  "pyscf_calls": 0,
+  "labels_produced": 0,
+  "processes": 3,
+  "ssh_invocations": 2,
+  "model": {
+    "weight_filename": "aimnet2_wb97m_d3_0.pt",
+    "weight_bytes": 8836941,
+    "weight_sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28",
+    "ensemble_member": 0,
+    "ensemble_members_available": 1,
+    "ensemble_uncertainty_available": false,
+    "loaded_from": "explicit_local_path",
+    "registry_string_used": false,
+    "compile_model": false,
+    "torch_version": "2.8.0+cu128",
+    "device": "cuda:0",
+    "implemented_properties": [
+      "energy",
+      "forces",
+      "free_energy",
+      "charges",
+      "stress",
+      "dipole_moment"
+    ],
+    "implemented_species_attribute_found": false
+  },
+  "inputs": {
+    "source": "phase7_geometry_smoke_v001_in_place_read_only",
+    "uploaded": false,
+    "cation_xyz_sha256": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286",
+    "neutral_xyz_sha256": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8",
+    "cation_atoms": 26,
+    "neutral_atoms": 25,
+    "elements": ["C", "F", "H", "N"],
+    "cation_charge": 1,
+    "neutral_charge": 0,
+    "multiplicity": 1,
+    "atoms_info_charge_or_spin_present": false
+  },
+  "units": {
+    "energy": "eV",
+    "forces": "eV/A",
+    "forces_dtype": "float32",
+    "confirmed_by": "ase_calculator_interface"
+  },
+  "results": {
+    "cation": {
+      "energies_ev": [
+        -38353.04313413836,
+        -38353.04313389994,
+        -38353.04313389994
+      ],
+      "energy_spread_ev": 2.384186e-7,
+      "max_abs_force_component_ev_per_a": 2.225370,
+      "max_atomic_force_norm_ev_per_a": 2.600473,
+      "force_component_spread_ev_per_a": 0.0,
+      "force_norm_spread_ev_per_a": 0.0,
+      "forces_shape": [26, 3],
+      "single_input_identity": true
+    },
+    "neutral": {
+      "energies_ev": [
+        -38341.635253577624,
+        -38341.63525369683,
+        -38341.63525369683
+      ],
+      "energy_spread_ev": 1.192093e-7,
+      "max_abs_force_component_ev_per_a": 5.731652,
+      "max_atomic_force_norm_ev_per_a": 5.767974,
+      "force_component_spread_ev_per_a": 0.0,
+      "force_norm_spread_ev_per_a": 0.0,
+      "forces_shape": [25, 3],
+      "single_input_identity": true
+    }
+  },
+  "determinism": {
+    "tolerances_preregistered": true,
+    "energy_spread_tolerance_ev": 1e-4,
+    "force_spread_tolerance_ev_per_a": 1e-4,
+    "bitwise_identity_required": false,
+    "bitwise_identity_observed": false,
+    "determinism_pass": true,
+    "note": "process 1 differs from processes 2 and 3 in the last bits of energy only; forces are identical to printed precision"
+  },
+  "assertions": {
+    "all_energies_finite": true,
+    "all_forces_finite": true,
+    "forces_shape_is_n_by_3": true,
+    "atom_counts_match_input": true,
+    "coordinates_unchanged_by_every_call": true,
+    "no_exceptions": true,
+    "no_warnings_captured": true
+  },
+  "isolation_proof": {
+    "offline_flags_set_before_import": true,
+    "explicit_local_weight_path": true,
+    "isolated_root_created_empty": true,
+    "isolated_root_files_created": 66,
+    "isolated_root_bytes_created": 9966538,
+    "inductor_cache_written_inside_isolated_root": true,
+    "global_cache_before_equals_after": true,
+    "global_aimnet_cache_unchanged": true,
+    "global_torch_cache_unchanged": true,
+    "global_triton_cache_unchanged": true,
+    "global_nv_cache_unchanged": true,
+    "huggingface_cache_absent_before_and_after": true,
+    "model_weight_bytes_unchanged": true,
+    "model_weight_sha256_unchanged": true,
+    "download_detected": false,
+    "isolated_root_removed_after_inventory": true
+  },
+  "gpu": {
+    "selected_index": 0,
+    "selection_rule": "single_currently_free_device",
+    "occupied_devices_avoided": 2,
+    "other_user_jobs_preempted": 0,
+    "background_waiting": false
+  },
+  "not_established": {
+    "declared_element_coverage_enumeration": "no implemented_species attribute exposed; C F H N confirmed empirically under validate_species=True only",
+    "accuracy_for_nhc_chemistry": "out_of_scope",
+    "carbene_training_domain": "out_of_scope",
+    "preoptimization_speedup": "out_of_scope",
+    "ensemble_uncertainty": "unavailable_single_member"
+  },
+  "privacy": {
+    "contains_absolute_path": false,
+    "contains_hostname": false,
+    "contains_account_name": false,
+    "contains_ip_address": false,
+    "contains_pid": false,
+    "contains_molecular_coordinates": false
+  },
+  "authorization_boundary": {
+    "this_evidence_authorizes": "nothing",
+    "phase9b_authorized": false,
+    "geometry_optimization_authorized": false,
+    "pyscf_execution_authorized": false,
+    "label_production_authorized": false
+  }
+}
