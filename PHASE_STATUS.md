@@ -168,6 +168,29 @@ Phase 9B additionally requires a new document-first plan, a new
 candidate/attempt/root/permit authority chain, and new explicit authorization.
 No model or dataset ingestion may occur from the rejected Phase 8B attempt.
 
+## Known issues, recorded and not fixed
+
+Two pre-existing issues are recorded here rather than repaired, because fixing
+either would expand a scope that was deliberately bounded. Both are in files
+untouched by the work that found them.
+
+**Flaky supervisor timing test.**
+`tests/test_phase8a_process_supervisor.py::test_delayed_completion_observation_is_fail_closed_as_timeout`
+failed once during a loaded full-suite run on 2026-07-26 and passed on every
+subsequent attempt (six isolated reruns and two consecutive full-suite runs, all
+green at 562 passed). No source or test file changed between the last green run
+and the failure. The cause is construction: the test races a 20 ms timeout and a
+10 ms grace against an injected 80 ms observation delay and a 50 ms child, so
+scheduling jitter on a loaded machine can flip the observed outcome. It is a
+test-determinism defect, not evidence that the supervisor stopped failing
+closed. A fix would widen the margins or drive the clock deterministically.
+
+**Stale pre-commit ruff pin.** `pre-commit` fails one hook, `UP038` in
+`tests/test_phase8b_runtime.py`, because the hook pins ruff `v0.12.4` while the
+project uses `0.15.16`, where that rule was removed. Running ruff with the
+repository configuration passes, and no pre-commit git hook is installed, so it
+does not gate commits.
+
 Any new calculation requires a separate document-first plan, a new
 candidate/attempt/root/permit authority chain, and new explicit user
 authorization. No model or dataset ingestion may occur from the rejected
