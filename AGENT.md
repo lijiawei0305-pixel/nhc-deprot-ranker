@@ -257,3 +257,23 @@ dig +trace domain
 - 本机 `.venv` 是 macOS CPython 3.11.15，缺少 `os.waitid(..., WNOWAIT)`，supervisor 套件在该解释器上按设计失败关闭；这是平台能力限制，不得报告为代码回归。质量门须在提供该原语的本机 CPython 3.14.3 上运行并记录解释器。
 - 软件门通过与科学结果不存在必须始终分开陈述。收尾中的任何测试结果都不改变 receipt 为 `cleanup_failed`、claim hash 为 null、无端点结果、无标签、kernel 状态为 `indeterminate` 的事实。
 - 收尾完成后只有三个合法前进选项：归档在 rejected Phase 8B、规划全新只读服务器事故取证、规划全新计算阶段。三者都不由本收尾启动，均需用户单独决定。
+
+## 21. Phase 9A — AIMNet2 预优化审计与设计边界
+
+- 用户已冻结采用 **AIMNet2** 作为 cation/neutral 结构预优化模型。本阶段不重新选型，不比较 MACE、ANI、NequIP 或其他机器学习势。
+- 目标流水线：`SMILES → RDKit ETKDGv3 → MMFF94(异常退 UFF) → cation/neutral 两端点 → AIMNet2 几何预优化 → PySCF B3LYP-D3(BJ)/def2-SVP 残余最终优化 → 最终电子能 → 脱质子电子能标签`。
+- Phase 9A 只做只读审计、文档先行设计、接口设计、门禁设计、测试设计和后续阶段规划；不运行 AIMNet2、PySCF、xTB、MMFF/UFF，不连接服务器，不安装或下载，不创建几何，不创建 permit，不开启任何执行门。本阶段不写实现代码。
+- AIMNet2 只负责预优化。它不得替代最终 PySCF 优化、不得替代最终电子能、不得直接产生标签、其能量不得进入标签公式、不得声称 AIMNet2 极小点即 B3LYP 极小点、不得声称未做频率分析的结构为频率确认极小点。
+- PySCF 必须从 AIMNet2 结构重建 Mole 并继续优化至冻结收敛标准；"最后一步"不等于只跑一个 optimizer step。不得因 AIMNet2 已收敛而跳过梯度验收、放宽收敛、增加 maxsteps、改 SCF 算法或静默重启。
+- **预优化器必须位于 runner source closure 之外**。two-endpoint runner 把精确 14 个文件哈希进 `runner_source_sha256` 并绑定 permit；把预优化器放进闭包会在每次修改时作废授权链，并把 ML 栈变成受保护 worker 的身份组成部分。预优化器作为 `preparation/` 下的上游生产者，产出 XYZ 与新 request，`two_endpoint.py` 不改动。
+- cation 与 neutral 由**两个独立 SMILES 列**分别构建，代码中不存在程序化脱质子，**两端点索引无对应保证**（历史 8 例中 3 例出现 cation-map/neutral-index 失配）。必须逐端点验证，必须保持原子顺序，且必须采用 DFT 门的**有序**重原子序列比较，而非 Phase 7 的多重集比较。
+- AIMNet2 与 PySCF 不得共用同一进程或同一环境。旧记录中 AIMNet2 位于独立 conda prefix（含 torch/ase），本项目当前只被允许使用 `molenv.sh` 的 `molecular` 环境（有 ase，无 torch、无 aimnet），且禁止混用软件栈与安装依赖。是否允许调用第二环境属于用户决策，不得由代理推定。
+- 元素审计结论：Phase 7 smoke 为 `H C N O F`；71 标签与 50 acquisition 为 `H C N O F Cl Br`；401,856 全量为 `H C N O F S Cl Br`。任何层级均无超出该集合的元素。是否被安装权重支持须由 Phase 9A-R 实测确认，不得据发表文档断言。
+- 元素受支持不等于化学域受支持。中性端点是单重态卡宾，通用有机训练集对其覆盖不足；C2 中心是最可能失真处，验证必须专门检查 C2 与 C2–N 键，并在可得时记录 C2 的逐原子 ensemble 分歧。
+- 预优化后 `geometry_quality=initial_force_field_geometry` 不再成立。必须使用新的显式标签值与版本化的 endpoint-atom-map schema，且新值不得声称已验证局部极小点或频率验证。
+- **必须记录的既往负面结果**：旧工程已在同一硬件与化学体系上测过 AIMNet2 预优化，n=12 公平对照中位加速仅 **1.10×**（最好 3.28×，最差 0.78×），并因"起始几何从来不是瓶颈"判为死路（DFT 从任何起点均需约 20 步）。该量与本项目晋级门 E1/E2 是同一个量。允许继续 Phase 9B（本项目基线自 MMFF94 起步，差距更大），但必须在测量前承认"不晋级"是可能且合法的结果，不得事后放宽门禁。
+- 已记录证据只支持单一权重 `aimnet2_wb97m_d3_0.pt`；`_1`/`_2`/`_3` 无任何证据，且禁止下载。四成员 ensemble 不得假定存在。
+- 单位必须显式转换并核验：ASE 接口返回 eV 与 eV/Å，XYZ 与 runner 使用 Å，PySCF 能量为 Hartree。Bohr/Å 或 eV/Hartree 混淆会产生看似收敛的错误结果。
+- 每个端点必须显式传入总电荷（cation `+1`、neutral `0`），不得由文件名、目录名或原子数推断。任一端点失败即不得产生标签。
+- Phase 8B 边界不变：失败关闭、零完整端点、零 DFT 标签、高保真标签仍为 71、旧 QXH 授权链永久不可复用。大量 Phase 8B 基础设施代码不代表已获得 DFT 结果。
+- 前进路线与授权阶梯：`Phase 9A（本阶段）→ Phase 9A-R 只读服务器预检 → Phase 9B 双路线 smoke → Phase 9C 小型 pilot → Phase 10 分批生产`。每一步都是独立授权；文档规划不等于实现授权，实现不等于服务器写入授权，服务器写入不等于计算授权。
