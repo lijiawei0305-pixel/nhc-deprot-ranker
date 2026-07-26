@@ -1,0 +1,242 @@
+{
+  "activation_bound_unique_match": false,
+  "aimnet_source_files_read": 0,
+  "ase_interface_questions_answered": 0,
+  "ase_source_files_read": 0,
+  "attempt": "phase9a-s3-v001",
+  "cache_after": {
+    "aimnet_cache": {
+      "bytes": 8836941,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784037872646661935,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/aimnet"
+    },
+    "hf_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/huggingface"
+    },
+    "inductor_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/torchinductor_<REMOTE_USER>"
+    },
+    "nv_compute_cache": {
+      "bytes": 26405248,
+      "exists": true,
+      "files": 682,
+      "newest_mtime_ns": 1784976789984713350,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.nv/ComputeCache"
+    },
+    "torch_hub": {
+      "bytes": 109872,
+      "exists": true,
+      "files": 2,
+      "newest_mtime_ns": 1784701106804299388,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/torch"
+    },
+    "triton_cache": {
+      "bytes": 26560,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784038187250059368,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.triton"
+    }
+  },
+  "cache_before": {
+    "aimnet_cache": {
+      "bytes": 8836941,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784037872646661935,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/aimnet"
+    },
+    "hf_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/huggingface"
+    },
+    "inductor_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/torchinductor_<REMOTE_USER>"
+    },
+    "nv_compute_cache": {
+      "bytes": 26405248,
+      "exists": true,
+      "files": 682,
+      "newest_mtime_ns": 1784976789984713350,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.nv/ComputeCache"
+    },
+    "torch_hub": {
+      "bytes": 109872,
+      "exists": true,
+      "files": 2,
+      "newest_mtime_ns": 1784701106804299388,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/torch"
+    },
+    "triton_cache": {
+      "bytes": 26560,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784038187250059368,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.triton"
+    }
+  },
+  "does_not_supersede": {
+    "phase_9a_s": "inconclusive_due_to_inspection_error",
+    "phase_9a_s2": "ambiguous_match"
+  },
+  "dont_write_bytecode": true,
+  "driver_is_not_a_conclusion": true,
+  "driver_python": "3.12.3",
+  "gate": null,
+  "invariance": {
+    "activation_unchanged": true,
+    "cache_unchanged": true,
+    "no_bytecode_created": true,
+    "no_third_party_imported": true,
+    "packages_unchanged": true,
+    "sources_unchanged": true,
+    "torch_version_unchanged": true,
+    "traced_unchanged": true,
+    "weight_stat_unchanged": true
+  },
+  "isolated_mode": true,
+  "loader_decision": "unresolved",
+  "local_validation": {
+    "all_passed": true,
+    "checks": 103,
+    "found_before_send": "the cache before/after snapshot compared different key sets once package roots were known, which would have made the __pycache__ proof vacuous; split into two same-keyed snapshot pairs",
+    "scenarios": 18
+  },
+  "offline_flags": {
+    "HF_DATASETS_OFFLINE": "1",
+    "HF_HUB_OFFLINE": "1",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TRANSFORMERS_OFFLINE": "1"
+  },
+  "phase": "9A-S3",
+  "receipt_sha256": "d5fc406ba6f8116d322f74d959b8ca496747c1001968a31d9e724333efeac001",
+  "remote_receipt_sha256": "93c302d7dd9b0a1dca0b43d601ec3fe6f8e14729748377dbfbafd549b85c31a9",
+  "request": "phase9a-s3-activation-bound-inspection",
+  "schema_version": "phase9a_s3.readonly_receipt.v1",
+  "ssh_invocations_authorized": 1,
+  "ssh_invocations_used": 1,
+  "stage_1_activation_script": {
+    "candidates_found": 1,
+    "identity": {
+      "bytes": 783,
+      "device": 66306,
+      "exists": true,
+      "inode": 23648860,
+      "is_regular_file": true,
+      "is_symlink": false,
+      "mode": "-rw-r--r--",
+      "mtime_ns": 1784026310005929761,
+      "path": "<REMOTE_PROJECT_ROOT>/env/envs/mlff.sh",
+      "realpath": "<REMOTE_PROJECT_ROOT>/env/envs/mlff.sh",
+      "sha256": "9a8ae2b2fff81b317ef2569af51f9fa374b071551dfa4cb3e2948fe598e437b6"
+    },
+    "registered_directory": "<REMOTE_PROJECT_ROOT>/env/envs"
+  },
+  "stage_2_static_binding": {
+    "activation_script_was_never_sourced": true,
+    "blocking": [],
+    "bound_env_root": "<MLFF_ENV_ROOT>",
+    "distinct_env_roots": [
+      "<MLFF_ENV_ROOT>"
+    ],
+    "dynamic_tokens": [],
+    "env_roots": [
+      {
+        "form": "conda_activate_prefix",
+        "line": 13,
+        "literal": true,
+        "root": "<MLFF_ENV_ROOT>"
+      }
+    ],
+    "shell_state_dependencies": [],
+    "side_effect_tokens": [],
+    "static_binding_resolved": true,
+    "traced_registered_scripts": [],
+    "unclassified_binding_lines": [],
+    "uses_conda_activate": true,
+    "uses_venv_activate": false
+  },
+  "stage_3_interpreter": {
+    "candidates": [
+      "<MLFF_ENV_ROOT>/bin/python3.1",
+      "<MLFF_ENV_ROOT>/bin/python3.11"
+    ],
+    "count": 2,
+    "cross_check_from_phase_9a_s2": "Phase 9A-S2 enumerated the same directories with the broader glob python3* and deduplicated by realpath before counting; it recorded exactly two survivors per environment, the interpreter and its -config shim. python3, python3.1 and python3.11 therefore resolve to one file. This is an inference from an already-registered receipt, not a Phase 9A-S3 measurement, so it does not lift this attempt out of inconclusive.",
+    "defect": "the candidate glob python3.* matched both python3.1 and python3.11 in one bin directory and the count was taken before deduplication, so two names for one file read as two interpreters",
+    "fix_for_the_next_attempt": "deduplicate candidates by (device, inode) before counting, require the survivor to be a regular file, and record the realpath of every rejected name",
+    "outcome": "stopped: two names matched the enumeration glob",
+    "server_is_not_ambiguous": true
+  },
+  "stages_not_reached": [
+    "4_version_probe",
+    "5_torch_local_version",
+    "6_seven_point_gate",
+    "7_aimnet_source",
+    "8_ase_source"
+  ],
+  "status": "inconclusive_interpreter_enumeration_defect",
+  "stopped_at": {
+    "reason": "expected exactly one interpreter under the bound environment, found 2",
+    "stage": "interpreter"
+  },
+  "third_party_modules_imported": [],
+  "twenty_source_questions_answered": 0,
+  "unregistered_source_caveat": {
+    "count": 1,
+    "entries": [
+      {
+        "identity": {
+          "bytes": 2479,
+          "device": 66306,
+          "exists": true,
+          "inode": 23741700,
+          "is_regular_file": true,
+          "is_symlink": false,
+          "mode": "-rw-rw-r--",
+          "mtime_ns": 1781443961300423685,
+          "path": "<CONDA_DISTRIBUTION_ROOT>/etc/profile.d/conda.sh",
+          "realpath": "<CONDA_DISTRIBUTION_ROOT>/etc/profile.d/conda.sh",
+          "sha256": "c25916625c93f3c2039799c1aaeee48a480f2109ca2834689f29689f7134db46"
+        },
+        "line": 12,
+        "raw": "\"<CONDA_DISTRIBUTION_ROOT>/etc/profile.d/conda.sh\"",
+        "resolved": "<CONDA_DISTRIBUTION_ROOT>/etc/profile.d/conda.sh"
+      }
+    ],
+    "treated_as_blocking": false,
+    "why_not": "a conda activation script must source the distribution's own conda.sh to define the `conda` shell function; the environment target here is a literal quoted absolute prefix inside the authenticated activation script itself, so the binding does not consume anything from the sourced file. Authenticated by stat and digest and reported so a reviewer can overrule."
+  },
+  "weights": {
+    "content_read": false,
+    "observed": [
+      {
+        "bytes": 8836941,
+        "device": 66306,
+        "exists": true,
+        "inode": 25737086,
+        "is_regular_file": true,
+        "is_symlink": false,
+        "mode": "-rw-------",
+        "mtime_ns": 1784037872646661935,
+        "path": "<REMOTE_HOME>/.cache/aimnet/aimnet2_wb97m_d3_0.pt",
+        "realpath": "<REMOTE_HOME>/.cache/aimnet/aimnet2_wb97m_d3_0.pt"
+      }
+    ],
+    "sha256_recomputed": false,
+    "stat_only": true
+  }
+}

@@ -114,6 +114,12 @@ Every candidate was probed with `-I -B`, all four offline flags set, and a
 `PATH` limited to `/usr/bin:/bin`. The login interpreter drove the search only;
 every version reported came from the candidate's own metadata.
 
+> **Followed by Phase 9A-S3**, which resolved this ambiguity from the byte
+> identity and static content of `mlff.sh` rather than from package versions,
+> and then stopped one stage later on a separate enumeration defect. The
+> result recorded on this page is unchanged. See
+> `docs/PHASE9A_S3_ACTIVATION_BOUND_INSPECTION.md`.
+
 ## Next minimal test
 
 One read-only invocation that:
