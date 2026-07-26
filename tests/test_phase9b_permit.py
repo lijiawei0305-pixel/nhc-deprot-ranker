@@ -62,7 +62,10 @@ def test_route_constants_agree_with_supervisor_and_worker_profile() -> None:
     assert REMOTE_ROOT_RELATIVE == p9b_supervisor.REMOTE_ROOT_RELATIVE
     assert ROUTE_ATTEMPT_IDS[ROUTE_DIRECT] == p9b_supervisor.ROUTE_D_ATTEMPT_ID
     assert ROUTE_ATTEMPT_IDS[ROUTE_ASSISTED] == p9b_supervisor.ROUTE_A_ATTEMPT_ID
-    assert tuple(ROUTE_ATTEMPT_IDS.values()) == worker.PHASE9B_WORKER_PROFILE.attempt_ids
+    assert tuple(ROUTE_ATTEMPT_IDS.values()) == (
+        worker.PHASE9B_DIRECT_WORKER_PROFILE.attempt_ids
+        + worker.PHASE9B_ASSISTED_WORKER_PROFILE.attempt_ids
+    )
 
 
 def test_direct_route_must_carry_the_frozen_initial_geometry() -> None:

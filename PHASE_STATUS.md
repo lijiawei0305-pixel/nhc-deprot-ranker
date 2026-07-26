@@ -18,7 +18,7 @@ Updated: 2026-07-26
 | Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
 | Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
 | Phase 9A-I — minimal inference characterization | Passed; six single-point calls executed | 2026-07-26; no optimization, no PySCF, no label |
-| Phase 9B — paired direct / assisted smoke | Implementation in progress; 7 of 10 components | 2026-07-26; re-baselined from 8 to 10 after an execution-path audit; gates closed |
+| Phase 9B — paired direct / assisted smoke | Implementation in progress; 8 of 10 components | 2026-07-27; execution runtime closed; both routes now reach a backend; gates closed |
 
 ## Current completed work
 
@@ -165,7 +165,7 @@ source gates closed:
 5/8  preparation/phase9b_launch.py       two-route supervisor launch       built
 6/8  pre-launch integration closure      CLI, adapter, permit stage        built
 7/10 quantum/phase9b_guardian.py         guardian, transport, handoff      built
-8/10 execution runtime closure         compute-claim closure + Route A    not started
+8/10 execution runtime closure         compute-claim closure + Route A    built
 9/10 preparation/phase9b_postflight.py   evidence harvest and acceptance   not started
 10/10 closed-gate full-chain rehearsal   dry run and final freeze          not started
 ```
@@ -217,7 +217,11 @@ There are ten such gates and all ten are false.
 
 ## Next action
 
-**Item 8/10 — Phase 9B execution runtime closure.**
+**Item 9/10 — Phase 9B postflight.**
+
+Item 8/10 is complete: both routes now reach a backend through the real
+validators. What remains is evidence harvest and acceptance, then a closed-gate
+full-chain rehearsal.
 
 The plan is re-baselined from 8 components to 10. A line-by-line audit of the
 execution path on `main` found that the chain still cannot reach a backend on
@@ -249,15 +253,20 @@ The three options previously listed here were answered and are no longer open:
 Nothing above rewrites a historical result: the earlier text simply outlived the
 decision it was asking for.
 
-### The real blocker
+### Both blockers are closed
 
 ```text
-worker compute-claim validation still requires the Phase 8B object shape, so a
-Phase 9B permit and authority cannot reach compute-capability issue
-
-Route A has no AIMNet2 runtime inside the guarded route, so the handoff contract
-that is built and tested is never invoked by anything
+compute-claim validation   parameterized through a per-chain ClaimIdentityView;
+                           both Phase 9B routes pass the real validator
+Route A runtime            quantum/phase9b_aimnet2_runtime.py runs inside the
+                           guarded route and closes the handoff into PySCF
 ```
+
+The closure was re-frozen once, at the end: schema v6 -> v7,
+`72125b67...0de3` -> `d7060a31...9c22`, 21 -> 23 files. Both routes' final
+request, manifest, and permit identities are regenerated against v7 and recorded
+in `docs/PHASE9B_IDENTITY_REBASELINE.md`. Their state is
+`prepared_not_authorized`: nothing was deployed, placed, launched, or consumed.
 
 Phase 9B still requires separate explicit execution authorization. No model or
 dataset ingestion may occur from the rejected Phase 8B attempt.

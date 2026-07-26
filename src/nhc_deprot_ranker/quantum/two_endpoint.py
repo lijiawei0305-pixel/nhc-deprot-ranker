@@ -64,12 +64,13 @@ ATTEMPT_SCHEMA_VERSION: Final = "nhc-two-endpoint-attempt-v2"
 SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-success-v2"
 SUPERVISOR_SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-supervisor-success-v1"
 FAILURE_SCHEMA_VERSION: Final = "nhc-two-endpoint-failure-v1"
-# v6: the closure gained the shared one-shot consumption primitive, the Phase 9B
-# guardian, and the AIMNet2-to-PySCF handoff contract; the permit schema moved to
-# v2 for the single-transaction Route A.  Every Phase 9B request, payload
-# manifest, and permit built against v4 or v5 is superseded before execution; see
+# v7: the execution runtime closure.  The closure gained the route-aware
+# execution adapters and the AIMNet2 production runtime; compute-claim validation
+# and the shared transaction registry were parameterized so both Phase 9B routes
+# can obtain a capability; and the worker CLI became a closed parser.  Every
+# Phase 9B asset built against v4, v5, or v6 is superseded before execution; see
 # docs/PHASE9B_IDENTITY_REBASELINE.md.
-RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v6"
+RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v7"
 
 # This is a source-level gate, not a caller-provided option.  A later phase must
 # review and deliberately change it before any backend can load PySCF.
@@ -131,7 +132,9 @@ _RUNNER_SOURCE_RELATIVE_PATHS: Final[tuple[str, ...]] = (
     # Phase 9B modules: the capability expectation builder below imports these at
     # call time, so their content already determines closure-internal behaviour
     # and must be hash-bound like the rest.
+    "nhc_deprot_ranker/quantum/phase9b_aimnet2_runtime.py",
     "nhc_deprot_ranker/quantum/phase9b_authority.py",
+    "nhc_deprot_ranker/quantum/phase9b_execution.py",
     "nhc_deprot_ranker/quantum/phase9b_guardian.py",
     "nhc_deprot_ranker/quantum/phase9b_handoff.py",
     "nhc_deprot_ranker/quantum/phase9b_permit.py",

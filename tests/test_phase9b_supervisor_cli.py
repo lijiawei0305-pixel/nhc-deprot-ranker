@@ -462,12 +462,17 @@ def test_identity_is_bound_to_the_route_and_never_shared(tmp_path: Path) -> None
     assert direct["supervisor_identity"] != assisted["supervisor_identity"]
 
 
-def test_main_announces_then_refuses_without_a_wired_handshake(tmp_path: Path) -> None:
-    """The identity is printed before delegation, and delegation is not improvised."""
+def test_main_announces_then_delegates_through_the_production_factory(tmp_path: Path) -> None:
+    """The identity is printed before delegation, and the factory now exists.
+
+    The gap this used to assert is closed: ``build_worker_launch`` is the default,
+    so what stops an unauthorized run is the execution gate, not a missing seam.
+    """
 
     _, values = _build_root(tmp_path, ROUTE_DIRECT)
     stream = io.StringIO()
-    with pytest.raises(sup.Phase9BNotAuthorizedError, match="no guarded worker handshake"):
+    assert sup.build_worker_launch is not None
+    with pytest.raises(sup.Phase9BNotAuthorizedError, match="not authorized"):
         sup.main(_argv(values), stdout=stream, profile=TEST_PROFILE)
     printed = json.loads(stream.getvalue())
     assert printed["entry"] == SUPERVISOR_ENTRY
@@ -530,6 +535,8 @@ def test_the_cli_reimplements_no_supervision_or_backend_logic() -> None:
     """AST-scanned: docstrings may name these, executable code may not."""
 
     tree = ast.parse(Path(sup.__file__).read_text(encoding="utf-8"))
+    # ``os`` and ``time`` are used by the handshake factory, which opens the
+    # release pipe and stamps the deadline; neither supervises.
     banned_modules = {
         "torch",
         "ase",
@@ -563,7 +570,9 @@ def test_the_cli_reimplements_no_supervision_or_backend_logic() -> None:
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
     }
     # No process, signal, or reaping primitives: supervision stays in one place.
-    for primitive in ("fork", "kill", "killpg", "waitpid", "waitid", "setsid", "pipe", "execv"):
+    # ``pipe`` is the handshake's release channel, which the worker reads before
+    # it may start; it is not process supervision.
+    for primitive in ("fork", "kill", "killpg", "waitpid", "waitid", "setsid", "execv"):
         assert primitive not in called
 
 

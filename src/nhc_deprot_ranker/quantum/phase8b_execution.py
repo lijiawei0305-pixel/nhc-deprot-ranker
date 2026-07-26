@@ -51,6 +51,39 @@ RECEIPT_SCHEMA_VERSION: Final = "nhc-phase8b-guardian-receipt-v1"
 
 FROZEN_ALLOWED_CPUS: Final = frozenset({0, 1, 2, 3})
 FROZEN_TRANSACTION_ID: Final = "attempt-phase8b-qxh-v001"
+
+
+def registered_transaction_identities() -> frozenset[str]:
+    """Every chain's exact attempt, as one frozen registry.
+
+    These validators are shared by both authority chains, so the identity they
+    accept is a registry rather than one pinned constant.  It is read from the
+    permit module that owns route identity, so there is a single source of truth
+    and no ``if phase`` in the comparison.
+    """
+
+    from nhc_deprot_ranker.quantum.phase9b_permit import ROUTE_ATTEMPT_IDS
+
+    return frozenset({FROZEN_TRANSACTION_ID, *ROUTE_ATTEMPT_IDS.values()})
+
+
+def registered_candidate_identities() -> frozenset[tuple[str, str, int]]:
+    """(request_id, inchikey, electron_count) triples one claim may declare."""
+
+    from nhc_deprot_ranker.quantum.phase9b_authority import PHASE9B_CANDIDATE
+
+    return frozenset(
+        {
+            (FROZEN_REQUEST_ID, FROZEN_INCHIKEY, FROZEN_ELECTRON_COUNT),
+            (
+                "phase9b-lbnp-paired-smoke-v001",
+                PHASE9B_CANDIDATE.inchikey,
+                PHASE9B_CANDIDATE.electron_count,
+            ),
+        }
+    )
+
+
 FROZEN_REQUEST_ID: Final = "phase8b-qxh-smoke-v001"
 FROZEN_INCHIKEY: Final = "QXHIEGFUWOLQIJ-UHFFFAOYSA-N"
 FROZEN_ELECTRON_COUNT: Final = 120
@@ -1032,10 +1065,9 @@ def validate_compute_claim_authority(record: ComputeClaimAuthority) -> None:
     ):
         _require_sha256(cast(str, getattr(record, field)), label=field)
     if (
-        record.request_id != FROZEN_REQUEST_ID
-        or record.inchikey != FROZEN_INCHIKEY
-        or record.attempt_id != FROZEN_TRANSACTION_ID
-        or record.electron_count != FROZEN_ELECTRON_COUNT
+        record.attempt_id not in registered_transaction_identities()
+        or (record.request_id, record.inchikey, record.electron_count)
+        not in registered_candidate_identities()
     ):
         raise ExecutionIdentityError("compute claim frozen authority identity drifted")
     paths = (record.project_root, record.run_root, record.request_path, record.output_root)
@@ -1072,7 +1104,7 @@ def validate_compute_claim_structure(record: ComputeClaim) -> None:
     _require_positive_int(record.created_monotonic_ns, label="created_monotonic_ns")
     validate_compute_claim_authority(record.authority)
     if (
-        record.transaction_id != FROZEN_TRANSACTION_ID
+        record.transaction_id not in registered_transaction_identities()
         or record.transaction_id != record.authority.attempt_id
         or record.allowed_cpus != FROZEN_ALLOWED_CPUS
         or record.created_monotonic_ns >= record.absolute_deadline_ns
@@ -2043,8 +2075,8 @@ def run_guardian_transaction(
     """
 
     transaction = _require_transaction_id(transaction_id)
-    if transaction != FROZEN_TRANSACTION_ID:
-        raise Phase8BExecutionError("Phase 8B transaction identity drifted")
+    if transaction not in registered_transaction_identities():
+        raise Phase8BExecutionError("transaction identity is not a registered attempt")
     ensure_frozen_policy(policy)
     release_hash = _release_token_sha256(release_token)
     del release_hash  # validated here; the digest is rederived for the ACK.

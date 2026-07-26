@@ -10,23 +10,36 @@ identity — are no longer hard-coded in the validation flow.  They come from a
 source-frozen table in this file, which is itself inside the runner source
 closure, so profile values are hash-bound exactly like code.
 
-There is still exactly one live validation path.  The permit loader and exact
-authority validator are reached through a profile-supplied adapter, because the
-two chains have different signatures; adapting them keeps the worker on one call
-path rather than branching on phase.  Compute-capability issue is not yet
-parameterized, so the Phase 9B profile stops there rather than at the permit.
+There is exactly one live validation path.  The permit loader, the exact
+authority validator, the durable compute-claim comparison, and the execution
+adapter are all reached through profile-supplied adapters, because the chains
+have different signatures and different runtimes; adapting them keeps the worker
+on one call path rather than branching on phase or route inside a security check.
+
+Compute-claim validation reads each chain's objects through a
+:class:`ClaimIdentityView` produced by that profile's adapter.  The comparison
+itself is one function that sees only the view, so adding a chain is a registry
+entry plus a small adapter, never an edit to the comparison.
+
+Execution is likewise chosen by exact attempt: the profile names an
+:class:`ExecutionAdapter`, and the worker calls it.  Nothing about the request,
+the CLI, the payload, the environment, or a path may select one.
+
+The CLI is a closed parser rather than argparse: argparse honours unambiguous
+flag abbreviations, and a worker that is only ever called by the supervisor must
+still hold the same identity contract the supervisor does.
 """
 
 from __future__ import annotations
 
-import argparse
 import os
 import stat
+import sys
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Protocol, cast
+from pathlib import Path, PurePosixPath
+from typing import Final, Protocol, cast
 
 from nhc_deprot_ranker.quantum import two_endpoint as runner
 from nhc_deprot_ranker.quantum.linux_guardian import (
@@ -41,7 +54,16 @@ from nhc_deprot_ranker.quantum.phase8b_execution import (
     load_and_validate_compute_claim_for_worker,
 )
 from nhc_deprot_ranker.quantum.phase8b_permit import ConsumedPhase8BPermit
+from nhc_deprot_ranker.quantum.phase9b_execution import (
+    ASSISTED_ADAPTER,
+    DIRECT_ADAPTER,
+    PHASE8B_ADAPTER,
+    ExecutionAdapter,
+    resolve_execution_adapter,
+)
 from nhc_deprot_ranker.quantum.phase9b_permit import (
+    ROUTE_ASSISTED,
+    ROUTE_DIRECT,
     ConsumedPhase9BPermit,
     Phase9BExactAuthority,
 )
@@ -190,71 +212,218 @@ def _reload_phase9b_permit_and_authority(
     )
 
 
-@dataclass(frozen=True)
-class WorkerAuthorityProfile:
-    """Source-frozen, candidate-specific expectations for one authority chain.
+@dataclass(frozen=True, slots=True)
+class ClaimIdentityView:
+    """One chain's durable-claim identity, read through its own adapter.
 
-    Values are data, but they live inside the runner source closure, so editing
-    them changes ``runner_source_sha256`` exactly as editing code would.
+    The comparison in :func:`_validate_worker_compute_claim` sees only this view,
+    never a concrete permit or authority class.  Adding a chain is a registry
+    entry plus a small adapter; it is never an edit to the comparison, and there
+    is no ``if phase`` anywhere in the security path.
     """
 
+    payload_manifest_sha256: str
+    permit_sha256: str
+    request_sha256: str
+    runner_source_sha256: str
+    resources_sha256: str
+    endpoint_atom_map_sha256: str
+    legacy_atom_map_sha256: str
+    geometry_validation_sha256: str
+    electron_count: int
+    request_id: str
+    inchikey: str
+    attempt_id: str
+    project_root: Path
+    run_root: Path
+    request_path: Path
+    output_root: Path
+    consumed_sha256: str
+
+
+class _ClaimIdentityAdapter(Protocol):
+    """Reads one chain's consumed permit and authority into the shared view."""
+
+    def __call__(self, *, consumed: object, authority: object) -> ClaimIdentityView: ...
+
+
+def _read_phase8b_claim_identity(*, consumed: object, authority: object) -> ClaimIdentityView:
+    if not isinstance(consumed, ConsumedPhase8BPermit) or not isinstance(
+        authority, ExactPhase8BAuthority
+    ):
+        raise runner.ExecutionNotAuthorizedError("Phase 8B claim adapter received another chain")
+    return _view_from(consumed.permit, authority, consumed.consumed_sha256)
+
+
+def _read_phase9b_claim_identity(*, consumed: object, authority: object) -> ClaimIdentityView:
+    if not isinstance(consumed, ConsumedPhase9BPermit) or not isinstance(
+        authority, Phase9BExactAuthority
+    ):
+        raise runner.ExecutionNotAuthorizedError("Phase 9B claim adapter received another chain")
+    return _view_from(consumed.permit, authority, consumed.consumed_sha256)
+
+
+class _PermitPathsLike(Protocol):
+    """The four roots both chains' permits expose under the same names."""
+
+    @property
+    def project_root(self) -> Path: ...
+    @property
+    def run_root(self) -> Path: ...
+    @property
+    def request_path(self) -> Path: ...
+    @property
+    def output_root(self) -> Path: ...
+
+
+def _view_from(
+    permit: _PermitPathsLike,
+    authority: runner.CapabilityAuthorityLike,
+    consumed_sha256: str,
+) -> ClaimIdentityView:
+    """Both chains' records expose the same names, so one reader serves both.
+
+    Typed against Protocols rather than read with ``getattr``: a chain whose
+    record lacks a field must fail to type-check, not fail at run time on the
+    security path.
+    """
+
+    return ClaimIdentityView(
+        payload_manifest_sha256=str(authority.payload_manifest_sha256),
+        permit_sha256=str(authority.permit_sha256),
+        request_sha256=str(authority.request_sha256),
+        runner_source_sha256=str(authority.runner_source_sha256),
+        resources_sha256=str(authority.resources_sha256),
+        endpoint_atom_map_sha256=str(authority.endpoint_atom_map_sha256),
+        legacy_atom_map_sha256=str(authority.legacy_atom_map_sha256),
+        geometry_validation_sha256=str(authority.geometry_validation_sha256),
+        electron_count=int(authority.electron_count),
+        request_id=str(authority.request_id),
+        inchikey=str(authority.inchikey),
+        attempt_id=str(authority.attempt_id),
+        project_root=Path(permit.project_root),
+        run_root=Path(permit.run_root),
+        request_path=Path(permit.request_path),
+        output_root=Path(permit.output_root),
+        consumed_sha256=consumed_sha256,
+    )
+
+
+@dataclass(frozen=True)
+class WorkerAuthorityProfile:
+    """Source-frozen, exact-attempt expectations for one route of one chain.
+
+    Values are data, but they live inside the runner source closure, so editing
+    them changes ``runner_source_sha256`` exactly as editing code would.  A
+    profile cannot be supplied by a configuration file, an environment variable,
+    a request field, or a CLI argument: it is selected only by exact attempt from
+    the frozen registry below.
+    """
+
+    schema_version: str
     profile_id: str
+    route: str
     request_id: str
     inchikey: str
     attempt_ids: tuple[str, ...]
     electron_count: int
     allowed_cpus: frozenset[int]
+    gpu_required: bool
     load_permit_and_authority: _PermitAndAuthorityLoader
     consumed_permit_type: type
     authority_type: type
+    read_claim_identity: _ClaimIdentityAdapter
     capability_identity_key: str
     reload_permit_and_authority: _ReloadPermitAndAuthority
     uses_frozen_worker_match: bool
+    execution_adapter: ExecutionAdapter
+
+    def __post_init__(self) -> None:
+        if self.schema_version != WORKER_PROFILE_SCHEMA_VERSION:
+            raise runner.ExecutionNotAuthorizedError("worker profile schema version drifted")
+        if len(self.attempt_ids) != 1:
+            raise runner.ExecutionNotAuthorizedError(
+                "a worker profile binds exactly one attempt identity"
+            )
+        if self.execution_adapter.attempt_id != self.attempt_ids[0]:
+            raise runner.ExecutionNotAuthorizedError(
+                "the execution adapter is bound to another attempt identity"
+            )
+
+
+WORKER_PROFILE_SCHEMA_VERSION: Final = "nhc-worker-authority-profile-v2"
 
 
 PHASE8B_WORKER_PROFILE = WorkerAuthorityProfile(
+    schema_version=WORKER_PROFILE_SCHEMA_VERSION,
     profile_id="phase8b-qxh-smoke",
+    route="phase8b",
     request_id="phase8b-qxh-smoke-v001",
     inchikey="QXHIEGFUWOLQIJ-UHFFFAOYSA-N",
     attempt_ids=("attempt-phase8b-qxh-v001",),
     electron_count=120,
     allowed_cpus=frozenset({0, 1, 2, 3}),
+    gpu_required=False,
     load_permit_and_authority=_load_phase8b_permit_and_authority,
     consumed_permit_type=ConsumedPhase8BPermit,
     authority_type=ExactPhase8BAuthority,
+    read_claim_identity=_read_phase8b_claim_identity,
     capability_identity_key="phase8b-qxh-smoke",
     reload_permit_and_authority=_reload_phase8b_permit_and_authority,
     # Phase 8B's validator does not check the frozen constants itself.
     uses_frozen_worker_match=True,
+    execution_adapter=PHASE8B_ADAPTER,
 )
 
-# Registered for identity closure only; execution refuses until the Phase 9B
-# permit and capability wiring exist.  The CPU set repeats the shared-host
-# envelope; the final resource freeze happens in the Phase 9B execution request,
-# and changing it here is a closure-visible source edit by construction.
-PHASE9B_WORKER_PROFILE = WorkerAuthorityProfile(
-    profile_id="phase9b-lbnp-paired-smoke",
+# Two exact-attempt profiles rather than one profile branching on route: the
+# assisted route has a different runtime, and a runtime must never be chosen by a
+# condition evaluated inside the security path.
+PHASE9B_DIRECT_WORKER_PROFILE = WorkerAuthorityProfile(
+    schema_version=WORKER_PROFILE_SCHEMA_VERSION,
+    profile_id="phase9b-lbnp-direct",
+    route=ROUTE_DIRECT,
     request_id="phase9b-lbnp-paired-smoke-v001",
     inchikey="LBNPGYISTSLAHY-UHFFFAOYSA-N",
-    attempt_ids=(
-        "attempt-phase9b-lbnp-direct-v001",
-        "attempt-phase9b-lbnp-assisted-v001",
-    ),
+    attempt_ids=("attempt-phase9b-lbnp-direct-v001",),
     electron_count=160,
     allowed_cpus=frozenset({0, 1, 2, 3}),
+    gpu_required=False,
     load_permit_and_authority=_load_phase9b_permit_and_authority,
     consumed_permit_type=ConsumedPhase9BPermit,
     authority_type=Phase9BExactAuthority,
+    read_claim_identity=_read_phase9b_claim_identity,
     capability_identity_key="phase9b-lbnp-paired-smoke",
     reload_permit_and_authority=_reload_phase9b_permit_and_authority,
     # Phase 9B's validator checks the frozen constants inline; parity with the
     # Phase 8B match was verified item by item before this was set to False.
     uses_frozen_worker_match=False,
+    execution_adapter=DIRECT_ADAPTER,
+)
+
+PHASE9B_ASSISTED_WORKER_PROFILE = WorkerAuthorityProfile(
+    schema_version=WORKER_PROFILE_SCHEMA_VERSION,
+    profile_id="phase9b-lbnp-assisted",
+    route=ROUTE_ASSISTED,
+    request_id="phase9b-lbnp-paired-smoke-v001",
+    inchikey="LBNPGYISTSLAHY-UHFFFAOYSA-N",
+    attempt_ids=("attempt-phase9b-lbnp-assisted-v001",),
+    electron_count=160,
+    allowed_cpus=frozenset({0, 1, 2, 3}),
+    gpu_required=True,
+    load_permit_and_authority=_load_phase9b_permit_and_authority,
+    consumed_permit_type=ConsumedPhase9BPermit,
+    authority_type=Phase9BExactAuthority,
+    read_claim_identity=_read_phase9b_claim_identity,
+    capability_identity_key="phase9b-lbnp-paired-smoke",
+    reload_permit_and_authority=_reload_phase9b_permit_and_authority,
+    uses_frozen_worker_match=False,
+    execution_adapter=ASSISTED_ADAPTER,
 )
 
 WORKER_AUTHORITY_PROFILES: tuple[WorkerAuthorityProfile, ...] = (
     PHASE8B_WORKER_PROFILE,
-    PHASE9B_WORKER_PROFILE,
+    PHASE9B_DIRECT_WORKER_PROFILE,
+    PHASE9B_ASSISTED_WORKER_PROFILE,
 )
 
 
@@ -288,43 +457,120 @@ class _WorkerArguments:
     release_token: str | None
 
 
+WORKER_REQUIRED_FLAGS: Final[tuple[str, ...]] = (
+    "--request-path",
+    "--output-root",
+    "--attempt-id",
+    "--consumed-permit-path",
+    "--expected-permit-sha256",
+    "--expected-request-sha256",
+    "--expected-runner-source-sha256",
+    "--expected-payload-manifest-sha256",
+    "--expected-transport-inventory-sha256",
+    "--compute-claim-path",
+    "--authorized-output-root",
+    "--absolute-deadline-ns",
+    "--release-token",
+)
+
+_WORKER_PATH_FLAGS: Final[frozenset[str]] = frozenset(
+    {
+        "--request-path",
+        "--output-root",
+        "--consumed-permit-path",
+        "--compute-claim-path",
+        "--authorized-output-root",
+    }
+)
+_WORKER_SHA256_FLAGS: Final[frozenset[str]] = frozenset(
+    {
+        "--expected-permit-sha256",
+        "--expected-request-sha256",
+        "--expected-runner-source-sha256",
+        "--expected-payload-manifest-sha256",
+        "--expected-transport-inventory-sha256",
+        "--release-token",
+    }
+)
+_WORKER_INTEGER_FLAGS: Final[frozenset[str]] = frozenset({"--absolute-deadline-ns"})
+
+
+class WorkerArgumentError(runner.ExecutionNotAuthorizedError):
+    """The worker argv did not match its closed contract."""
+
+
 def _parse_arguments(argv: Sequence[str] | None) -> _WorkerArguments:
-    parser = argparse.ArgumentParser(
-        prog="nhc-deprot-two-endpoint-worker",
-        description="internal fixed-attempt worker; invoke only through the parent supervisor",
-    )
-    parser.add_argument("--request-path", required=True, type=Path)
-    parser.add_argument("--output-root", required=True, type=Path)
-    parser.add_argument("--attempt-id", required=True)
-    parser.add_argument("--consumed-permit-path", type=Path)
-    parser.add_argument("--expected-permit-sha256")
-    parser.add_argument("--expected-request-sha256")
-    parser.add_argument("--expected-runner-source-sha256")
-    parser.add_argument("--expected-payload-manifest-sha256")
-    parser.add_argument("--expected-transport-inventory-sha256")
-    parser.add_argument("--compute-claim-path", type=Path)
-    parser.add_argument("--authorized-output-root", type=Path)
-    parser.add_argument("--absolute-deadline-ns", type=int)
-    parser.add_argument("--release-token")
-    parsed = parser.parse_args(argv)
+    """Closed parser, not ``argparse``.
+
+    ``argparse`` honours unambiguous flag abbreviations, so ``--attempt`` would be
+    accepted for ``--attempt-id``.  The supervisor already rejects that, and a
+    worker that is only ever started by the supervisor must still hold the same
+    identity contract: a weaker inner interface is a weaker system.
+    """
+
+    tokens = list(sys.argv[1:] if argv is None else argv)
+    values: dict[str, str] = {}
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if not token.startswith("--"):
+            raise WorkerArgumentError(f"positional arguments are not accepted: {token!r}")
+        if "=" in token:
+            raise WorkerArgumentError(f"inline flag values are not accepted: {token!r}")
+        if token not in WORKER_REQUIRED_FLAGS:
+            raise WorkerArgumentError(f"argument is not whitelisted: {token}")
+        if token in values:
+            raise WorkerArgumentError(f"argument repeated: {token}")
+        if index + 1 >= len(tokens):
+            raise WorkerArgumentError(f"argument has no value: {token}")
+        raw = tokens[index + 1]
+        if not raw:
+            raise WorkerArgumentError(f"{token} has an empty value")
+        if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in raw):
+            raise WorkerArgumentError(f"{token} contains a control character, newline, or NUL")
+        values[token] = raw
+        index += 2
+
+    missing = [flag for flag in WORKER_REQUIRED_FLAGS if flag not in values]
+    if missing:
+        raise WorkerArgumentError(f"argument is missing: {missing[0]}")
+
+    for flag in _WORKER_SHA256_FLAGS:
+        candidate = values[flag]
+        if len(candidate) != 64 or any(ch not in "0123456789abcdef" for ch in candidate):
+            raise WorkerArgumentError(f"{flag} is not a lowercase SHA256")
+    integers: dict[str, int] = {}
+    for flag in _WORKER_INTEGER_FLAGS:
+        raw = values[flag]
+        if not raw.isdigit():
+            raise WorkerArgumentError(f"{flag} is not a non-negative decimal integer")
+        integers[flag] = int(raw)
+    for flag in _WORKER_PATH_FLAGS:
+        candidate = values[flag]
+        path = PurePosixPath(candidate)
+        if not path.is_absolute() or path.as_posix() != candidate:
+            raise WorkerArgumentError(f"{flag} is not a normalized absolute path")
+        if any(part in {".", ".."} for part in path.parts):
+            raise WorkerArgumentError(f"{flag} contains a dot or traversal segment")
+
     return _WorkerArguments(
-        request_path=parsed.request_path,
-        output_root=parsed.output_root,
-        attempt_id=parsed.attempt_id,
-        consumed_permit_path=parsed.consumed_permit_path,
-        expected_permit_sha256=parsed.expected_permit_sha256,
-        expected_request_sha256=parsed.expected_request_sha256,
-        expected_runner_source_sha256=parsed.expected_runner_source_sha256,
-        expected_payload_manifest_sha256=parsed.expected_payload_manifest_sha256,
-        expected_transport_inventory_sha256=parsed.expected_transport_inventory_sha256,
-        compute_claim_path=parsed.compute_claim_path,
-        authorized_output_root=parsed.authorized_output_root,
-        absolute_deadline_ns=parsed.absolute_deadline_ns,
-        release_token=parsed.release_token,
+        request_path=Path(values["--request-path"]),
+        output_root=Path(values["--output-root"]),
+        attempt_id=values["--attempt-id"],
+        consumed_permit_path=Path(values["--consumed-permit-path"]),
+        expected_permit_sha256=values["--expected-permit-sha256"],
+        expected_request_sha256=values["--expected-request-sha256"],
+        expected_runner_source_sha256=values["--expected-runner-source-sha256"],
+        expected_payload_manifest_sha256=values["--expected-payload-manifest-sha256"],
+        expected_transport_inventory_sha256=values["--expected-transport-inventory-sha256"],
+        compute_claim_path=Path(values["--compute-claim-path"]),
+        authorized_output_root=Path(values["--authorized-output-root"]),
+        absolute_deadline_ns=integers["--absolute-deadline-ns"],
+        release_token=values["--release-token"],
     )
 
 
-def _require_phase8b_arguments(
+def _require_guarded_arguments(
     arguments: _WorkerArguments,
 ) -> tuple[Path, str, str, str, str, str, Path, Path, int, str]:
     values = (
@@ -341,7 +587,7 @@ def _require_phase8b_arguments(
     )
     if any(value is None for value in values):
         raise runner.ExecutionNotAuthorizedError(
-            "worker requires the complete consumed Phase 8B authority"
+            "worker requires the complete consumed guarded authority"
         )
     return (
         arguments.consumed_permit_path,
@@ -392,28 +638,33 @@ def _validate_worker_compute_claim(
     attempt_id: str,
     profile: WorkerAuthorityProfile,
 ) -> None:
-    # Profile-driven gate: catches objects from the wrong authority chain, which a
-    # concrete check alone would let through when the profile disagrees.
+    """One comparison, for every chain, against a profile-read identity view.
+
+    The concrete permit and authority classes are checked once, by the profile's
+    own declared types, and then read through that profile's adapter.  Nothing
+    below this line knows which chain it is looking at, so a new chain cannot
+    weaken the comparison and there is no branch to take a laxer path.
+    """
+
     if not isinstance(consumed, profile.consumed_permit_type) or not isinstance(
         authority, profile.authority_type
     ):
         raise runner.ExecutionNotAuthorizedError("worker compute claim authority type drifted")
-    # This function body still reads Phase 8B-shaped fields, so it genuinely
-    # requires that shape today.  Stated explicitly rather than assumed.
-    if not isinstance(consumed, ConsumedPhase8BPermit) or not isinstance(
-        authority, ExactPhase8BAuthority
-    ):
-        raise runner.ExecutionNotAuthorizedError(
-            "compute claim validation still requires the Phase 8B object shape"
-        )
+    view = profile.read_claim_identity(consumed=consumed, authority=authority)
+    if view.attempt_id != attempt_id or attempt_id not in profile.attempt_ids:
+        raise runner.ExecutionNotAuthorizedError("compute claim attempt identity drifted")
+    if view.request_id != profile.request_id or view.inchikey != profile.inchikey:
+        raise runner.ExecutionNotAuthorizedError("compute claim candidate identity drifted")
+    if view.electron_count != profile.electron_count:
+        raise runner.ExecutionNotAuthorizedError("compute claim electron count drifted")
+
     claim = evidence.claim
     bound = claim.authority
-    permit = consumed.permit
     expected_paths = {
-        "registration": permit.run_root / "private/worker_registration.json",
-        "acknowledgement": permit.run_root / "private/guardian_acknowledgement.json",
-        "compute_claim": permit.run_root / "private/compute_claim.json",
-        "receipt": permit.run_root / "private/guardian_receipt.json",
+        "registration": view.run_root / "private/worker_registration.json",
+        "acknowledgement": view.run_root / "private/guardian_acknowledgement.json",
+        "compute_claim": view.run_root / "private/compute_claim.json",
+        "receipt": view.run_root / "private/guardian_receipt.json",
     }
     if (
         claim.paths.registration != expected_paths["registration"]
@@ -425,34 +676,32 @@ def _validate_worker_compute_claim(
         or bound.transport_inventory_sha256 != expected_transport_inventory_sha256
         or not (
             bound.payload_manifest_sha256
-            == authority.payload_manifest_sha256
+            == view.payload_manifest_sha256
             == expected_payload_manifest_sha256
         )
-        or not (bound.permit_sha256 == authority.permit_sha256 == expected_permit_sha256)
-        or not (bound.request_sha256 == authority.request_sha256 == request.request_sha256)
+        or not (bound.permit_sha256 == view.permit_sha256 == expected_permit_sha256)
+        or not (bound.request_sha256 == view.request_sha256 == request.request_sha256)
         or bound.request_sha256 != expected_request_sha256
         or not (
-            bound.runner_source_sha256
-            == authority.runner_source_sha256
-            == request.runner_source_sha256
+            bound.runner_source_sha256 == view.runner_source_sha256 == request.runner_source_sha256
         )
         or bound.runner_source_sha256 != expected_runner_source_sha256
         or bound.protocol_sha256 != request.protocol_sha256
-        or bound.resources_sha256 != authority.resources_sha256
+        or bound.resources_sha256 != view.resources_sha256
         or bound.cation_xyz_sha256 != request.cation.xyz_sha256
         or bound.neutral_xyz_sha256 != request.neutral.xyz_sha256
-        or bound.endpoint_atom_map_sha256 != authority.endpoint_atom_map_sha256
-        or bound.legacy_atom_map_sha256 != authority.legacy_atom_map_sha256
-        or bound.geometry_validation_sha256 != authority.geometry_validation_sha256
-        or bound.electron_count != authority.electron_count
-        or not (bound.request_id == authority.request_id == request.request_id)
-        or not (bound.inchikey == authority.inchikey == request.inchikey)
-        or not (bound.attempt_id == authority.attempt_id == attempt_id)
-        or bound.project_root != permit.project_root
-        or bound.run_root != permit.run_root
-        or not (bound.request_path == permit.request_path == request.request_path)
-        or not (bound.output_root == permit.output_root == authorized_output_root)
-        or consumed.consumed_sha256 != bound.permit_sha256
+        or bound.endpoint_atom_map_sha256 != view.endpoint_atom_map_sha256
+        or bound.legacy_atom_map_sha256 != view.legacy_atom_map_sha256
+        or bound.geometry_validation_sha256 != view.geometry_validation_sha256
+        or bound.electron_count != view.electron_count
+        or not (bound.request_id == view.request_id == request.request_id)
+        or not (bound.inchikey == view.inchikey == request.inchikey)
+        or not (bound.attempt_id == view.attempt_id == attempt_id)
+        or bound.project_root != view.project_root
+        or bound.run_root != view.run_root
+        or not (bound.request_path == view.request_path == request.request_path)
+        or not (bound.output_root == view.output_root == authorized_output_root)
+        or view.consumed_sha256 != bound.permit_sha256
     ):
         raise runner.ExecutionNotAuthorizedError(
             "durable compute claim differs from consumed request/bundle/path authority"
@@ -463,6 +712,9 @@ def main(
     argv: Sequence[str] | None = None,
     *,
     bootstrap_proof: object | None = None,
+    gpu_index: int = 0,
+    backend_factory: object | None = None,
+    aimnet2_runtime_factory: object | None = None,
     identity_reader: IdentityReader = read_process_identity,
     task_affinity_reader: TaskAffinityReader = read_task_affinities,
     clock_ns: Callable[[], int] = time.monotonic_ns,
@@ -487,7 +739,7 @@ def main(
         authorized_output_root,
         absolute_deadline_ns,
         release_token,
-    ) = _require_phase8b_arguments(arguments)
+    ) = _require_guarded_arguments(arguments)
     profile = _resolve_worker_profile(arguments.attempt_id)
     runner._validate_endpoint_pair_electrons(  # pyright: ignore[reportPrivateUsage]
         request.cation,
@@ -567,17 +819,27 @@ def main(
             else None
         ),
     )
-    try:
-        runner._execute_validated_request(  # pyright: ignore[reportPrivateUsage]
+    # The route's runtime is whatever its exact attempt registered, and nothing
+    # else.  Before this the worker ended with one unconditional PySCFBackend, so
+    # direct and assisted executed identically.
+    adapter = resolve_execution_adapter(arguments.attempt_id)
+    if adapter is not profile.execution_adapter:
+        raise runner.ExecutionNotAuthorizedError(
+            "the registered execution adapter disagrees with the worker profile"
+        )
+    return int(
+        adapter.execute(
             request,
             arguments.output_root,
-            backend=runner.PySCFBackend(compute_capability),
+            capability=compute_capability,
             attempt_id=arguments.attempt_id,
             absolute_deadline_monotonic=absolute_deadline_ns / 1_000_000_000,
+            run_root=authorized_output_root.parent,
+            gpu_index=gpu_index,
+            backend_factory=backend_factory,
+            aimnet2_runtime_factory=aimnet2_runtime_factory,
         )
-    except runner.TwoEndpointRunError as error:
-        return error.exit_code
-    return 0
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover - exercised only by the supervisor

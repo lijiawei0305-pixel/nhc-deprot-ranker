@@ -9,12 +9,10 @@ refuses execution until permit and capability wiring exist.
 
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from nhc_deprot_ranker.quantum import phase8b_permit as permit_module
 from nhc_deprot_ranker.quantum import phase9b_authority as p9b_authority
 from nhc_deprot_ranker.quantum import phase9b_permit as p9b_permit_module
 from nhc_deprot_ranker.quantum import phase9b_supervisor as p9b_supervisor
@@ -22,7 +20,7 @@ from nhc_deprot_ranker.quantum import two_endpoint as runner
 from nhc_deprot_ranker.quantum import worker
 from nhc_deprot_ranker.quantum.worker import (
     PHASE8B_WORKER_PROFILE,
-    PHASE9B_WORKER_PROFILE,
+    PHASE9B_DIRECT_WORKER_PROFILE,
     WORKER_AUTHORITY_PROFILES,
     _resolve_worker_profile,
 )
@@ -65,10 +63,20 @@ def _endpoint_pair(
     return cation, neutral
 
 
-def test_profile_table_holds_exactly_the_two_known_chains() -> None:
-    assert WORKER_AUTHORITY_PROFILES == (PHASE8B_WORKER_PROFILE, PHASE9B_WORKER_PROFILE)
-    all_attempts = [a for p in WORKER_AUTHORITY_PROFILES for a in p.attempt_ids]
-    assert len(all_attempts) == len(set(all_attempts)), "attempt ids must be globally unique"
+def test_profile_table_holds_exactly_the_three_exact_attempts() -> None:
+    """Two exact-attempt Phase 9B profiles, not one profile branching on route."""
+
+    assert len(WORKER_AUTHORITY_PROFILES) == 3
+    assert {profile.profile_id for profile in WORKER_AUTHORITY_PROFILES} == {
+        "phase8b-qxh-smoke",
+        "phase9b-lbnp-direct",
+        "phase9b-lbnp-assisted",
+    }
+    # Each binds exactly one attempt, so no profile can serve two routes.
+    for profile in WORKER_AUTHORITY_PROFILES:
+        assert len(profile.attempt_ids) == 1
+    seen = [profile.attempt_ids[0] for profile in WORKER_AUTHORITY_PROFILES]
+    assert len(set(seen)) == 3
 
 
 def test_phase8b_profile_reproduces_the_historical_constants_verbatim() -> None:
@@ -85,19 +93,34 @@ def test_phase9b_profile_agrees_with_authority_and_supervisor_modules() -> None:
     """The profile duplicates closure-external constants; keep them honest."""
 
     candidate = p9b_authority.PHASE9B_CANDIDATE
-    assert PHASE9B_WORKER_PROFILE.inchikey == candidate.inchikey
-    assert PHASE9B_WORKER_PROFILE.electron_count == candidate.electron_count == 160
-    assert PHASE9B_WORKER_PROFILE.request_id == p9b_supervisor.REQUEST_ID
-    assert PHASE9B_WORKER_PROFILE.attempt_ids == (
-        p9b_supervisor.ROUTE_D_ATTEMPT_ID,
+    assert PHASE9B_DIRECT_WORKER_PROFILE.inchikey == candidate.inchikey
+    assert PHASE9B_DIRECT_WORKER_PROFILE.electron_count == candidate.electron_count == 160
+    assert PHASE9B_DIRECT_WORKER_PROFILE.request_id == p9b_supervisor.REQUEST_ID
+    assert PHASE9B_DIRECT_WORKER_PROFILE.attempt_ids == (p9b_supervisor.ROUTE_D_ATTEMPT_ID,)
+    assert worker.PHASE9B_ASSISTED_WORKER_PROFILE.attempt_ids == (
         p9b_supervisor.ROUTE_A_ATTEMPT_ID,
+    )
+    # Same request and candidate, different route and different runtime.
+    assert (
+        worker.PHASE9B_ASSISTED_WORKER_PROFILE.request_id
+        == PHASE9B_DIRECT_WORKER_PROFILE.request_id
+    )
+    assert PHASE9B_DIRECT_WORKER_PROFILE.route != worker.PHASE9B_ASSISTED_WORKER_PROFILE.route
+    assert (
+        PHASE9B_DIRECT_WORKER_PROFILE.execution_adapter
+        is not worker.PHASE9B_ASSISTED_WORKER_PROFILE.execution_adapter
     )
 
 
 def test_resolver_maps_each_attempt_to_its_profile_and_rejects_unknowns() -> None:
     assert _resolve_worker_profile("attempt-phase8b-qxh-v001") is PHASE8B_WORKER_PROFILE
-    assert _resolve_worker_profile(p9b_supervisor.ROUTE_D_ATTEMPT_ID) is PHASE9B_WORKER_PROFILE
-    assert _resolve_worker_profile(p9b_supervisor.ROUTE_A_ATTEMPT_ID) is PHASE9B_WORKER_PROFILE
+    assert (
+        _resolve_worker_profile(p9b_supervisor.ROUTE_D_ATTEMPT_ID) is PHASE9B_DIRECT_WORKER_PROFILE
+    )
+    assert (
+        _resolve_worker_profile(p9b_supervisor.ROUTE_A_ATTEMPT_ID)
+        is worker.PHASE9B_ASSISTED_WORKER_PROFILE
+    )
     with pytest.raises(runner.ExecutionNotAuthorizedError, match="no worker authority profile"):
         _resolve_worker_profile("attempt-nowhere")
 
@@ -117,7 +140,7 @@ def test_phase9b_pair_passes_against_its_own_profile_count() -> None:
     result = runner._validate_endpoint_pair_electrons(  # pyright: ignore[reportPrivateUsage]
         cation,
         neutral,
-        expected_electron_count=PHASE9B_WORKER_PROFILE.electron_count,
+        expected_electron_count=PHASE9B_DIRECT_WORKER_PROFILE.electron_count,
     )
     assert result == 160
 
@@ -153,7 +176,7 @@ def test_phase8b_shaped_pair_fails_against_the_phase9b_electron_count() -> None:
         runner._validate_endpoint_pair_electrons(  # pyright: ignore[reportPrivateUsage]
             cation,
             neutral,
-            expected_electron_count=PHASE9B_WORKER_PROFILE.electron_count,
+            expected_electron_count=PHASE9B_DIRECT_WORKER_PROFILE.electron_count,
         )
 
 
@@ -234,93 +257,12 @@ class _FakeAuthority9B(p9b_permit_module.Phase9BExactAuthority):
         pass
 
 
-class _FakeRequest:
-    """Endpoint-bearing stub: electron validation now runs before permit I/O."""
-
-    execution_authorized = True
-
-    def __init__(self, electron_count: int = 160) -> None:
-        if electron_count == 120:
-            cation, neutral = _endpoint_pair_120()
-        else:
-            cation, neutral = _endpoint_pair(electron_count=electron_count)
-        self.cation = cation
-        self.neutral = neutral
-
-
-def test_phase9b_profile_stops_at_capability_not_at_the_permit(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """Permit and authority are live for every profile; capability is not.
-
-    The Phase 8B permit loader must never be reached by a Phase 9B attempt: that
-    would mean the adapter dispatched to the wrong chain.
-    """
-
-    monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
-    monkeypatch.setattr(runner, "load_two_endpoint_request", lambda path: _FakeRequest())
-
-    def _wrong_chain(*args: object, **kwargs: object) -> object:
-        raise AssertionError("a Phase 9B attempt must not use the Phase 8B permit loader")
-
-    monkeypatch.setattr(permit_module, "load_consumed_phase8b_permit", _wrong_chain)
-
-    reached: list[str] = []
-
-    def _record(*args: object, **kwargs: object) -> object:
-        reached.append("phase9b-loader")
-        raise runner.ExecutionNotAuthorizedError("synthetic 9B permit stop")
-
-    monkeypatch.setattr(p9b_permit_module, "load_consumed_phase9b_permit", _record)
-    with pytest.raises(runner.ExecutionNotAuthorizedError, match="synthetic 9B permit stop"):
-        worker.main(_full_argv(p9b_supervisor.ROUTE_D_ATTEMPT_ID, tmp_path))
-    assert reached == ["phase9b-loader"]
-
-
-def test_phase9b_now_reaches_capability_issue(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """Previously refused before capability; the refusal is now gone.
-
-    Reaching capability issue is the point of the parameterization, so assert it
-    positively rather than asserting the absence of an error message.
-    """
-
-    monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
-    monkeypatch.setattr(runner, "load_two_endpoint_request", lambda path: _FakeRequest())
-    patched = replace(
-        worker.PHASE9B_WORKER_PROFILE,
-        load_permit_and_authority=lambda **kwargs: (
-            _FakeConsumed9B(),
-            _FakeAuthority9B(),
-        ),
-    )
-    monkeypatch.setattr(worker, "_resolve_worker_profile", lambda attempt_id: patched)
-
-    reached: list[str] = []
-
-    def _capability(**kwargs: object) -> object:
-        reached.append(str(kwargs["identity_key"]))
-        raise runner.ExecutionNotAuthorizedError("synthetic capability stop")
-
-    monkeypatch.setattr(runner, "_issue_guarded_compute_capability", _capability)
-    monkeypatch.setattr(worker, "_validate_worker_scratch", lambda *a, **k: None)
-    monkeypatch.setattr(
-        worker, "load_and_validate_compute_claim_for_worker", lambda *a, **k: object()
-    )
-    monkeypatch.setattr(worker, "_validate_worker_compute_claim", lambda *a, **k: None)
-
-    with pytest.raises(runner.ExecutionNotAuthorizedError, match="synthetic capability stop"):
-        worker.main(_full_argv(p9b_supervisor.ROUTE_D_ATTEMPT_ID, tmp_path))
-    assert reached == ["phase9b-lbnp-paired-smoke"]
-
-
 def test_each_profile_carries_its_own_capability_identity_key() -> None:
     assert PHASE8B_WORKER_PROFILE.capability_identity_key == "phase8b-qxh-smoke"
-    assert PHASE9B_WORKER_PROFILE.capability_identity_key == "phase9b-lbnp-paired-smoke"
+    assert PHASE9B_DIRECT_WORKER_PROFILE.capability_identity_key == "phase9b-lbnp-paired-smoke"
     assert (
         PHASE8B_WORKER_PROFILE.capability_identity_key
-        != PHASE9B_WORKER_PROFILE.capability_identity_key
+        != PHASE9B_DIRECT_WORKER_PROFILE.capability_identity_key
     )
     registry = runner._CAPABILITY_IDENTITY_EXPECTATIONS  # pyright: ignore[reportPrivateUsage]
     for profile in WORKER_AUTHORITY_PROFILES:
@@ -331,7 +273,7 @@ def test_only_phase8b_uses_the_frozen_worker_match() -> None:
     """Phase 9B's validator checks the frozen constants inline instead."""
 
     assert PHASE8B_WORKER_PROFILE.uses_frozen_worker_match is True
-    assert PHASE9B_WORKER_PROFILE.uses_frozen_worker_match is False
+    assert PHASE9B_DIRECT_WORKER_PROFILE.uses_frozen_worker_match is False
 
 
 def test_each_profile_reloads_through_its_own_chain() -> None:
@@ -340,7 +282,7 @@ def test_each_profile_reloads_through_its_own_chain() -> None:
         is worker._reload_phase8b_permit_and_authority
     )
     assert (
-        PHASE9B_WORKER_PROFILE.reload_permit_and_authority
+        PHASE9B_DIRECT_WORKER_PROFILE.reload_permit_and_authority
         is worker._reload_phase9b_permit_and_authority
     )
 
@@ -392,11 +334,14 @@ def test_each_profile_declares_the_types_its_own_chain_produces() -> None:
 
     assert PHASE8B_WORKER_PROFILE.consumed_permit_type is ConsumedPhase8BPermit
     assert PHASE8B_WORKER_PROFILE.authority_type is ExactPhase8BAuthority
-    assert PHASE9B_WORKER_PROFILE.consumed_permit_type is ConsumedPhase9BPermit
-    assert PHASE9B_WORKER_PROFILE.authority_type is Phase9BExactAuthority
+    assert PHASE9B_DIRECT_WORKER_PROFILE.consumed_permit_type is ConsumedPhase9BPermit
+    assert PHASE9B_DIRECT_WORKER_PROFILE.authority_type is Phase9BExactAuthority
 
     eight = {PHASE8B_WORKER_PROFILE.consumed_permit_type, PHASE8B_WORKER_PROFILE.authority_type}
-    nine = {PHASE9B_WORKER_PROFILE.consumed_permit_type, PHASE9B_WORKER_PROFILE.authority_type}
+    nine = {
+        PHASE9B_DIRECT_WORKER_PROFILE.consumed_permit_type,
+        PHASE9B_DIRECT_WORKER_PROFILE.authority_type,
+    }
     assert not eight & nine, "the two chains must not share a permit or authority type"
 
 
@@ -406,7 +351,7 @@ def test_each_profile_dispatches_to_its_own_loader() -> None:
         is worker._load_phase8b_permit_and_authority
     )
     assert (
-        PHASE9B_WORKER_PROFILE.load_permit_and_authority
+        PHASE9B_DIRECT_WORKER_PROFILE.load_permit_and_authority
         is worker._load_phase9b_permit_and_authority
     )
 
