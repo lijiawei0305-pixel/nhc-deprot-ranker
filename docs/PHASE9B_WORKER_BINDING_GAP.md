@@ -144,6 +144,11 @@ with the closure change:
 
 ```text
 load_consumed_phase8b_permit          permit schema and loader
+                                      -> Phase 9B counterpart now exists:
+                                         quantum/phase9b_permit.py (render,
+                                         parse, consumed-load; profile-driven,
+                                         per-route one-shot; outside the
+                                         closure until wiring)
 validate_exact_phase8b_authority      authority validation and its types
 _issue_phase8b_compute_capability     capability issue, including the frozen
                                       worker-authority match in two_endpoint.py
