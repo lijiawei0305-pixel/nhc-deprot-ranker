@@ -1309,6 +1309,55 @@ def _retained_runtime_evidence(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class CapabilityIdentityExpectation:
+    """The frozen, candidate-specific values a compute capability must carry.
+
+    Parameterizes what ``_validate_compute_capability_fields`` compares against,
+    so a second authority chain needs a registry entry rather than an edit to the
+    validation logic.  Entries live in this file, which is inside the runner
+    source closure, so they are hash-bound exactly like code.
+    """
+
+    identity_key: str
+    request_id: str
+    inchikey: str
+    attempt_id: str
+    protocol_sha256: str
+    electron_count: int
+    resources_sha256: str
+    endpoint_atom_map_sha256: str
+    legacy_atom_map_sha256: str
+    geometry_validation_sha256: str
+
+
+PHASE8B_CAPABILITY_IDENTITY_KEY: Final = "phase8b-qxh-smoke"
+
+
+def _phase8b_capability_identity_expectation() -> CapabilityIdentityExpectation:
+    """Reproduce the historical Phase 8B constants verbatim."""
+
+    return CapabilityIdentityExpectation(
+        identity_key=PHASE8B_CAPABILITY_IDENTITY_KEY,
+        request_id=FROZEN_REQUEST_ID,
+        inchikey=FROZEN_INCHIKEY,
+        attempt_id=FROZEN_ATTEMPT_ID,
+        protocol_sha256=FROZEN_PROTOCOL_SHA256,
+        electron_count=FROZEN_ELECTRON_COUNT,
+        resources_sha256=_frozen_resources_sha256(),
+        endpoint_atom_map_sha256=FROZEN_INPUT_SHA256["endpoint_atom_map"],
+        legacy_atom_map_sha256=FROZEN_INPUT_SHA256["legacy_atom_map"],
+        geometry_validation_sha256=PHASE7_GEOMETRY_VALIDATION_SHA256,
+    )
+
+
+# Only chains with a fully frozen expectation appear here.  A capability whose
+# key is absent cannot be validated and therefore cannot be claimed.
+_CAPABILITY_IDENTITY_EXPECTATIONS: Final[dict[str, Callable[[], CapabilityIdentityExpectation]]] = {
+    PHASE8B_CAPABILITY_IDENTITY_KEY: _phase8b_capability_identity_expectation
+}
+
+
 _COMPUTE_CAPABILITY_SEAL: Final = object()
 
 
@@ -1324,6 +1373,7 @@ class _Phase8BComputeCapability:
         "_electron_count",
         "_endpoint_atom_map_sha256",
         "_geometry_validation_sha256",
+        "_identity_key",
         "_inchikey",
         "_legacy_atom_map_sha256",
         "_output_root",
@@ -1350,10 +1400,12 @@ class _Phase8BComputeCapability:
         authority: ExactPhase8BAuthority,
         protocol_sha256: str,
         compute_claim_sha256: str,
+        identity_key: str,
     ) -> None:
         if seal is not _COMPUTE_CAPABILITY_SEAL:
             raise TypeError("Phase 8B compute capabilities cannot be caller-constructed")
         self._seal = seal
+        self._identity_key = identity_key
         self._pid = pid
         self._absolute_deadline_ns = absolute_deadline_ns
         self._request_sha256 = authority.request_sha256
@@ -1389,6 +1441,7 @@ def _compute_capability_binding(
     capability: _Phase8BComputeCapability,
 ) -> _ComputeCapabilityBinding:
     return (
+        capability._identity_key,
         capability._pid,
         capability._absolute_deadline_ns,
         capability._compute_claim_sha256,
@@ -1562,6 +1615,7 @@ def _issue_phase8b_compute_capability(
         authority=revalidated,
         protocol_sha256=request.protocol_sha256,
         compute_claim_sha256=claim_hash,
+        identity_key=PHASE8B_CAPABILITY_IDENTITY_KEY,
     )
     _LIVE_COMPUTE_CAPABILITIES[id(capability)] = (
         capability,
@@ -1576,15 +1630,24 @@ def _validate_compute_capability_fields(capability: _Phase8BComputeCapability) -
         or capability._pid != os.getpid()
         or capability._absolute_deadline_ns <= time.monotonic_ns()
         or _SHA256_RE.fullmatch(capability._compute_claim_sha256) is None
-        or capability._request_id != FROZEN_REQUEST_ID
-        or capability._inchikey != FROZEN_INCHIKEY
-        or capability._attempt_id != FROZEN_ATTEMPT_ID
-        or capability._protocol_sha256 != FROZEN_PROTOCOL_SHA256
-        or capability._electron_count != FROZEN_ELECTRON_COUNT
-        or capability._endpoint_atom_map_sha256 != FROZEN_INPUT_SHA256["endpoint_atom_map"]
-        or capability._legacy_atom_map_sha256 != FROZEN_INPUT_SHA256["legacy_atom_map"]
-        or capability._geometry_validation_sha256 != PHASE7_GEOMETRY_VALIDATION_SHA256
-        or capability._resources_sha256 != _frozen_resources_sha256()
+    ):
+        raise ExecutionNotAuthorizedError("worker compute capability identity drifted")
+    build_expectation = _CAPABILITY_IDENTITY_EXPECTATIONS.get(capability._identity_key)
+    if build_expectation is None:
+        raise ExecutionNotAuthorizedError(
+            "worker compute capability has no frozen identity expectation"
+        )
+    expected = build_expectation()
+    if (
+        capability._request_id != expected.request_id
+        or capability._inchikey != expected.inchikey
+        or capability._attempt_id != expected.attempt_id
+        or capability._protocol_sha256 != expected.protocol_sha256
+        or capability._electron_count != expected.electron_count
+        or capability._endpoint_atom_map_sha256 != expected.endpoint_atom_map_sha256
+        or capability._legacy_atom_map_sha256 != expected.legacy_atom_map_sha256
+        or capability._geometry_validation_sha256 != expected.geometry_validation_sha256
+        or capability._resources_sha256 != expected.resources_sha256
     ):
         raise ExecutionNotAuthorizedError("worker compute capability identity drifted")
 
