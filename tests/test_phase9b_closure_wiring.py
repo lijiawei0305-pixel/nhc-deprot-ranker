@@ -42,9 +42,9 @@ def test_every_phase9b_module_is_now_in_the_closure() -> None:
         assert member in closure, member
 
 
-def test_closure_holds_exactly_twenty_one_files_with_no_duplicates() -> None:
+def test_closure_holds_exactly_twenty_three_files_with_no_duplicates() -> None:
     closure = _closure()
-    assert len(closure) == 21
+    assert len(closure) == 23
     assert len(set(closure)) == len(closure)
 
 

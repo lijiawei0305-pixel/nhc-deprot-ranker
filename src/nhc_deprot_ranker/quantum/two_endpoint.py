@@ -131,7 +131,9 @@ _RUNNER_SOURCE_RELATIVE_PATHS: Final[tuple[str, ...]] = (
     # Phase 9B modules: the capability expectation builder below imports these at
     # call time, so their content already determines closure-internal behaviour
     # and must be hash-bound like the rest.
+    "nhc_deprot_ranker/quantum/phase9b_aimnet2_runtime.py",
     "nhc_deprot_ranker/quantum/phase9b_authority.py",
+    "nhc_deprot_ranker/quantum/phase9b_execution.py",
     "nhc_deprot_ranker/quantum/phase9b_guardian.py",
     "nhc_deprot_ranker/quantum/phase9b_handoff.py",
     "nhc_deprot_ranker/quantum/phase9b_permit.py",

@@ -145,9 +145,11 @@ def test_worker_requires_every_exact_authority_argument_before_backend_or_output
         if option != missing_option
         for value in (option, value)
     ]
-    with pytest.raises(runner.ExecutionNotAuthorizedError, match="complete consumed Phase 8B"):
+    # The closed parser refuses a missing flag before anything is loaded, which
+    # is stronger than the previous behaviour: the request was read first then.
+    with pytest.raises(worker.WorkerArgumentError, match="argument is missing"):
         worker.main(argv)
-    assert events == ["request"]
+    assert events == []
     assert not output.exists()
 
 
