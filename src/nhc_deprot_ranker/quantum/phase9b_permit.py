@@ -158,7 +158,10 @@ def render_phase9b_permit(
 ) -> bytes:
     """Render deterministic private permit bytes for exactly one route."""
 
-    validate_profile_self_consistency(profile)
+    try:
+        validate_profile_self_consistency(profile)
+    except Phase9BAuthorityError as exc:
+        raise Phase9BPermitValidationError(f"candidate profile is invalid: {exc}") from exc
     chosen_route = _require_route(route)
     root = _normalized_absolute_path(project_root, label="project_root")
     request_hash = _require_sha256(request_sha256, label="request_sha256")
@@ -257,7 +260,10 @@ def parse_phase9b_permit(
 ) -> Phase9BPermit:
     """Strictly parse permit bytes back into a validated identity."""
 
-    validate_profile_self_consistency(profile)
+    try:
+        validate_profile_self_consistency(profile)
+    except Phase9BAuthorityError as exc:
+        raise Phase9BPermitValidationError(f"candidate profile is invalid: {exc}") from exc
     payload = _strict_object(raw, label="phase9b permit")
     if set(payload) != {"schema_version", "authorization", "identity", "resources", "paths"}:
         raise Phase9BPermitValidationError("permit top-level keys drifted")
@@ -531,6 +537,9 @@ class Phase9BExactAuthority:
     payload_manifest_sha256: str
     cation_xyz_sha256: str
     neutral_xyz_sha256: str
+    legacy_atom_map_sha256: str
+    endpoint_atom_map_sha256: str
+    geometry_validation_sha256: str
     electron_count: int
     request_id: str
     inchikey: str
@@ -554,7 +563,10 @@ def validate_exact_phase9b_authority(
 
     if not isinstance(consumed, ConsumedPhase9BPermit):
         raise Phase9BPermitValidationError("a consumed Phase 9B permit is required")
-    validate_profile_self_consistency(profile)
+    try:
+        validate_profile_self_consistency(profile)
+    except Phase9BAuthorityError as exc:
+        raise Phase9BPermitValidationError(f"candidate profile is invalid: {exc}") from exc
     permit = consumed.permit
     if consumed.consumed_path != permit.consumed_path:
         raise Phase9BPermitValidationError("consumed path escaped the permit layout")
@@ -593,6 +605,9 @@ def validate_exact_phase9b_authority(
         payload_manifest_sha256=permit.payload_manifest_sha256,
         cation_xyz_sha256=permit.cation_xyz_sha256,
         neutral_xyz_sha256=permit.neutral_xyz_sha256,
+        legacy_atom_map_sha256=profile.legacy_atom_map_sha256,
+        endpoint_atom_map_sha256=profile.endpoint_atom_map_sha256,
+        geometry_validation_sha256=profile.geometry_validation_sha256,
         electron_count=profile.electron_count,
         request_id=REQUEST_ID,
         inchikey=profile.inchikey,

@@ -171,17 +171,26 @@ def test_atomic_number_table_covers_every_element_the_project_needs() -> None:
 def test_profile_is_reusable_for_a_different_candidate() -> None:
     """Parameterization is the point: a second candidate needs no code change."""
 
+    from nhc_deprot_ranker.quantum.phase8b_authority import PHASE7_GEOMETRY_VALIDATION_SHA256
+    from nhc_deprot_ranker.quantum.phase8b_permit import FROZEN_INPUT_SHA256
+
+    # Real Phase 8B values, so this proves the profile can genuinely represent
+    # that chain rather than merely accepting placeholder strings.
     other = CandidateProfile(
         inchikey="QXHIEGFUWOLQIJ-UHFFFAOYSA-N",
         cation_composition={"C": 7, "N": 6, "O": 4, "H": 5},
         neutral_composition={"C": 7, "N": 6, "O": 4, "H": 4},
         electron_count=120,
         atom_map={"C2_carbene": 4, "N1": 3, "N3": 5},
-        cation_xyz_sha256="0" * 64,
-        neutral_xyz_sha256="1" * 64,
+        cation_xyz_sha256=FROZEN_INPUT_SHA256["cation_xyz"],
+        neutral_xyz_sha256=FROZEN_INPUT_SHA256["neutral_xyz"],
+        legacy_atom_map_sha256=FROZEN_INPUT_SHA256["legacy_atom_map"],
+        endpoint_atom_map_sha256=FROZEN_INPUT_SHA256["endpoint_atom_map"],
+        geometry_validation_sha256=PHASE7_GEOMETRY_VALIDATION_SHA256,
     )
     validate_profile_self_consistency(other)
     assert other.electron_count == 120
+    assert other.atom_map["C2_carbene"] == 4
 
 
 def test_module_is_not_yet_inside_the_runner_source_closure() -> None:
