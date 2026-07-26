@@ -18,7 +18,7 @@ Updated: 2026-07-26
 | Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
 | Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
 | Phase 9A-I — minimal inference characterization | Passed; six single-point calls executed | 2026-07-26; no optimization, no PySCF, no label |
-| Phase 9B — paired direct / assisted smoke | Implementation in progress; 7 of 8 components | 2026-07-26; guardian, launch transport, and Route A handoff closed; gates closed |
+| Phase 9B — paired direct / assisted smoke | Implementation in progress; 7 of 10 components | 2026-07-26; re-baselined from 8 to 10 after an execution-path audit; gates closed |
 
 ## Current completed work
 
@@ -164,8 +164,10 @@ source gates closed:
 4/8  preparation/phase9b_deploy.py       directed two-route deployment     built
 5/8  preparation/phase9b_launch.py       two-route supervisor launch       built
 6/8  pre-launch integration closure      CLI, adapter, permit stage        built
-7/8  quantum/phase9b_guardian.py         guardian, transport, handoff      built
-8/8  preparation/phase9b_postflight.py   evidence harvest and acceptance   not started
+7/10 quantum/phase9b_guardian.py         guardian, transport, handoff      built
+8/10 execution runtime closure         compute-claim closure + Route A    not started
+9/10 preparation/phase9b_postflight.py   evidence harvest and acceptance   not started
+10/10 closed-gate full-chain rehearsal   dry run and final freeze          not started
 ```
 
 Item 7 also resolved a contract contradiction the plan had carried since Phase
@@ -215,23 +217,50 @@ There are ten such gates and all ten are false.
 
 ## Next action
 
-The AIMNet2 route is not blocked on missing software; it is constrained by a
-single-member ensemble, which removes the designed per-atom disagreement signal
-at the C2 carbene centre.
+**Item 8/10 — Phase 9B execution runtime closure.**
 
-The user must resolve that before Phase 9B is requested:
+The plan is re-baselined from 8 components to 10. A line-by-line audit of the
+execution path on `main` found that the chain still cannot reach a backend on
+either route, for two reasons that must be closed as one source-freeze unit:
 
-1. proceed with one deterministic member, accepting no ensemble uncertainty;
-2. treat the incomplete ensemble as a blocker and stop the AIMNet2 route;
-3. authorize a separate minimal inference test first, to measure units, element
-   coverage, and determinism on one small molecule.
+```text
+8/10   execution runtime closure    compute-claim/capability closure + Route A
+                                    AIMNet2 production runtime
+9/10   postflight                   evidence harvest and acceptance
+10/10  closed-gate rehearsal        full-chain dry run and final freeze
+```
 
-Element coverage, energy and force units, and deterministic-mode support remain
-deliberately unmeasured, because establishing them requires running the model.
+### Corrected: the AIMNet2 ensemble question is settled
 
-Phase 9B additionally requires a new document-first plan, a new
-candidate/attempt/root/permit authority chain, and new explicit authorization.
-No model or dataset ingestion may occur from the rejected Phase 8B attempt.
+The three options previously listed here were answered and are no longer open:
+
+- Phase 9A-I **was executed and passed** on 2026-07-26. Six single-point calls
+  in three processes, no optimization, no PySCF, no label.
+- The user **accepted option 1**: proceed with the single deterministic member
+  `_0`. Ensemble mean, standard deviation, and force disagreement are recorded
+  as `unavailable_single_member` rather than filled with single-member values;
+  the safeguards are in `docs/PHASE9B_SINGLE_MEMBER_SAFEGUARDS.md`.
+- Element coverage `C/F/H/N`, energy and force units, and cross-process
+  repeatability are **measured, not unmeasured**. The results are in
+  `docs/PHASE9A_I_REPORT.md` and `docs/PHASE9A_I_RESULT_V001.json`; the first
+  call in a process took 21.9 s including `torch.compile`, later calls 1.6 s and
+  0.2 s.
+
+Nothing above rewrites a historical result: the earlier text simply outlived the
+decision it was asking for.
+
+### The real blocker
+
+```text
+worker compute-claim validation still requires the Phase 8B object shape, so a
+Phase 9B permit and authority cannot reach compute-capability issue
+
+Route A has no AIMNet2 runtime inside the guarded route, so the handoff contract
+that is built and tested is never invoked by anything
+```
+
+Phase 9B still requires separate explicit execution authorization. No model or
+dataset ingestion may occur from the rejected Phase 8B attempt.
 
 ## Known issues, recorded and not fixed
 
