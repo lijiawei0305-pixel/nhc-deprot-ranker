@@ -288,9 +288,38 @@ covered: a Phase 9B profile declaring the Phase 8B permit type was unobservable
 because the type gate is only reached at capability, and the adapter's route
 guard was unreachable through the resolver. Both are now asserted directly.
 
+## A parity gap found before parameterizing capability
+
+Before wiring compute-capability issue, the two chains' check sets were compared
+item by item rather than assumed equivalent. An earlier note in this project had
+claimed the Phase 9B validator already covered everything Phase 8B's
+`_authority_matches_frozen_worker` checks separately. **That was partly wrong.**
+
+Four checks were genuinely missing from `validate_exact_phase9b_authority`:
+
+```text
+request.schema_version        vs REQUEST_SCHEMA_VERSION
+request.execution_authorized  must be literally True
+request.protocol_sha256       vs LOCKED_PROTOCOL_SHA256
+request.timeout_seconds       vs the frozen hard_wall_timeout_seconds
+```
+
+Parameterizing capability on top of that gap would have made the Phase 9B path
+**weaker than the chain it replaces** — a request could have carried a drifted
+schema, an unauthorized flag, a different protocol, or a widened wall-time.
+
+All four are now checked, `Phase9BRequestLike` was extended to expose them, and
+each has its own regression. The constants are imported lazily inside the
+validator, because `two_endpoint` imports this module lazily in the other
+direction; both import orders were verified cycle-free.
+
+The wall-time check specifically prevents a request from enlarging the frozen
+budget at runtime, which is the resource-escalation route the resource freeze
+exists to close.
+
 ## Current state
 
 All three execution gates remain closed, the closure now holds 18 files with every
 Phase 9B module hash-bound, `phase8b_authority.py`, `phase8b_permit.py`, and
 `two_endpoint.py` are untouched, `PHASE8B_DFT_SMOKE_V001.json` is unchanged, and
-the suite passes at 711.
+the suite passes at 715.
