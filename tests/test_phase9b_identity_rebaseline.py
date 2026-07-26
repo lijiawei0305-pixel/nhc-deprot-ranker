@@ -1,6 +1,6 @@
 """Phase 9B identity re-baseline regressions.
 
-Proves the source closure was re-frozen at v5, that every regenerated identity
+Proves the source closure was re-frozen at v8, that every regenerated identity
 references that one digest, and that the superseded v4 identities are recorded
 rather than deleted or relabelled. No chemistry, no server, no compute.
 """
@@ -36,13 +36,14 @@ from nhc_deprot_ranker.quantum.phase9b_resources import (
 SUPERSEDED_SOURCE_SHA256 = "2059b35d0e62bc844e7fc602929e9e53b79cd3e9fcc6644fb4e67580e1a5a52c"
 SUPERSEDED_V5_SOURCE_SHA256 = "c914afe3f166ea1ef47dd2e27901aac660c918d110f51299c806ee605164fea8"
 SUPERSEDED_V6_SOURCE_SHA256 = "72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3"
-FINAL_SOURCE_SCHEMA = "nhc-two-endpoint-runner-source-v7"
-FINAL_SOURCE_SHA256 = "d7060a314993225595c616f4329b08689c6974de621ef663c18f891d6a7d9c22"
+SUPERSEDED_V7_SOURCE_SHA256 = "d7060a314993225595c616f4329b08689c6974de621ef663c18f891d6a7d9c22"
+FINAL_SOURCE_SCHEMA = "nhc-two-endpoint-runner-source-v8"
+FINAL_SOURCE_SHA256 = "5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2"
 FINAL_RESOURCES_SHA256 = "0fec2c1914f413a2762e1fafc7daa9900551981b5af72897746864edffac7df8"
-DIRECT_REQUEST_SHA256 = "a53c26201fd1f2989fd242681c3c382fd17cc1c88c1433cd5dcc7c0a58ec04d2"
-DIRECT_MANIFEST_SHA256 = "f73cdb9a3a34fe49738994800a1d7d79bc0b854ae197a385c3151cce2c8305b5"
-ASSISTED_REQUEST_SHA256 = "feaecb7b6de9e7ab0f8710b4fd9e094d019b3cc6c1f68d349dc901137ebe7659"
-ASSISTED_MANIFEST_SHA256 = "bc0534f72fe16eb69338af1eb897c3a705b71b7973825f7a4fe9e9732e236d7b"
+DIRECT_REQUEST_SHA256 = "acc22c67ba07e245ae001211cfb34038eeb486c3a4fbccdefdf6991b35d66635"
+DIRECT_MANIFEST_SHA256 = "906b1f39982107218fec079150851b9d14a4d9a3e4d43bf401c2dec00ed3afa9"
+ASSISTED_REQUEST_SHA256 = "b74cd3b7e433059ea5d5a9ae213917766a236f4a2c72ef97e3edc9fe6298bef1"
+ASSISTED_MANIFEST_SHA256 = "d23b12f9d7b31c6e6bd19665cf847e1f45ab6ec8825ff86a84e560fcf1f56081"
 
 _DOC = Path("docs/PHASE9B_IDENTITY_REBASELINE.md")
 
@@ -60,7 +61,7 @@ def _chain(route: str) -> tuple[str, str]:
 
 def test_the_source_schema_was_upgraded() -> None:
     assert runner.RUNNER_SOURCE_SCHEMA_VERSION == FINAL_SOURCE_SCHEMA
-    assert FINAL_SOURCE_SCHEMA.endswith("-v7")
+    assert FINAL_SOURCE_SCHEMA.endswith("-v8")
 
 
 def test_the_source_closure_is_re_frozen_at_the_recorded_digest() -> None:
@@ -185,19 +186,28 @@ def test_an_identity_built_against_the_superseded_digest_is_refused() -> None:
 
 
 def test_every_superseded_generation_is_recorded(tmp_path: Path) -> None:
-    """v4, v5, and v6 are all preserved; none is deleted or relabelled."""
+    """v4 through v7 are all preserved; none is deleted or relabelled."""
 
     del tmp_path
     text = _DOC.read_text(encoding="utf-8")
-    assert SUPERSEDED_SOURCE_SHA256 in text
-    assert SUPERSEDED_V5_SOURCE_SHA256 in text
-    assert SUPERSEDED_V6_SOURCE_SHA256 in text
-    assert text.count("superseded_before_execution") >= 3
-    assert FINAL_SOURCE_SHA256 not in {
+    superseded = (
         SUPERSEDED_SOURCE_SHA256,
         SUPERSEDED_V5_SOURCE_SHA256,
         SUPERSEDED_V6_SOURCE_SHA256,
-    }
+        SUPERSEDED_V7_SOURCE_SHA256,
+    )
+    for digest in superseded:
+        assert digest in text, digest
+    assert text.count("superseded_before_execution") >= 4
+    assert FINAL_SOURCE_SHA256 not in superseded
+    # v7's own chain is preserved rather than overwritten by v8's.
+    for digest in (
+        "a53c26201fd1f2989fd242681c3c382fd17cc1c88c1433cd5dcc7c0a58ec04d2",
+        "f73cdb9a3a34fe49738994800a1d7d79bc0b854ae197a385c3151cce2c8305b5",
+        "feaecb7b6de9e7ab0f8710b4fd9e094d019b3cc6c1f68d349dc901137ebe7659",
+        "bc0534f72fe16eb69338af1eb897c3a705b71b7973825f7a4fe9e9732e236d7b",
+    ):
+        assert digest in text, f"a v7 identity was deleted rather than superseded: {digest}"
 
 
 def test_the_superseded_identities_are_recorded_and_correctly_labelled() -> None:

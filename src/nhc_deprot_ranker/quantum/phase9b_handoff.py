@@ -40,7 +40,8 @@ from types import MappingProxyType
 from typing import Final
 
 HANDOFF_SCHEMA_VERSION: Final = "nhc-phase9b-pyscf-handoff-v1"
-PREOPTIMIZATION_SCHEMA_VERSION: Final = "nhc-phase9b-aimnet2-preoptimization-v1"
+PREOPTIMIZATION_SCHEMA_VERSION: Final = "nhc-phase9b-aimnet2-preoptimization-v2"
+TRAJECTORY_SCHEMA_VERSION: Final = "nhc-phase9b-aimnet2-trajectory-v1"
 
 # The single local ensemble member.  Members _1.._3 are absent and may not be
 # downloaded; see docs/PHASE9B_SINGLE_MEMBER_SAFEGUARDS.md.
@@ -63,6 +64,30 @@ AIMNET2_OPTIMIZER_PROTOCOL: Final[Mapping[str, object]] = MappingProxyType(
         "ensemble_uncertainty_available": False,
         "compile_model": False,
         "deterministic_single_member": True,
+        # Bound here so the permit closes over how the model is obtained, not
+        # only over what is run.  Proved from installed source in Phase 9A-S4.
+        "loader_decision": "A",
+        "loader_evidence_grade": "source_proven",
+        "loader_evidence_phase": "9A-S4",
+        "model_path_must_be_absolute": True,
+        "model_registry_alias_allowed": False,
+        "huggingface_allowed": False,
+        "revision_or_token_used": False,
+        "manual_load_model_call": False,
+        "extra_eval_call": False,
+        "validate_species": True,
+        "base_model_loads_per_route": 1,
+        "endpoint_wrappers_per_route": 2,
+        # ASE 3.29.0's own LBFGS defaults, pinned so a library default drift is a
+        # receipt mismatch rather than a silently different method.
+        "lbfgs_restart": None,
+        "lbfgs_trajectory": None,
+        "lbfgs_maxstep_default": None,
+        "lbfgs_memory_default": 100,
+        "lbfgs_damping_default": 1.0,
+        "lbfgs_alpha_default": 70.0,
+        "lbfgs_use_line_search_default": False,
+        "deadline_checked_at": ["start", "evaluation_boundary", "step_observer"],
     }
 )
 
@@ -176,6 +201,7 @@ def preoptimization_stage_sha256() -> str:
                 "optimizer_protocol_sha256": aimnet2_optimizer_protocol_sha256(),
                 "structural_gates_sha256": aimnet2_structural_gates_sha256(),
                 "handoff_contract_sha256": handoff_contract_sha256(),
+                "trajectory_schema_version": TRAJECTORY_SCHEMA_VERSION,
             }
         )
     ).hexdigest()
@@ -223,10 +249,17 @@ class Aimnet2PreoptimizationReceipt:
     optimizer_steps: int
     energy_evaluations: int
     force_evaluations: int
+    calculator_invocations: int
     initial_max_force_ev_per_angstrom: float
     final_max_force_ev_per_angstrom: float
+    initial_energy_ev: float
+    final_energy_ev: float
     wall_time_seconds: float
     isolated_cache_bytes_written: int
+    trajectory_schema_version: str
+    trajectory_frames: int
+    trajectory_sha256: str
+    terminal_state: str
     validation: StructuralValidation
     state: PreoptimizationState
     failure_reason: str | None
@@ -289,10 +322,17 @@ def _preopt_body(receipt: Aimnet2PreoptimizationReceipt) -> dict[str, object]:
         "optimizer_steps": receipt.optimizer_steps,
         "energy_evaluations": receipt.energy_evaluations,
         "force_evaluations": receipt.force_evaluations,
+        "calculator_invocations": receipt.calculator_invocations,
         "initial_max_force_ev_per_angstrom": receipt.initial_max_force_ev_per_angstrom,
         "final_max_force_ev_per_angstrom": receipt.final_max_force_ev_per_angstrom,
+        "initial_energy_ev": receipt.initial_energy_ev,
+        "final_energy_ev": receipt.final_energy_ev,
         "wall_time_seconds": receipt.wall_time_seconds,
         "isolated_cache_bytes_written": receipt.isolated_cache_bytes_written,
+        "trajectory_schema_version": receipt.trajectory_schema_version,
+        "trajectory_frames": receipt.trajectory_frames,
+        "trajectory_sha256": receipt.trajectory_sha256,
+        "terminal_state": receipt.terminal_state,
         "validation": _validation_payload(receipt.validation),
         "state": receipt.state.value,
         "failure_reason": receipt.failure_reason,
@@ -390,6 +430,12 @@ def build_preoptimization_receipt(
     isolated_cache_bytes_written: int,
     validation: StructuralValidation,
     state: PreoptimizationState,
+    trajectory_sha256: str,
+    trajectory_frames: int,
+    calculator_invocations: int,
+    initial_energy_ev: float,
+    final_energy_ev: float,
+    terminal_state: str,
     failure_reason: str | None = None,
 ) -> Aimnet2PreoptimizationReceipt:
     """Close the preoptimization record over the bytes actually produced."""
@@ -413,10 +459,17 @@ def build_preoptimization_receipt(
         optimizer_steps=optimizer_steps,
         energy_evaluations=energy_evaluations,
         force_evaluations=force_evaluations,
+        calculator_invocations=calculator_invocations,
         initial_max_force_ev_per_angstrom=initial_max_force_ev_per_angstrom,
         final_max_force_ev_per_angstrom=final_max_force_ev_per_angstrom,
+        initial_energy_ev=initial_energy_ev,
+        final_energy_ev=final_energy_ev,
         wall_time_seconds=wall_time_seconds,
         isolated_cache_bytes_written=isolated_cache_bytes_written,
+        trajectory_schema_version=TRAJECTORY_SCHEMA_VERSION,
+        trajectory_frames=trajectory_frames,
+        trajectory_sha256=trajectory_sha256,
+        terminal_state=terminal_state,
         validation=validation,
         state=state,
         failure_reason=failure_reason,
@@ -549,6 +602,7 @@ __all__ = [
     "HANDOFF_CONTRACT",
     "HANDOFF_SCHEMA_VERSION",
     "PREOPTIMIZATION_SCHEMA_VERSION",
+    "TRAJECTORY_SCHEMA_VERSION",
     "Aimnet2PreoptimizationReceipt",
     "HandoffError",
     "HandoffState",

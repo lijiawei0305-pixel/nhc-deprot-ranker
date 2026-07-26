@@ -3,23 +3,125 @@
 Item 8/10. What the execution-reachability audit found unreachable, and what was
 built to close it, as one source-freeze unit.
 
-> **Status: incomplete.** Everything below is delivered and tested, but two
-> production adapters are still refusal paths: `_load_base_model` raises even
-> when the gate is open, and no ASE/LBFGS optimizer exists. Route A therefore
-> still cannot run a real preoptimization. The blocker is one unrecovered API
-> fact, recorded in `docs/PHASE9A_I_API_RECOVERY.md`. Phase 9A-S attempted to
-> recover it from the installed source on 2026-07-27 and did not succeed; see
-> `docs/PHASE9A_S_INSTALLED_SOURCE_INSPECTION.md`. Phase 9A-S2 retried the same
-> day, found two candidate environments rather than one, and stopped on the
-> ambiguity without spending its second SSH invocation; see
-> `docs/PHASE9A_S2_INTERPRETER_DISCOVERY.md`. Phase 9A-S3 then resolved the
-> environment binding from `mlff.sh` itself and stopped at interpreter
-> enumeration; see `docs/PHASE9A_S3_ACTIVATION_BOUND_INSPECTION.md`. Phase
-> 9A-S4 then deduplicated by inode, read the installed source, and settled the
-> loader as option A with grade `source_proven`; see
-> `docs/PHASE9A_S4_DEDUPLICATED_SOURCE_INSPECTION.md`. **The API blocker is
-> cleared; the adapters themselves are still unimplemented and both gates stay
-> closed.**
+> **Status: complete.** The production AIMNet2 loader and the production
+> ASE/LBFGS optimizer are implemented, the trajectory is real evidence, and the
+> identity closure is re-frozen at v8. Phase 9A-S4 settled the loader question
+> from installed source (`loader_decision: A`, grade `source_proven`); see
+> `docs/PHASE9A_S4_DEDUPLICATED_SOURCE_INSPECTION.md`. **All eleven execution
+> gates remain `false`: nothing here has run a model, touched a GPU, or produced
+> a scientific result.**
+
+## The production adapter
+
+Scheme **A**, exactly as Phase 9A-S4 proved safe:
+
+```python
+AIMNet2Calculator(model=str(absolute_pt_path), device="cuda:<index>", compile_model=False)
+AIMNet2ASE(base_calculator, charge=<+1|0>, mult=1, validate_species=True)
+```
+
+`validate_species` sits on `AIMNet2ASE`, which is where the introspected 9A-R
+signature and the 9A-S4 source both put it -- not on the calculator.
+
+What the adapter deliberately does **not** do, and why:
+
+```text
+scheme B (manual load_model, pass the module)
+        A already reaches the same public loader; B's module branch has a
+        silent cutoff=5.0 default and removes no network call
+.eval()
+        the constructor already runs model.train(False) and clears
+        requires_grad on every parameter; adding it would be an unrecorded
+        state change on top of audited control flow
+torch.compile
+        compile_model=False means precisely that it is never called
+a relative path
+        a relative path with exactly one slash matches aimnet's inline
+        Hugging Face pattern and would import huggingface_hub before falling
+        through; an absolute path cannot match it at all
+```
+
+The weight is checked for absolute path, regular file, not a symlink, exact
+filename, exact byte size and exact SHA256 before anything is imported. The
+device must be an exact `cuda:<index>`; `"cuda"` auto-select and CPU fallback
+are both refused.
+
+## Order of operations, and why it is that order
+
+`_load_base_model` reads the source gate **first**, before the weight check,
+before the environment check, and before any lazy import. A closed gate
+therefore refuses without letting `torch`, `ase`, or `aimnet` into the process
+at all -- asserted by a test that inspects `sys.modules` after the refusal.
+
+The gate takes no argument, reads no environment variable, and is reachable from
+no request field. Opening it means editing this module, which moves
+`runner_source_sha256` and invalidates every prepared identity.
+
+The construction core is a separate function, so the fake-stack tests execute
+the real constructor rather than monkeypatching the loader away.
+
+## Base model and endpoint wrappers
+
+One `AIMNet2Calculator` per route, one weight read. `calculator_for` builds a
+fresh `AIMNet2ASE` around that same base object and refuses a second wrapper for
+an endpoint that already has one, so the cation and the neutral can never share
+mutable charge or coordinate state. Off-contract charge/multiplicity pairs are
+refused by name.
+
+Each optimization gets a fresh `ase.Atoms` built from a copy of the coordinates,
+so the frozen initial geometry can never be mutated in place.
+
+## The optimizer
+
+ASE 3.29.0 `LBFGS`. Only the two arguments the contract names are passed:
+
+```text
+restart=None       no restart file is read or written
+trajectory=None    ASE writes no unregistered binary next to the canonical JSONL
+```
+
+Everything else is left at ASE's own default and pinned in
+`LBFGS_FROZEN_DEFAULTS`; the runtime refuses to run against an ASE whose
+defaults have moved, so a library change is a receipt mismatch rather than a
+quietly different method.
+
+## Deadline, at three places
+
+```text
+1  before construction    nothing is built and no model runs if the budget is gone
+2  evaluation boundary    checked either side of every real model execution; a
+                          call that itself crosses the deadline is allowed to
+                          return, and the run stops before the next step
+3  step observer          attach(callback, interval=1), so every completed LBFGS
+                          step is checked
+```
+
+The effective deadline is `min(absolute_route_deadline, start + 900 s)`. Nothing
+extends it, retries, or waits in the background. An observer's exception
+propagates out of `Optimizer.run` -- Phase 9A-S4 confirmed nothing in ASE wraps
+`call_observers()` in a `try`.
+
+## Counting what actually happened
+
+`AIMNet2ASE.calculate` is the single funnel ASE routes every property request
+through, so the adapter subclasses it and counts there. ASE asks for energy and
+forces in one call, so **one model execution increments both counters**;
+`calculator_invocations` is the honest cost figure and is what the receipt calls
+a model execution. Steps come from ASE's own `get_number_of_steps()`, never from
+`len(trajectory) - 1`, and ASE re-reads the gradient for its convergence test,
+so invocations routinely exceed steps.
+
+## Trajectory
+
+`nhc-phase9b-aimnet2-trajectory-v1`, canonical JSONL, exclusive-create, fsync,
+re-read, digested. Every frame carries schema, endpoint, index, elapsed seconds,
+charge, multiplicity, atom count, element-order digest, coordinates, energy in
+eV, maximum force in eV/A, calculator invocation index, optimizer step, and the
+initial/terminal flags. The digest is computed by the optimizer and again by the
+runtime and compared against what landed on disk. A timeout still records its
+last provable frame.
+
+No frame carries a PySCF energy, a deprotonation label, or a promotion verdict.
 
 ## What was unreachable
 

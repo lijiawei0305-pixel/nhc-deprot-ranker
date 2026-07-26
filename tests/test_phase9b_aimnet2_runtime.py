@@ -21,14 +21,18 @@ import pytest
 
 from nhc_deprot_ranker.quantum import phase9b_aimnet2_runtime as rt
 from nhc_deprot_ranker.quantum.phase9b_aimnet2_runtime import (
+    TRAJECTORY_SCHEMA_VERSION,
     Aimnet2NotAuthorizedError,
     Aimnet2RuntimeError,
     OptimizerOutcome,
+    TerminalState,
+    TrajectoryFrame,
     build_isolated_environment,
     infer_connectivity,
     parse_xyz,
     render_xyz,
     run_assisted_stage,
+    serialize_trajectory,
     validate_structure,
     verify_offline_environment,
     verify_weight,
@@ -135,21 +139,79 @@ class _FakeOptimizer:
         max_steps: int,
         deadline_monotonic: float,
     ) -> OptimizerOutcome:
-        del elements, fmax, max_steps, deadline_monotonic
+        del fmax, max_steps, deadline_monotonic
         self.calls.append((calculator.charge, calculator.multiplicity))
-        moved = tuple((x + 0.01, y, z) for x, y, z in (tuple(point) for point in coordinates))
+        start = tuple(tuple(float(v) for v in point) for point in coordinates)
+        moved = tuple((x + 0.01, y, z) for x, y, z in start)
+        # A real trajectory, so every downstream evidence gate is exercised by
+        # the mock exactly as it would be by the production optimizer.
+        frames = tuple(
+            _frame(
+                calculator=calculator,
+                elements=elements,
+                index=index,
+                coordinates=points,
+                energy=-4321.0 - index * 0.25,
+                max_force=1.7 if index == 0 else 0.02,
+                is_initial=index == 0,
+                is_terminal=index == 1,
+            )
+            for index, points in enumerate((start, moved))
+        )
         base: dict[str, Any] = {
             "coordinates": moved,
             "converged": True,
             "steps": 37,
             "energy_evaluations": 40,
             "force_evaluations": 40,
+            "calculator_invocations": 40,
             "initial_max_force": 1.7,
             "final_max_force": 0.02,
-            "trajectory_frames": 38,
+            "trajectory_frames": len(frames),
+            "initial_energy_ev": frames[0].energy_ev,
+            "final_energy_ev": frames[-1].energy_ev,
+            "trajectory": frames,
+            "elapsed_seconds": 12.5,
+            "terminal_state": TerminalState.CONVERGED,
         }
         base.update(self.overrides)
+        if "trajectory_sha256" not in self.overrides:
+            base["trajectory_sha256"] = hashlib.sha256(
+                serialize_trajectory(base["trajectory"])
+            ).hexdigest()
+        if "trajectory_frames" not in self.overrides:
+            base["trajectory_frames"] = len(base["trajectory"])
         return OptimizerOutcome(**base)
+
+
+def _frame(
+    *,
+    calculator: Any,
+    elements: Sequence[str],
+    index: int,
+    coordinates: tuple[tuple[float, float, float], ...],
+    energy: float,
+    max_force: float,
+    is_initial: bool,
+    is_terminal: bool,
+) -> TrajectoryFrame:
+    return TrajectoryFrame(
+        schema_version=TRAJECTORY_SCHEMA_VERSION,
+        endpoint="cation" if calculator.charge == 1 else "neutral",
+        frame_index=index,
+        elapsed_seconds=float(index),
+        charge=calculator.charge,
+        multiplicity=calculator.multiplicity,
+        atom_count=len(elements),
+        element_order_sha256=hashlib.sha256(" ".join(elements).encode()).hexdigest(),
+        coordinates=coordinates,
+        energy_ev=energy,
+        max_force_ev_per_angstrom=max_force,
+        calculator_invocation_index=index + 1,
+        optimizer_step=index,
+        is_initial=is_initial,
+        is_terminal=is_terminal,
+    )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -245,7 +307,7 @@ def test_the_source_gate_is_closed_and_a_real_load_refuses(tmp_path: Path) -> No
     assert rt.EXECUTION_AUTHORIZED is False
     source = Path(rt.__file__).read_text(encoding="utf-8")
     assert "EXECUTION_AUTHORIZED: Final[bool] = False" in source
-    with pytest.raises(Aimnet2NotAuthorizedError, match="not authorized"):
+    with pytest.raises(Aimnet2NotAuthorizedError, match="source execution gate is closed"):
         rt._load_base_model(  # pyright: ignore[reportPrivateUsage]
             weight_path=_patched_weight(tmp_path), device="cuda:0"
         )
