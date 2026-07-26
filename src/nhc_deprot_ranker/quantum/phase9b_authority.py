@@ -80,6 +80,9 @@ class CandidateProfile:
     atom_map: Mapping[str, int]
     cation_xyz_sha256: str
     neutral_xyz_sha256: str
+    legacy_atom_map_sha256: str
+    endpoint_atom_map_sha256: str
+    geometry_validation_sha256: str
 
 
 PHASE9B_CANDIDATE: Final = CandidateProfile(
@@ -90,6 +93,11 @@ PHASE9B_CANDIDATE: Final = CandidateProfile(
     atom_map=MappingProxyType({"C2_carbene": 14, "N1": 8, "N3": 15}),
     cation_xyz_sha256="543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286",
     neutral_xyz_sha256="af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8",
+    legacy_atom_map_sha256="ce0e2fc05b44e7e18a8be445ff23e398b0f6302dcfb0fe48da8f9522a1b48ab1",
+    endpoint_atom_map_sha256="f614486a6ae18afed109cd0bcf52efb27b290558e758f5c2e85c8f192b70d9ab",
+    # Shared Phase 7 validation anchor: it covers all four smoke candidates, so
+    # this value is deliberately not candidate-specific.
+    geometry_validation_sha256="35e99683a32e416752014c6e1ecb8121e2bc06d5407911435e5c1250fd639f90",
 )
 
 
@@ -140,6 +148,20 @@ def validate_profile_self_consistency(profile: CandidateProfile) -> None:
     heavy_neutral = {k: v for k, v in profile.neutral_composition.items() if k != "H"}
     if heavy_cation != heavy_neutral:
         raise Phase9BAuthorityError("profile heavy-atom compositions differ")
+    for label in (
+        "cation_xyz_sha256",
+        "neutral_xyz_sha256",
+        "legacy_atom_map_sha256",
+        "endpoint_atom_map_sha256",
+        "geometry_validation_sha256",
+    ):
+        value = getattr(profile, label)
+        if (
+            not isinstance(value, str)
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            raise Phase9BAuthorityError(f"profile {label} must be a lowercase SHA256")
     if set(profile.atom_map) != set(_MAP_KEYS):
         raise Phase9BAuthorityError("profile atom map keys drifted")
     if len(set(profile.atom_map.values())) != len(_MAP_KEYS):
