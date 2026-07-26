@@ -220,6 +220,20 @@ def _endpoint_pair_120() -> tuple[runner.EndpointRequest, runner.EndpointRequest
     return cation, neutral
 
 
+class _FakeConsumed9B(p9b_permit_module.ConsumedPhase9BPermit):
+    """Satisfies the profile's declared consumed-permit type without file I/O."""
+
+    def __init__(self) -> None:
+        pass
+
+
+class _FakeAuthority9B(p9b_permit_module.Phase9BExactAuthority):
+    """Satisfies the profile's declared authority type."""
+
+    def __init__(self) -> None:
+        pass
+
+
 class _FakeRequest:
     """Endpoint-bearing stub: electron validation now runs before permit I/O."""
 
@@ -263,53 +277,86 @@ def test_phase9b_profile_stops_at_capability_not_at_the_permit(
     assert reached == ["phase9b-loader"]
 
 
-def test_phase9b_capability_issue_is_still_refused(
+def test_phase9b_now_reaches_capability_issue(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    """Previously refused before capability; the refusal is now gone.
+
+    Reaching capability issue is the point of the parameterization, so assert it
+    positively rather than asserting the absence of an error message.
+    """
+
     monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
     monkeypatch.setattr(runner, "load_two_endpoint_request", lambda path: _FakeRequest())
     patched = replace(
         worker.PHASE9B_WORKER_PROFILE,
-        load_permit_and_authority=lambda **kwargs: (object(), object()),
+        load_permit_and_authority=lambda **kwargs: (
+            _FakeConsumed9B(),
+            _FakeAuthority9B(),
+        ),
     )
     monkeypatch.setattr(worker, "_resolve_worker_profile", lambda attempt_id: patched)
-    with pytest.raises(runner.ExecutionNotAuthorizedError, match="not yet parameterized"):
-        worker.main(_full_argv(p9b_supervisor.ROUTE_D_ATTEMPT_ID, tmp_path))
 
+    reached: list[str] = []
 
-def test_unknown_attempt_refuses_before_any_permit_read(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
-    monkeypatch.setattr(runner, "load_two_endpoint_request", lambda path: _FakeRequest())
+    def _capability(**kwargs: object) -> object:
+        reached.append(str(kwargs["identity_key"]))
+        raise runner.ExecutionNotAuthorizedError("synthetic capability stop")
 
-    def _bomb(*args: object, **kwargs: object) -> object:
-        raise AssertionError("permit must not be read for an unknown attempt")
-
-    monkeypatch.setattr(permit_module, "load_consumed_phase8b_permit", _bomb)
-    with pytest.raises(runner.ExecutionNotAuthorizedError, match="no worker authority profile"):
-        worker.main(_full_argv("attempt-nowhere", tmp_path))
-
-
-def test_phase8b_attempt_still_reaches_the_permit_stage(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """Profile resolution must not block the historical live path."""
-
-    monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
+    monkeypatch.setattr(runner, "_issue_guarded_compute_capability", _capability)
+    monkeypatch.setattr(worker, "_validate_worker_scratch", lambda *a, **k: None)
     monkeypatch.setattr(
-        runner, "load_two_endpoint_request", lambda path: _FakeRequest(electron_count=120)
+        worker, "load_and_validate_compute_claim_for_worker", lambda *a, **k: object()
+    )
+    monkeypatch.setattr(worker, "_validate_worker_compute_claim", lambda *a, **k: None)
+
+    with pytest.raises(runner.ExecutionNotAuthorizedError, match="synthetic capability stop"):
+        worker.main(_full_argv(p9b_supervisor.ROUTE_D_ATTEMPT_ID, tmp_path))
+    assert reached == ["phase9b-lbnp-paired-smoke"]
+
+
+def test_each_profile_carries_its_own_capability_identity_key() -> None:
+    assert PHASE8B_WORKER_PROFILE.capability_identity_key == "phase8b-qxh-smoke"
+    assert PHASE9B_WORKER_PROFILE.capability_identity_key == "phase9b-lbnp-paired-smoke"
+    assert (
+        PHASE8B_WORKER_PROFILE.capability_identity_key
+        != PHASE9B_WORKER_PROFILE.capability_identity_key
+    )
+    registry = runner._CAPABILITY_IDENTITY_EXPECTATIONS  # pyright: ignore[reportPrivateUsage]
+    for profile in WORKER_AUTHORITY_PROFILES:
+        assert profile.capability_identity_key in registry
+
+
+def test_only_phase8b_uses_the_frozen_worker_match() -> None:
+    """Phase 9B's validator checks the frozen constants inline instead."""
+
+    assert PHASE8B_WORKER_PROFILE.uses_frozen_worker_match is True
+    assert PHASE9B_WORKER_PROFILE.uses_frozen_worker_match is False
+
+
+def test_each_profile_reloads_through_its_own_chain() -> None:
+    assert (
+        PHASE8B_WORKER_PROFILE.reload_permit_and_authority
+        is worker._reload_phase8b_permit_and_authority
+    )
+    assert (
+        PHASE9B_WORKER_PROFILE.reload_permit_and_authority
+        is worker._reload_phase9b_permit_and_authority
     )
 
-    class _Marker(RuntimeError):
-        pass
 
-    def _reached(*args: object, **kwargs: object) -> object:
-        raise _Marker("PERMIT_STAGE_REACHED")
-
-    monkeypatch.setattr(permit_module, "load_consumed_phase8b_permit", _reached)
-    with pytest.raises(_Marker, match="PERMIT_STAGE_REACHED"):
-        worker.main(_full_argv("attempt-phase8b-qxh-v001", tmp_path))
+def test_reload_adapters_reject_a_foreign_permit() -> None:
+    for reload in (
+        worker._reload_phase8b_permit_and_authority,
+        worker._reload_phase9b_permit_and_authority,
+    ):
+        with pytest.raises(runner.ExecutionNotAuthorizedError, match="foreign permit"):
+            reload(
+                consumed=object(),
+                request=object(),
+                output_root=Path("/nonexistent"),
+                attempt_id="attempt-phase8b-qxh-v001",
+            )
 
 
 def test_worker_source_no_longer_hard_codes_the_phase8b_constants() -> None:

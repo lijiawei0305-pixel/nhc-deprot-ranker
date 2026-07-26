@@ -146,6 +146,50 @@ def _load_phase9b_permit_and_authority(
     return consumed, authority
 
 
+class _ReloadPermitAndAuthority(Protocol):
+    """Re-reads and re-validates from an already-consumed permit object."""
+
+    def __call__(
+        self, *, consumed: object, request: object, output_root: Path, attempt_id: str
+    ) -> tuple[object, object]: ...
+
+
+def _reload_phase8b_permit_and_authority(
+    *, consumed: object, request: object, output_root: Path, attempt_id: str
+) -> tuple[object, object]:
+    if not isinstance(consumed, ConsumedPhase8BPermit):
+        raise runner.ExecutionNotAuthorizedError("Phase 8B reload received a foreign permit")
+    permit = consumed.permit
+    return _load_phase8b_permit_and_authority(
+        consumed_path=consumed.consumed_path,
+        expected_permit_sha256=permit.permit_sha256,
+        expected_request_sha256=permit.request_sha256,
+        expected_runner_source_sha256=permit.runner_source_sha256,
+        expected_payload_manifest_sha256=permit.payload_manifest_sha256,
+        request=request,
+        output_root=output_root,
+        attempt_id=attempt_id,
+    )
+
+
+def _reload_phase9b_permit_and_authority(
+    *, consumed: object, request: object, output_root: Path, attempt_id: str
+) -> tuple[object, object]:
+    if not isinstance(consumed, ConsumedPhase9BPermit):
+        raise runner.ExecutionNotAuthorizedError("Phase 9B reload received a foreign permit")
+    permit = consumed.permit
+    return _load_phase9b_permit_and_authority(
+        consumed_path=consumed.consumed_path,
+        expected_permit_sha256=permit.permit_sha256,
+        expected_request_sha256=permit.request_sha256,
+        expected_runner_source_sha256=permit.runner_source_sha256,
+        expected_payload_manifest_sha256=permit.payload_manifest_sha256,
+        request=request,
+        output_root=output_root,
+        attempt_id=attempt_id,
+    )
+
+
 @dataclass(frozen=True)
 class WorkerAuthorityProfile:
     """Source-frozen, candidate-specific expectations for one authority chain.
@@ -163,6 +207,9 @@ class WorkerAuthorityProfile:
     load_permit_and_authority: _PermitAndAuthorityLoader
     consumed_permit_type: type
     authority_type: type
+    capability_identity_key: str
+    reload_permit_and_authority: _ReloadPermitAndAuthority
+    uses_frozen_worker_match: bool
 
 
 PHASE8B_WORKER_PROFILE = WorkerAuthorityProfile(
@@ -175,6 +222,10 @@ PHASE8B_WORKER_PROFILE = WorkerAuthorityProfile(
     load_permit_and_authority=_load_phase8b_permit_and_authority,
     consumed_permit_type=ConsumedPhase8BPermit,
     authority_type=ExactPhase8BAuthority,
+    capability_identity_key="phase8b-qxh-smoke",
+    reload_permit_and_authority=_reload_phase8b_permit_and_authority,
+    # Phase 8B's validator does not check the frozen constants itself.
+    uses_frozen_worker_match=True,
 )
 
 # Registered for identity closure only; execution refuses until the Phase 9B
@@ -194,6 +245,11 @@ PHASE9B_WORKER_PROFILE = WorkerAuthorityProfile(
     load_permit_and_authority=_load_phase9b_permit_and_authority,
     consumed_permit_type=ConsumedPhase9BPermit,
     authority_type=Phase9BExactAuthority,
+    capability_identity_key="phase9b-lbnp-paired-smoke",
+    reload_permit_and_authority=_reload_phase9b_permit_and_authority,
+    # Phase 9B's validator checks the frozen constants inline; parity with the
+    # Phase 8B match was verified item by item before this was set to False.
+    uses_frozen_worker_match=False,
 )
 
 WORKER_AUTHORITY_PROFILES: tuple[WorkerAuthorityProfile, ...] = (
@@ -448,21 +504,17 @@ def main(
         output_root=authorized_output_root,
         attempt_id=arguments.attempt_id,
     )
-    if profile is not PHASE8B_WORKER_PROFILE:
-        # Permit and authority are now live for every profile; compute-capability
-        # issue is still Phase 8B-shaped, so stop here rather than mis-issue one.
-        raise runner.ExecutionNotAuthorizedError(
-            "worker compute-capability issue is not yet parameterized for this profile"
-        )
-    # Past this point only the Phase 8B chain runs, so narrow the adapter's
-    # deliberately generic return.  This is a real guard as well as a type
-    # narrowing: an adapter returning the wrong chain's objects fails closed here.
-    if not isinstance(consumed, ConsumedPhase8BPermit) or not isinstance(
-        exact_authority, ExactPhase8BAuthority
+    # Chain-correct guard: an adapter returning the other chain's objects fails
+    # closed here rather than reaching capability issue.
+    if not isinstance(consumed, profile.consumed_permit_type) or not isinstance(
+        exact_authority, profile.authority_type
     ):
         raise runner.ExecutionNotAuthorizedError(
-            "Phase 8B adapter returned objects from a different authority chain"
+            "adapter returned objects from a different authority chain"
         )
+    # The gate above proves the chain; cast to the shared shape the capability
+    # binds, which both chains' authority records satisfy structurally.
+    capability_authority = cast(runner.CapabilityAuthorityLike, exact_authority)
     _validate_worker_scratch(
         arguments.output_root,
         authorized_output_root=authorized_output_root,
@@ -495,15 +547,25 @@ def main(
         profile=profile,
     )
     runner._ensure_execution_authorized()  # pyright: ignore[reportPrivateUsage]
-    compute_capability = runner._issue_phase8b_compute_capability(  # pyright: ignore[reportPrivateUsage]
+    compute_capability = runner._issue_guarded_compute_capability(  # pyright: ignore[reportPrivateUsage]
         request=request,
         consumed=consumed,
-        authority=exact_authority,
+        authority=capability_authority,
         bootstrap_proof=bootstrap_proof,
         output_root=authorized_output_root,
         attempt_id=arguments.attempt_id,
         absolute_deadline_ns=absolute_deadline_ns,
         compute_claim_evidence=claim_evidence,
+        consumed_permit_type=profile.consumed_permit_type,
+        authority_type=profile.authority_type,
+        identity_key=profile.capability_identity_key,
+        allowed_cpus=profile.allowed_cpus,
+        reload_permit_and_authority=profile.reload_permit_and_authority,
+        extra_authority_match=(
+            runner._authority_matches_frozen_worker  # pyright: ignore[reportPrivateUsage]
+            if profile.uses_frozen_worker_match
+            else None
+        ),
     )
     try:
         runner._execute_validated_request(  # pyright: ignore[reportPrivateUsage]
