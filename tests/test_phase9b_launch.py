@@ -1006,3 +1006,32 @@ def test_every_terminal_state_still_reports_both_routes() -> None:
         assert isinstance(routes, list)
         assert [entry["route"] for entry in routes] == [ROUTE_DIRECT, ROUTE_ASSISTED]
         assert all(entry["final_root"] for entry in routes)
+
+
+def test_a_launch_timeout_may_not_span_the_computation() -> None:
+    """Launch waits for a guardian acknowledgement, never for the science.
+
+    A bound anywhere near the frozen wall-time would mean the SSH channel was
+    holding the computation open, which is the design the guardian replaced.
+    """
+
+    plans = _plans()
+    wall_time = float(PHASE9B_RESOURCES["hard_wall_timeout_seconds"])  # type: ignore[arg-type]
+    assert wall_time > lc.MAX_LAUNCH_ACKNOWLEDGEMENT_SECONDS
+    assert lc.LAUNCH_ACKNOWLEDGEMENT_TIMEOUT_SECONDS <= lc.MAX_LAUNCH_ACKNOWLEDGEMENT_SECONDS
+
+    for bad in (0.0, -1.0, lc.MAX_LAUNCH_ACKNOWLEDGEMENT_SECONDS + 1.0, wall_time, 7200.0):
+        with pytest.raises(ValueError, match="timeout"):
+            _launch(plans=plans, timeout_seconds=bad)
+
+
+def test_launch_starts_the_guardian_and_never_the_supervisor() -> None:
+    fake = _FakeSsh()
+    receipt = _launch(run_command=fake)
+    assert receipt.overall_state is LaunchState.LAUNCHED
+    for command in fake.commands:
+        remote = command[-1]
+        assert GUARDIAN_ENTRY in remote
+        assert f"-m {SUPERVISOR_ENTRY}" not in remote
+        for backend in ("aimnet", "pyscf", "torch"):
+            assert backend not in remote

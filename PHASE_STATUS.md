@@ -18,7 +18,7 @@ Updated: 2026-07-26
 | Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
 | Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
 | Phase 9A-I — minimal inference characterization | Passed; six single-point calls executed | 2026-07-26; no optimization, no PySCF, no label |
-| Phase 9B — paired direct / assisted smoke | Implementation in progress; 6 of 8 components | 2026-07-26; re-baselined from 6 to 8 after three integration gaps were found; gates closed |
+| Phase 9B — paired direct / assisted smoke | Implementation in progress; 7 of 8 components | 2026-07-26; guardian, launch transport, and Route A handoff closed; gates closed |
 
 ## Current completed work
 
@@ -164,9 +164,18 @@ source gates closed:
 4/8  preparation/phase9b_deploy.py       directed two-route deployment     built
 5/8  preparation/phase9b_launch.py       two-route supervisor launch       built
 6/8  pre-launch integration closure      CLI, adapter, permit stage        built
-7/8  preparation/phase9b_postflight.py   evidence harvest and acceptance   not started
-8/8  Phase 9B guardian transaction       permit consumption and handshake  not started
+7/8  quantum/phase9b_guardian.py         guardian, transport, handoff      built
+8/8  preparation/phase9b_postflight.py   evidence harvest and acceptance   not started
 ```
+
+Item 7 also resolved a contract contradiction the plan had carried since Phase
+9A. Route A was specified to start from the same frozen Phase 7 geometry as
+Route D, yet its request and permit were built to declare the *preoptimized*
+geometry -- a file that only exists after the route runs. The permit therefore
+depended on its own execution. Under the single-transaction design both routes
+bind the frozen initial structure, and the assisted permit binds the AIMNet2
+*stage* instead: weight digest, optimizer protocol, structural gates, and handoff
+contract. Both routes' identities are now concrete; neither is pending.
 
 Item 6 closed the three gaps and two more found while closing them. The guarded
 worker could not have run the assisted route at all: the capability identity
@@ -177,26 +186,32 @@ now registries. Item 8 was added because Phase 9B has no analogue of
 the worker handshake; the supervisor CLI takes that handshake through an injected
 factory and refuses when none is wired.
 
-Item 6 edited three files inside the runner source closure, so the closure was
-re-frozen:
+Items 6 and 7 both edited the runner source closure, so it has been re-frozen
+twice:
 
 ```text
-runner source schema   nhc-two-endpoint-runner-source-v4 -> v5
-runner_source_sha256   2059b35d...52c -> c914afe3...ea8
-closure files          18 (membership unchanged)
-resources_sha256       0fec2c19...7df8 (unchanged)
+runner source schema   v4 -> v5 -> v6
+runner_source_sha256   2059b35d...52c -> c914afe3...ea8 -> 72125b67...0de3
+closure files          18 -> 21
+request schema         nhc-two-endpoint-request-v2 (Phase 8B stays v1)
+permit schema          nhc-phase9b-private-permit-v2
+resources_sha256       0fec2c19...7df8 (unchanged throughout)
 ```
 
-The v4 Phase 9B request, payload manifests, and permits are
-`superseded_before_execution` — never deployed, never launched, never consumed,
-and not deleted. The direct chain is regenerated against the final digest; the
-assisted chain is recorded as pending because its inputs are preoptimized
-geometry that does not exist yet. See `docs/PHASE9B_IDENTITY_REBASELINE.md`.
+Every superseded generation is `superseded_before_execution` — never deployed,
+never launched, never consumed, and not deleted. Both routes' final identities
+are recorded in `docs/PHASE9B_IDENTITY_REBASELINE.md`.
 
-None of the control-plane modules has been run against a server: each takes an
-injected command runner and refuses a real invocation while its
-`EXECUTION_AUTHORIZED` is false. There are nine such gates and all nine are
-false.
+The launch control plane now starts the **guardian**, never the supervisor. The
+guardian consumes the permit irreversibly, builds the worker handshake, spawns
+the supervisor into its own session with stdout and stderr redirected into the
+frozen evidence tree, verifies the spawned identity, writes and re-reads its
+receipts, and exits. The bounded SSH call therefore waits seconds for an
+acknowledgement rather than hours for a computation.
+
+No module has been run against a server: each takes an injected runner or spawn
+seam and refuses a real invocation while its `EXECUTION_AUTHORIZED` is false.
+There are ten such gates and all ten are false.
 
 ## Next action
 

@@ -274,3 +274,39 @@ def test_route_parity_rejects_one_request_reused_as_both_routes() -> None:
     assisted = _clone(_payload(ROUTE_ASSISTED), request_sha256=direct.request.request_sha256)
     with pytest.raises(Phase9BBundleError, match="distinct requests"):
         validate_route_parity(direct, assisted)
+
+
+def test_route_parity_rejects_a_differing_initial_geometry() -> None:
+    """Both routes must start from the same structure or the comparison is void."""
+
+    direct = _payload(ROUTE_DIRECT)
+    assisted = _payload(ROUTE_ASSISTED)
+    drifted = bundle.RoutePayload(
+        request=bundle.RouteRequest(
+            route=ROUTE_ASSISTED,
+            attempt_id=assisted.request.attempt_id,
+            request_bytes=assisted.request.request_bytes,
+            request_sha256=assisted.request.request_sha256,
+            cation_xyz_sha256="6" * 64,
+            neutral_xyz_sha256=assisted.request.neutral_xyz_sha256,
+        ),
+        manifest_bytes=assisted.manifest_bytes,
+        manifest_sha256=assisted.manifest_sha256,
+    )
+    with pytest.raises(Phase9BBundleError, match="share the frozen initial cation geometry"):
+        validate_route_parity(direct, drifted)
+
+    drifted_neutral = bundle.RoutePayload(
+        request=bundle.RouteRequest(
+            route=ROUTE_ASSISTED,
+            attempt_id=assisted.request.attempt_id,
+            request_bytes=assisted.request.request_bytes,
+            request_sha256=assisted.request.request_sha256,
+            cation_xyz_sha256=assisted.request.cation_xyz_sha256,
+            neutral_xyz_sha256="7" * 64,
+        ),
+        manifest_bytes=assisted.manifest_bytes,
+        manifest_sha256=assisted.manifest_sha256,
+    )
+    with pytest.raises(Phase9BBundleError, match="share the frozen initial neutral geometry"):
+        validate_route_parity(direct, drifted_neutral)

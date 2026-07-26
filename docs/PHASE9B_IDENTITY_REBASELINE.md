@@ -49,7 +49,7 @@ overwritten and nothing was deleted; this record preserves them.
 
 ```text
 runner source schema   nhc-two-endpoint-runner-source-v6
-runner_source_sha256   22610234a42735541c5cbd12bacbdfbe48ad43e10fdab671dd70b9ccf11526dc
+runner_source_sha256   72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3
 closure files          21 (three added)
 resources_sha256       0fec2c1914f413a2762e1fafc7daa9900551981b5af72897746864edffac7df8
 request schema         nhc-two-endpoint-request-v2
@@ -84,9 +84,9 @@ preoptimized geometry that cannot exist before the route runs.
 ```text
 request_id              phase9b-lbnp-paired-smoke-v001
 attempt_id              attempt-phase9b-lbnp-direct-v001
-runner_source_sha256    22610234a42735541c5cbd12bacbdfbe48ad43e10fdab671dd70b9ccf11526dc
-request_sha256          05e266cb47528e81ee2e48ac5748989c8bb23896ba5adf7ca64d6f58fb317bdb
-payload_manifest_sha256 78aace2a77d792e6a5960d994a18a45469bb2d48b1bbc4efd02bccf4e7f6404b
+runner_source_sha256    72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3
+request_sha256          413832f9aa7c3dd6e012d0504bebfadb070e9be9fe5fb0bc12a2ab8ba86eb38c
+payload_manifest_sha256 78a129c1042c90f0d35c88c1696e1a3bb78013fcbf3117f777b378bdd9d38cec
 preoptimization         stage: none
 ```
 
@@ -95,9 +95,9 @@ preoptimization         stage: none
 ```text
 request_id              phase9b-lbnp-paired-smoke-v001   (shared)
 attempt_id              attempt-phase9b-lbnp-assisted-v001
-runner_source_sha256    22610234a42735541c5cbd12bacbdfbe48ad43e10fdab671dd70b9ccf11526dc
-request_sha256          30ad9e2618efb2698bd0f2e328546b521a70e305dcfc2eca9e6361c2fce748f5
-payload_manifest_sha256 cfb7125c4782f0f1618108a760d50f29c244ac431207c6dd01d75506efa50d68
+runner_source_sha256    72125b67abc9e52d41a41bc6d3f4dc5ce9a999d1f577717b30c011076de10de3
+request_sha256          5afab3221ae76fcfae91f1525a2f6830804f8a9829127bd5eb6fe4637bd1ebe6
+payload_manifest_sha256 2bda7d47de97bf6865b0ecb8a9dfc2ad2767486d4ce42b97c4c9cd6f940f43b6
 preoptimization         stage: aimnet2, runs_inside_route: true
 cation/neutral xyz      identical to Route D
 ```

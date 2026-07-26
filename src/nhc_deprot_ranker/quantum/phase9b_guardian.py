@@ -744,6 +744,14 @@ def run_phase9b_guardian(
         return terminal(GuardianState.PERMIT_CONSUMED_SPAWN_FAILED, str(exc))
 
     # 8. Spawn into an independent session.
+    #
+    # The ordering is the whole transaction, so it is asserted rather than merely
+    # implied by statement order: no spawn may be reached on an unspent permit.
+    if not consumed.consumed_path.is_file():
+        return terminal(
+            GuardianState.PERMIT_CONSUMED_SPAWN_FAILED,
+            "refusing to spawn: no consumed permit is on disk",
+        )
     argv = build_supervisor_argv(arguments)
     try:
         spawned = spawn(
@@ -757,6 +765,16 @@ def run_phase9b_guardian(
         return terminal(GuardianState.PERMIT_CONSUMED_SPAWN_FAILED, f"spawn failed: {exc}")
     except Exception as exc:  # the process may or may not exist
         return terminal(GuardianState.INDETERMINATE, f"spawn state unknown: {exc}")
+
+    # Re-checked here, not only inside the spawn helper: an injected or future
+    # spawn path must not be able to hand back a process that shares someone
+    # else's group, which is what makes PID reuse and stray adoption visible.
+    if spawned.process_group_id != spawned.pid or spawned.session_id != spawned.pid:
+        return terminal(
+            GuardianState.INDETERMINATE,
+            "the spawned supervisor is not its own session leader",
+            spawned=spawned,
+        )
 
     # 9. Obtain a verifiable acknowledgement.
     try:
