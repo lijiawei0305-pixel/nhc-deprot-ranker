@@ -1,0 +1,341 @@
+{
+  "attempt": "phase9a-s2-v001",
+  "cache_after": {
+    "aimnet_cache": {
+      "bytes": 8836941,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784037872646661935,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/aimnet"
+    },
+    "hf_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/huggingface"
+    },
+    "inductor_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/torchinductor_<REMOTE_USER>"
+    },
+    "nv_compute_cache": {
+      "bytes": 26405248,
+      "exists": true,
+      "files": 682,
+      "newest_mtime_ns": 1784976789984713350,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.nv/ComputeCache"
+    },
+    "torch_hub": {
+      "bytes": 109872,
+      "exists": true,
+      "files": 2,
+      "newest_mtime_ns": 1784701106804299388,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/torch"
+    },
+    "triton_cache": {
+      "bytes": 26560,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784038187250059368,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.triton"
+    }
+  },
+  "cache_before": {
+    "aimnet_cache": {
+      "bytes": 8836941,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784037872646661935,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/aimnet"
+    },
+    "hf_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/huggingface"
+    },
+    "inductor_cache": {
+      "exists": false,
+      "root": "<REMOTE_HOME>/.cache/torchinductor_<REMOTE_USER>"
+    },
+    "nv_compute_cache": {
+      "bytes": 26405248,
+      "exists": true,
+      "files": 682,
+      "newest_mtime_ns": 1784976789984713350,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.nv/ComputeCache"
+    },
+    "torch_hub": {
+      "bytes": 109872,
+      "exists": true,
+      "files": 2,
+      "newest_mtime_ns": 1784701106804299388,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.cache/torch"
+    },
+    "triton_cache": {
+      "bytes": 26560,
+      "exists": true,
+      "files": 1,
+      "newest_mtime_ns": 1784038187250059368,
+      "pyc_files": 0,
+      "root": "<REMOTE_HOME>/.triton"
+    }
+  },
+  "candidate_count": 8,
+  "candidates": [
+    {
+      "aimnet": "0.2.0",
+      "ase": "3.29.0",
+      "imported": [],
+      "matches_required": false,
+      "python": "3.11.15",
+      "realpath": "<AIMNET2_ENV_ROOT>/bin/python3.11",
+      "torch": "2.8.0"
+    },
+    {
+      "error": "nonzero_exit",
+      "matches_required": false,
+      "realpath": "<AIMNET2_ENV_ROOT>/bin/python3.11-config"
+    },
+    {
+      "aimnet": "ERR:PackageNotFoundError",
+      "ase": "ERR:PackageNotFoundError",
+      "imported": [],
+      "matches_required": false,
+      "python": "3.11.15",
+      "realpath": "<REMOTE_PROJECT_ROOT>/env/conda/gpupyscf/bin/python3.11",
+      "torch": "ERR:PackageNotFoundError"
+    },
+    {
+      "error": "nonzero_exit",
+      "matches_required": false,
+      "realpath": "<REMOTE_PROJECT_ROOT>/env/conda/gpupyscf/bin/python3.11-config"
+    },
+    {
+      "aimnet": "ERR:PackageNotFoundError",
+      "ase": "3.29.0",
+      "imported": [],
+      "matches_required": false,
+      "python": "3.11.15",
+      "realpath": "<REMOTE_PROJECT_ROOT>/env/conda/mace/bin/python3.11",
+      "torch": "2.8.0"
+    },
+    {
+      "error": "nonzero_exit",
+      "matches_required": false,
+      "realpath": "<REMOTE_PROJECT_ROOT>/env/conda/mace/bin/python3.11-config"
+    },
+    {
+      "aimnet": "0.2.0",
+      "ase": "3.29.0",
+      "imported": [],
+      "matches_required": false,
+      "python": "3.11.15",
+      "realpath": "<MLFF_ENV_ROOT>/bin/python3.11",
+      "torch": "2.8.0"
+    },
+    {
+      "error": "nonzero_exit",
+      "matches_required": false,
+      "realpath": "<MLFF_ENV_ROOT>/bin/python3.11-config"
+    }
+  ],
+  "decision": "ambiguous_match",
+  "dont_write_bytecode": true,
+  "driver_note": "the login interpreter drove the search only; every version came from the candidate's own importlib.metadata report",
+  "environment_script_digests": [
+    {
+      "bytes": 5344,
+      "name": "diagnose_aimnet2_d022.sh",
+      "sha256": "d037dc27b264fc79b7173c66598ca80f9aea36f6d32732638e7b37d169814452"
+    },
+    {
+      "bytes": 9451,
+      "name": "download_aimnet2_models_d023.sh",
+      "sha256": "f3b5cadc78f7f88bc9f1bd2ef27e656b7c786946776c28fe5d30ff5307df2757"
+    },
+    {
+      "bytes": 523,
+      "name": "aimnet2.sh",
+      "sha256": "b94a50c57c9f76d69ef6ed16bf80d85cb043c9c4732a7afa5fe97e53d9ce93fe"
+    },
+    {
+      "bytes": 433,
+      "name": "cp2k.sh",
+      "sha256": "adc7162990d3118b4f8e0e7d13e712fd7a3079755428a53db3a840074bcd349e"
+    },
+    {
+      "bytes": 1206,
+      "name": "mace.sh",
+      "sha256": "b77543c8a21bf065a77c3123ea4da68bc40959b60f2cdda52b9a7239b1b702a4"
+    },
+    {
+      "bytes": 783,
+      "name": "mlff.sh",
+      "sha256": "9a8ae2b2fff81b317ef2569af51f9fa374b071551dfa4cb3e2948fe598e437b6"
+    },
+    {
+      "bytes": 220,
+      "name": "molenv.sh",
+      "sha256": "e9b3e124f53a10e84c43cfc71a56af3ddd56a86f082610593d2b23ed9692ea6f"
+    },
+    {
+      "bytes": 371,
+      "name": "multiwfn.sh",
+      "sha256": "41b6bc3610e41c330effe2f502228fac49334d61e61cbf119956ac263ea1ec53"
+    },
+    {
+      "bytes": 219,
+      "name": "perienv.sh",
+      "sha256": "157baa5cbf81cec7db3dc147ebc23398dd49b16900dd1c70b4dd08337abf5930"
+    },
+    {
+      "bytes": 3572,
+      "name": "vasp.sh",
+      "sha256": "c7ce2776e9f2eaea04dcdd0b95cc0e94966608fc61bd34f5f3ceca35dade2504"
+    },
+    {
+      "bytes": 238,
+      "name": "xtb.sh",
+      "sha256": "1bab6b67484d36e71b70a66a7fb0a2e03e5c2c8e23403674396882a56b5abd0a"
+    },
+    {
+      "bytes": 4170,
+      "name": "finalize_aimnet2_d022.sh",
+      "sha256": "cfb583e9673058479727c700c6fc2551558b281a023e59f787f8144ec84e03a8"
+    },
+    {
+      "bytes": 34412,
+      "name": "inspect_aimnet2_model_d024b2a.sh",
+      "sha256": "67eaad246d10ad7a4e9f8847a23a84b197a858d79bd801add80304dc4da7a7c0"
+    },
+    {
+      "bytes": 40184,
+      "name": "inspect_aimnet2_model_d024b2a2.sh",
+      "sha256": "f3bce8a8bc21c9dea94eb695095aca59158cd1047fd5ab65024f72b9fd8fbf9c"
+    },
+    {
+      "bytes": 43410,
+      "name": "inspect_aimnet2_model_d024b2a3.sh",
+      "sha256": "08438f885ab9d058c37dee540f2a845a2026c75a684c6d151909b039a23c6803"
+    },
+    {
+      "bytes": 48208,
+      "name": "inspect_aimnet2_model_d024b2a3r.sh",
+      "sha256": "0b483393a03aea47feda995676b4b10c40bcc93a6f7a534a4b435a15fe5c7b94"
+    },
+    {
+      "bytes": 50959,
+      "name": "inspect_aimnet2_model_d024b2a3r2.sh",
+      "sha256": "88e7e7572fb16410b1d3d6d8b7fd7f82c07e339435b8024c8dfa700c4509d269"
+    },
+    {
+      "bytes": 19153,
+      "name": "inspect_aimnet2_models_d024a.sh",
+      "sha256": "b1b9cf8cd12b395e47468fe467c827094fd0cca778b828552fcd286578cb5ea6"
+    },
+    {
+      "bytes": 58763,
+      "name": "inspect_aimnet2_models_d024b2b.sh",
+      "sha256": "ba7addc3d0b414406ac33bba71248d8e8b25517ee50410b30dcded86220489c8"
+    },
+    {
+      "bytes": 21950,
+      "name": "inspect_aimnet2_yaml_d024b1.sh",
+      "sha256": "01d8a4a86aec3e78dc2cd1720c9c17d3af96ca48262e3e2c52ef8030d95af9dc"
+    },
+    {
+      "bytes": 22187,
+      "name": "inspect_aimnet2_yaml_d024b1_v2.sh",
+      "sha256": "32a5077ed334d4e6e92ee6416168a882158458ef133a308c709b571f487c15b5"
+    },
+    {
+      "bytes": 4479,
+      "name": "install_aimnet2_d022.sh",
+      "sha256": "02de2849a7f3a1b8ca08d7b8fa4d1181def2fb48b74219b72ea1dec5ac372aff"
+    },
+    {
+      "bytes": 8532,
+      "name": "install_fairchem.sh",
+      "sha256": "269258eb2813c83b5a79e7785d193ca9fe9bc7d9a7e45706a68177a954d9ff10"
+    },
+    {
+      "bytes": 1396,
+      "name": "install_gpupyscf.sh",
+      "sha256": "bce88ee0e2055e58fd67458026c16c1b19397fb71782c05d66c91f9a2228891c"
+    },
+    {
+      "bytes": 8443,
+      "name": "install_hpc.sh",
+      "sha256": "21631bc276c8b0c7a3d02135134cb2b48dcc10b60f3c8fedaa836d645f6eaca2"
+    },
+    {
+      "bytes": 1547,
+      "name": "install_mlff.sh",
+      "sha256": "f32e19bf96e2558d7596fe9f4236b207725e75f0380da0d5c410ff0380d37d3f"
+    }
+  ],
+  "environment_scripts_found": [
+    "aimnet2.sh",
+    "cp2k.sh",
+    "diagnose_aimnet2_d022.sh",
+    "download_aimnet2_models_d023.sh",
+    "finalize_aimnet2_d022.sh",
+    "inspect_aimnet2_model_d024b2a.sh",
+    "inspect_aimnet2_model_d024b2a2.sh",
+    "inspect_aimnet2_model_d024b2a3.sh",
+    "inspect_aimnet2_model_d024b2a3r.sh",
+    "inspect_aimnet2_model_d024b2a3r2.sh",
+    "inspect_aimnet2_models_d024a.sh",
+    "inspect_aimnet2_models_d024b2b.sh",
+    "inspect_aimnet2_yaml_d024b1.sh",
+    "inspect_aimnet2_yaml_d024b1_v2.sh",
+    "install_aimnet2_d022.sh",
+    "install_fairchem.sh",
+    "install_gpupyscf.sh",
+    "install_hpc.sh",
+    "install_mlff.sh",
+    "mace.sh",
+    "mlff.sh",
+    "molenv.sh",
+    "multiwfn.sh",
+    "perienv.sh",
+    "vasp.sh",
+    "xtb.sh"
+  ],
+  "environments_matching_the_stack": [
+    "<AIMNET2_ENV_ROOT>/bin/python3.11",
+    "<MLFF_ENV_ROOT>/bin/python3.11"
+  ],
+  "invariance": {
+    "cache_unchanged": true
+  },
+  "isolated_mode": true,
+  "loader_decision": "unresolved",
+  "match_count_on_authorized_criteria": 0,
+  "match_count_on_observable_versions": 2,
+  "offline_flags": {
+    "HF_DATASETS_OFFLINE": "1",
+    "HF_HUB_OFFLINE": "1",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TRANSFORMERS_OFFLINE": "1"
+  },
+  "phase": "9A-S2",
+  "receipt_sha256": "e0db12b4e5910a33f89a866e7c8127f37bc27898c48efa45ba1f3d70f90ec330",
+  "required_versions": {
+    "aimnet": "0.2.0",
+    "ase": "3.29.0",
+    "python": "3.11.15",
+    "torch": "2.8.0+cu128"
+  },
+  "schema_version": "phase9a_s2.readonly_receipt.v1",
+  "source_inspection_performed": false,
+  "ssh_invocations_authorized": 2,
+  "ssh_invocations_used": 1,
+  "status": "inconclusive_ambiguous_interpreter",
+  "supersedes_nothing": "phase 9A-S remains inconclusive_due_to_inspection_error, unmodified",
+  "why_zero_on_authorized_criteria": "importlib.metadata.version('torch') reports the public version 2.8.0; the local version segment +cu128 lives in torch.__version__ and is not observable without importing torch, which this phase forbids"
+}

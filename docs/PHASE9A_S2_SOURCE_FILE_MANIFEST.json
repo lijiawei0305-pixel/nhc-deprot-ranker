@@ -1,0 +1,10 @@
+{
+  "schema_version": "phase9a_s2.source_file_manifest.v1",
+  "phase": "9A-S2",
+  "attempt": "phase9a-s2-v001",
+  "status": "not_performed",
+  "reason": "interpreter discovery returned ambiguous_match; the second SSH invocation was not spent on a guess",
+  "source_files_read": 0,
+  "source_manifest": [],
+  "loader_decision": "unresolved"
+}
