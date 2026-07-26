@@ -18,7 +18,7 @@ Updated: 2026-07-26
 | Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
 | Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
 | Phase 9A-I — minimal inference characterization | Passed; six single-point calls executed | 2026-07-26; no optimization, no PySCF, no label |
-| Phase 9B — paired direct / assisted smoke | Implementation in progress; 4 of 6 components | 2026-07-26; gates closed; needs the remaining components then separate execution authorization |
+| Phase 9B — paired direct / assisted smoke | Implementation in progress; 5 of 6 components | 2026-07-26; gates closed; needs the remaining component then separate execution authorization |
 
 ## Current completed work
 
@@ -149,6 +149,23 @@ Two blocking findings were recorded. Only ensemble member `_0` exists locally
 (`aimnet2_wb97m_d3_0.pt`, SHA256 `f0f7c054...4e28`); members `_1`, `_2`, and
 `_3` are absent and may not be downloaded. Separately, the calculator's default
 model string exposes a remote-fetch path that any future run must pin offline.
+
+Phase 9B execution components are five of six built, all with their source gates
+closed:
+
+```text
+1/6  preparation/phase9b_preopt.py     AIMNet2 preoptimization stage      built
+2/6  preparation/phase9b_bundle.py     request and payload manifest       built
+3/6  preparation/phase9b_preflight.py  read-only environment recheck      built
+4/6  preparation/phase9b_deploy.py     directed two-route deployment      built
+5/6  preparation/phase9b_launch.py     two-route supervisor launch        built
+6/6  preparation/phase9b_postflight.py evidence harvest and acceptance    not started
+```
+
+All five live outside the runner source closure, so `runner_source_sha256`
+remains `2059b35d...52c` over 18 files. None has been run against a server: each
+takes an injected command runner and refuses a real invocation while its
+`EXECUTION_AUTHORIZED` is false.
 
 ## Next action
 
