@@ -9,6 +9,11 @@ stays `inconclusive_due_to_inspection_error` and Phase 9A-S2 stays
 The call did settle the provenance question that blocked Phase 9A-S2, and it
 stopped one stage later, on a defect in my own interpreter enumeration.
 
+> **Followed by Phase 9A-S4**, which deduplicated by `(st_dev, st_ino)` before
+> counting, confirmed the four python names resolve to one binary, and read the
+> installed source. The result recorded on this page is unchanged. See
+> `docs/PHASE9A_S4_DEDUPLICATED_SOURCE_INSPECTION.md`.
+
 ## What the activation script binds
 
 `mlff.sh` was located by listing the registered environment-script directory —

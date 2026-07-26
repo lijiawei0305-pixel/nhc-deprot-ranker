@@ -1,0 +1,754 @@
+{
+  "aimnet_files": [
+    {
+      "bytes": 794,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 30,
+      "package": "aimnet",
+      "relative_path": "aimnet/calculators/__init__.py",
+      "sha256": "19ec2247ae975e571c87eaf0a830b63701c9724d5cb2be1897eeb903efe17cb0"
+    },
+    {
+      "bytes": 10530,
+      "classes": [
+        "AIMNet2ASE",
+        "Calculator",
+        "PropertyNotImplementedError"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 274,
+      "package": "aimnet",
+      "relative_path": "aimnet/calculators/aimnet2ase.py",
+      "sha256": "8a5731fe9c2e803c3a99c48eb96f2f66c71e8680cad6dff4977a7316d5fbc9cf"
+    },
+    {
+      "bytes": 4850,
+      "classes": [
+        "AIMNet2Pysis",
+        "Calculator"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 116,
+      "package": "aimnet",
+      "relative_path": "aimnet/calculators/aimnet2pysis.py",
+      "sha256": "3c2abcf101efe07d10bf7227aa5af3cea373fe0595c7c2d214be292916633cc0"
+    },
+    {
+      "bytes": 6577,
+      "classes": [
+        "AIMNet2TorchSim",
+        "ModelInterface"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 175,
+      "package": "aimnet",
+      "relative_path": "aimnet/calculators/aimnet2torchsim.py",
+      "sha256": "76fdbe3e74f4a94cddfaf9b7e5fa5b3bdb0097d98c66a336e878f0952ff3cb0e"
+    },
+    {
+      "bytes": 65345,
+      "classes": [
+        "AdaptiveNeighborList",
+        "AIMNet2Calculator"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 1527,
+      "package": "aimnet",
+      "relative_path": "aimnet/calculators/calculator.py",
+      "sha256": "4f50f2f22cbb1698a00a2328a9d8cb0a430b8a8c672ca88aeed195e924f38841"
+    },
+    {
+      "bytes": 11705,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 314,
+      "package": "aimnet",
+      "relative_path": "aimnet/calculators/hf_hub.py",
+      "sha256": "7858467c6a9fa172b2c2dd22ca5141459d906cb4c309d7c19dc0a6f045d7e185"
+    },
+    {
+      "bytes": 4617,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 137,
+      "package": "aimnet",
+      "relative_path": "aimnet/calculators/model_registry.py",
+      "sha256": "9e2f61fcfff3024b7cc20e561061666fd6ffeabbacaa6033b30ad745f83d05d8"
+    },
+    {
+      "bytes": 9496,
+      "classes": [
+        "ModelMetadata",
+        "AIMNet2Base"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 239,
+      "package": "aimnet",
+      "relative_path": "aimnet/models/base.py",
+      "sha256": "f22ed8577cff74cc63e7b51897e231565733732f61f8377db9bf616b8d73bf37"
+    },
+    {
+      "bytes": 216,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 3,
+      "package": "aimnet",
+      "relative_path": "aimnet/modules/__init__.py",
+      "sha256": "23ef617aa45d9d77b2a4c523cde43a6381004ccffd9f8345c820ba3a6e87d95c"
+    },
+    {
+      "bytes": 63620,
+      "classes": [
+        "ExternalDerivativeTerms",
+        "_PeriodicCoulombFunction",
+        "LRCoulomb",
+        "SRCoulomb",
+        "DispParam",
+        "D3TS",
+        "_DFTD3KernelInputs",
+        "_DFTD3EnergyFunction",
+        "DFTD3"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 1606,
+      "package": "aimnet",
+      "relative_path": "aimnet/modules/lr.py",
+      "sha256": "fe31354eede1dc4d8042ff5f0faab8d1b719b03a347e2227e2c7cdd912ac076f"
+    },
+    {
+      "bytes": 6028,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 174,
+      "package": "aimnet",
+      "relative_path": "aimnet/config.py",
+      "sha256": "0232457935c9e08aae689d778de70a872b5ecf409b1d138ace5c3271f63b9360"
+    },
+    {
+      "bytes": 28402,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 813,
+      "package": "aimnet",
+      "relative_path": "aimnet/models/utils.py",
+      "sha256": "4670c83ab1c37459526c60b9da0298252a76d2a79feffb571e1d99987c221d0f"
+    },
+    {
+      "bytes": 185,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 7,
+      "package": "aimnet",
+      "relative_path": "aimnet/__init__.py",
+      "sha256": "bb18b97049cb5f783f0bb9d49f11b050b845fb0c8d214c1c6142260d8867a0a0"
+    },
+    {
+      "bytes": 9388,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 258,
+      "package": "aimnet",
+      "relative_path": "aimnet/nbops.py",
+      "sha256": "4a6f78489e719aa8cac37d6b7ac09dfdcda6368aa8aec4984f88c299f51c7c50"
+    },
+    {
+      "bytes": 8760,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 467,
+      "package": "aimnet",
+      "relative_path": "aimnet/constants.py",
+      "sha256": "4fa79bfc21b9764c6e520db65dff16885d22181f892e82cdcc7abd47c491ceb4"
+    },
+    {
+      "bytes": 11034,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 293,
+      "package": "aimnet",
+      "relative_path": "aimnet/ops.py",
+      "sha256": "5e06d7cb2fe7e231ec336282b505bdf1236f082c55389c2ace5f2abc5165ecda"
+    }
+  ],
+  "ase_files": [
+    {
+      "bytes": 7397,
+      "classes": [
+        "LBFGS",
+        "LBFGSLineSearch"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 218,
+      "package": "ase",
+      "relative_path": "ase/optimize/lbfgs.py",
+      "sha256": "e9bf98b1946a75f86802805b7159d7ff71bc29f3a10aaf9bd3817dacf7173b18"
+    },
+    {
+      "bytes": 19034,
+      "classes": [
+        "RestartError",
+        "OptimizableAtoms",
+        "Log",
+        "BaseDynamics",
+        "Dynamics",
+        "Optimizer"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 582,
+      "package": "ase",
+      "relative_path": "ase/optimize/optimize.py",
+      "sha256": "6ec1b31733b7bd6c6ed824ebcd1682e3978f033b68717c8ab391d94a160d0433"
+    },
+    {
+      "bytes": 823,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 33,
+      "package": "ase",
+      "relative_path": "ase/optimize/__init__.py",
+      "sha256": "f2bd4eda18c773a7400619706794152efa3b3e29ad37ba8528ea5de12be43d9c"
+    },
+    {
+      "bytes": 400,
+      "classes": [],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 15,
+      "package": "ase",
+      "relative_path": "ase/__init__.py",
+      "sha256": "92ce3cc614521afe055e962ccb4254e8fbf342f3ef86111fa4abc0b017a9963e"
+    },
+    {
+      "bytes": 2780,
+      "classes": [
+        "LBFGSMethod"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 93,
+      "package": "ase",
+      "relative_path": "ase/_4/optimize/lbfgs.py",
+      "sha256": "f1d4bb90ba0579ae43ac06ee0b0764246ed97170e6ee95d60d6c2bf30812548a"
+    },
+    {
+      "bytes": 2661,
+      "classes": [
+        "ForceGradient",
+        "Optimizable4",
+        "OptimizableAtoms"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 97,
+      "package": "ase",
+      "relative_path": "ase/_4/optimize/optimizable.py",
+      "sha256": "5c6bd47dc548a728a082dc7496ee2686b42ff81eb61da133ca6ceb61915a7f8f"
+    },
+    {
+      "bytes": 14645,
+      "classes": [
+        "LineSearch"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 405,
+      "package": "ase",
+      "relative_path": "ase/utils/linesearch.py",
+      "sha256": "a2fa216d2acd093b56fd36bfbae805e9dcfdb93f4786d61e8951e18548e7d414"
+    },
+    {
+      "bytes": 38358,
+      "classes": [
+        "CalculatorError",
+        "CalculatorSetupError",
+        "EnvironmentError",
+        "InputError",
+        "CalculationFailed",
+        "SCFError",
+        "ReadError",
+        "PropertyNotImplementedError",
+        "PropertyNotPresent",
+        "KPoints",
+        "Parameters",
+        "BaseCalculator",
+        "Calculator",
+        "OldShellProfile",
+        "FileIORules",
+        "BadConfiguration",
+        "StandardProfile",
+        "FileIOCalculator"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 1183,
+      "package": "ase",
+      "relative_path": "ase/calculators/calculator.py",
+      "sha256": "90b5a716a0d441a9fc3eb20afeb0eb5a3e95487a2e258a8bfd37fdcf79d0cbd8"
+    },
+    {
+      "bytes": 29703,
+      "classes": [
+        "OptimizableFilter",
+        "Filter",
+        "StrainFilter",
+        "UnitCellFilter",
+        "FrechetCellFilter",
+        "ExpCellFilter"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 815,
+      "package": "ase",
+      "relative_path": "ase/filters.py",
+      "sha256": "9ca69004713e3595b9c784e6771756c73bad60329b5e7ef96b4e0c3575f83470"
+    },
+    {
+      "bytes": 5525,
+      "classes": [
+        "MyEncoder"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 185,
+      "package": "ase",
+      "relative_path": "ase/io/jsonio.py",
+      "sha256": "719fc78494b8f4f257f2b3e33bed81343b272907e14d9b43dd24381b688fcfb9"
+    },
+    {
+      "bytes": 17138,
+      "classes": [
+        "TrajectoryWriter",
+        "TrajectoryReader",
+        "SlicedTrajectory",
+        "VersionTooOldError",
+        "OldCalculatorWrapper"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 509,
+      "package": "ase",
+      "relative_path": "ase/io/trajectory.py",
+      "sha256": "59b42da703a2ef61d3e78311acc187fb595d356a978d382a5ed3a5960c14c3b1"
+    },
+    {
+      "bytes": 10014,
+      "classes": [
+        "DummyMPI",
+        "MPI",
+        "MPI4PY",
+        "AsapCommWrapper"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 376,
+      "package": "ase",
+      "relative_path": "ase/parallel.py",
+      "sha256": "5c19f3a7e9280197fc411e2de09232a7d2cf76b8ae4a5b2cdfb81328c8e658c7"
+    },
+    {
+      "bytes": 22164,
+      "classes": [
+        "DevNull",
+        "Lock",
+        "OpenLock",
+        "iofunction",
+        "ExperimentalFeatureWarning",
+        "_DelExitStack",
+        "IOContext",
+        "OldSpglibError"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 834,
+      "package": "ase",
+      "relative_path": "ase/utils/__init__.py",
+      "sha256": "2df13cb8dfc0ec35c1645cf1959bafca24b01d36fa060cff922534cde2cce77b"
+    },
+    {
+      "bytes": 1636,
+      "classes": [
+        "Optimizable"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 52,
+      "package": "ase",
+      "relative_path": "ase/utils/abc.py",
+      "sha256": "60f5eedeb23f9a18642f09a88003e107484c6da2192a2192d66c44406e60541c"
+    },
+    {
+      "bytes": 5989,
+      "classes": [
+        "BFGS",
+        "oldBFGS"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 186,
+      "package": "ase",
+      "relative_path": "ase/optimize/bfgs.py",
+      "sha256": "12dd0cb6d324b9cc61c69b5f751b7482d55c18f34dfac85cb0585557fd6f9166"
+    },
+    {
+      "bytes": 7481,
+      "classes": [
+        "BFGSLineSearch"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 227,
+      "package": "ase",
+      "relative_path": "ase/optimize/bfgslinesearch.py",
+      "sha256": "b8bac1f388bd577001c7f56b0cdb6a4bb99d020e49003973855002eaf6dde178"
+    },
+    {
+      "bytes": 5405,
+      "classes": [
+        "CellAwareBFGS"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 143,
+      "package": "ase",
+      "relative_path": "ase/optimize/cellawarebfgs.py",
+      "sha256": "6ef5dd091064f70c03abef6c8fab2f6647735c76ea505bcb6ee55ac8e55c4ad0"
+    },
+    {
+      "bytes": 7156,
+      "classes": [
+        "FIRE"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 216,
+      "package": "ase",
+      "relative_path": "ase/optimize/fire.py",
+      "sha256": "38bdf7c395b0473d23118107e41b1a213bb9e8be0cd35c79466e60a373630cbe"
+    },
+    {
+      "bytes": 7803,
+      "classes": [
+        "FIRE2"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 228,
+      "package": "ase",
+      "relative_path": "ase/optimize/fire2.py",
+      "sha256": "896ed9c82c16fc2d41212c623b9842793ead456e2413a079729545749eeb6021"
+    },
+    {
+      "bytes": 10815,
+      "classes": [
+        "GPMin"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 292,
+      "package": "ase",
+      "relative_path": "ase/optimize/gpmin/gpmin.py",
+      "sha256": "4c15d8eac4dd1cce6ff94f4e57c82a96e5f954b4432fbf7f15ea6ab3e2b6d1ff"
+    },
+    {
+      "bytes": 2783,
+      "classes": [
+        "MDMin"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 94,
+      "package": "ase",
+      "relative_path": "ase/optimize/mdmin.py",
+      "sha256": "04b6c605034e2dd75f9958cd768b6cc620df384e268e117df3f83d5fe922c509"
+    },
+    {
+      "bytes": 7207,
+      "classes": [
+        "ODE12r"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 218,
+      "package": "ase",
+      "relative_path": "ase/optimize/ode.py",
+      "sha256": "e29fcd620468a6cdcfcb8a9299c827d26affde6b6df6b530369e2ee7a60e4475"
+    },
+    {
+      "bytes": 12601,
+      "classes": [
+        "GoodOldQuasiNewton"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 439,
+      "package": "ase",
+      "relative_path": "ase/optimize/oldqn.py",
+      "sha256": "5dc811b7bda76a5d925bf9b3b3efa67c16d93276126fc52ba6395002794024c6"
+    },
+    {
+      "bytes": 3305,
+      "classes": [
+        "RFO"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 105,
+      "package": "ase",
+      "relative_path": "ase/optimize/rfo.py",
+      "sha256": "aa88f115250610888e0feafb5ea3721bf29653c8c5b18f1472f2facc4bd7a694"
+    },
+    {
+      "bytes": 6677,
+      "classes": [
+        "Atom"
+      ],
+      "installed_root": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+      "is_regular_file": true,
+      "is_symlink": false,
+      "line_count": 218,
+      "package": "ase",
+      "relative_path": "ase/atom.py",
+      "sha256": "26b2aba430cf0181a33964537bf1a80d4450e7c568f8486fd6efbe7b0c8978c0"
+    }
+  ],
+  "attempt": "phase9a-s4-v001",
+  "files_read": {
+    "aimnet": 16,
+    "ase": 25
+  },
+  "installed_roots": {
+    "aimnet": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+    "ase": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages",
+    "torch": "<MLFF_ENV_ROOT>/lib/python3.11/site-packages"
+  },
+  "interpreter": {
+    "device": 66306,
+    "inode": 23807108,
+    "names_resolving_to_it": [
+      "python",
+      "python3",
+      "python3.1",
+      "python3.11"
+    ],
+    "python": "3.11.15",
+    "realpath": "<MLFF_ENV_ROOT>/bin/python3.11"
+  },
+  "key_definitions": [
+    {
+      "end_lineno": 492,
+      "file": "aimnet/calculators/calculator.py",
+      "lineno": 284,
+      "qualname": "AIMNet2Calculator.__init__"
+    },
+    {
+      "end_lineno": 63,
+      "file": "aimnet/calculators/model_registry.py",
+      "lineno": 57,
+      "qualname": "get_registry_model_path"
+    },
+    {
+      "end_lineno": 120,
+      "file": "aimnet/calculators/model_registry.py",
+      "lineno": 112,
+      "qualname": "_maybe_download_asset"
+    },
+    {
+      "end_lineno": 127,
+      "file": "aimnet/calculators/model_registry.py",
+      "lineno": 123,
+      "qualname": "get_model_path"
+    },
+    {
+      "end_lineno": 163,
+      "file": "aimnet/models/base.py",
+      "lineno": 53,
+      "qualname": "load_model"
+    },
+    {
+      "end_lineno": 71,
+      "file": "aimnet/calculators/aimnet2ase.py",
+      "lineno": 45,
+      "qualname": "AIMNet2ASE.__init__"
+    },
+    {
+      "end_lineno": 107,
+      "file": "aimnet/calculators/aimnet2ase.py",
+      "lineno": 104,
+      "qualname": "AIMNet2ASE.set_charge"
+    },
+    {
+      "end_lineno": 274,
+      "file": "aimnet/calculators/aimnet2ase.py",
+      "lineno": 228,
+      "qualname": "AIMNet2ASE.calculate"
+    },
+    {
+      "end_lineno": 103,
+      "file": "ase/optimize/lbfgs.py",
+      "lineno": 23,
+      "qualname": "LBFGS.__init__"
+    },
+    {
+      "end_lineno": 188,
+      "file": "ase/optimize/optimize.py",
+      "lineno": 187,
+      "qualname": "BaseDynamics.get_number_of_steps"
+    },
+    {
+      "end_lineno": 232,
+      "file": "ase/optimize/optimize.py",
+      "lineno": 220,
+      "qualname": "BaseDynamics.attach"
+    },
+    {
+      "end_lineno": 246,
+      "file": "ase/optimize/optimize.py",
+      "lineno": 234,
+      "qualname": "BaseDynamics.call_observers"
+    },
+    {
+      "end_lineno": 355,
+      "file": "ase/optimize/optimize.py",
+      "lineno": 295,
+      "qualname": "Dynamics.irun"
+    },
+    {
+      "end_lineno": 377,
+      "file": "ase/optimize/optimize.py",
+      "lineno": 357,
+      "qualname": "Dynamics.run"
+    },
+    {
+      "end_lineno": 452,
+      "file": "ase/optimize/optimize.py",
+      "lineno": 401,
+      "qualname": "Optimizer.__init__"
+    },
+    {
+      "end_lineno": 488,
+      "file": "ase/optimize/optimize.py",
+      "lineno": 472,
+      "qualname": "Optimizer.irun"
+    },
+    {
+      "end_lineno": 506,
+      "file": "ase/optimize/optimize.py",
+      "lineno": 490,
+      "qualname": "Optimizer.run"
+    },
+    {
+      "end_lineno": 518,
+      "file": "ase/optimize/optimize.py",
+      "lineno": 508,
+      "qualname": "Optimizer.converged"
+    }
+  ],
+  "loader_decision": "A",
+  "loader_decision_grade": "source_proven",
+  "note_on_ase_breadth": "the ase closure was seeded with ase/optimize/__init__.py, which imports the whole optimize package, so 25 files under ase/optimize (plus ase/utils and ase/filters helpers) were read rather than only lbfgs.py and optimize.py; all are within the optimizer surface and none are training or dataset source",
+  "phase": "9A-S4",
+  "schema_version": "phase9a_s4.source_file_manifest.v1",
+  "status": "source_read",
+  "torch_version_file": {
+    "bytes": 281,
+    "fields": {
+      "__all__": {
+        "lineno": 3,
+        "value": [
+          "__version__",
+          "debug",
+          "cuda",
+          "git_version",
+          "hip",
+          "xpu"
+        ]
+      },
+      "__version__": {
+        "lineno": 4,
+        "value": "2.8.0+cu128"
+      },
+      "cuda": {
+        "lineno": 6,
+        "value": "12.8"
+      },
+      "debug": {
+        "lineno": 5,
+        "value": false
+      },
+      "git_version": {
+        "lineno": 7,
+        "value": "a1cb3cc05d46d198467bebbb6e8fba50a325d4e7"
+      },
+      "hip": {
+        "lineno": 8,
+        "value": null
+      },
+      "xpu": {
+        "lineno": 9,
+        "value": null
+      }
+    },
+    "relative_path": "torch/version.py",
+    "sha256": "ba23e699ea8931779f14ccfcb3ed6dc67a14452d5e49ebd91875d418dba2a7f1"
+  }
+}
