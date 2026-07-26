@@ -133,7 +133,7 @@ a second time; the re-baseline is recorded in
 re-executes itself in `supervisor` mode, and only that mode constructs the
 `Phase8BWorkerLaunch` handshake. Phase 9B has a supervisor CLI and a guarded
 executor adapter but no guardian, so the handshake arrives through an injected
-factory and the CLI refuses when none is wired. That module is item 8/8 and no
+factory and the CLI refuses when none is wired. That module is item 8/10 and no
 Phase 9B run can start without it.
 
 Historical Phase 8B artifacts must not be edited to accommodate this. They are
