@@ -165,6 +165,20 @@ loader, under `TORCH_FORCE_WEIGHTS_ONLY_LOAD=1` and a deliberately invalid
 `aimnet2_wb97m_d3_0.pt`, so it does not answer what Phase 9A-I did — but it shows
 the project has previously judged the official loader unsafe to call offline.
 
+## Phase 9A-S3 outcome
+
+Phase 9A-S3 bound the environment from `mlff.sh` itself rather than from package
+versions, and succeeded at that: the script is a 783-byte regular file, sha256
+`9a8ae2b2...e437b6`, whose line 13 is a literal quoted absolute prefix naming
+exactly one environment root. It was never sourced. Phase 9A-S2's two-way
+ambiguity is therefore settled — the `mlff` prefix is the bound environment.
+
+It then stopped at interpreter enumeration, because a `python3.*` glob matched
+both `python3.1` and `python3.11` in one conda `bin/` and the count was taken
+before deduplication. Two names, one file. No installed source was read, the
+seven-point gate never ran, and the loader decision remains `unresolved`.
+Details in `docs/PHASE9A_S3_ACTIVATION_BOUND_INSPECTION.md`.
+
 ## Note on question 9
 
 Phase 9A-I ran **no optimizer**: `geometry_optimizations: 0`. So the ASE `LBFGS`

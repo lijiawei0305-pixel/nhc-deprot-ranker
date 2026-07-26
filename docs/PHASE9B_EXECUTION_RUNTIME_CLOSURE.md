@@ -12,7 +12,10 @@ built to close it, as one source-freeze unit.
 > `docs/PHASE9A_S_INSTALLED_SOURCE_INSPECTION.md`. Phase 9A-S2 retried the same
 > day, found two candidate environments rather than one, and stopped on the
 > ambiguity without spending its second SSH invocation; see
-> `docs/PHASE9A_S2_INTERPRETER_DISCOVERY.md`.
+> `docs/PHASE9A_S2_INTERPRETER_DISCOVERY.md`. Phase 9A-S3 then resolved the
+> environment binding from `mlff.sh` itself and stopped at interpreter
+> enumeration; see `docs/PHASE9A_S3_ACTIVATION_BOUND_INSPECTION.md`. The
+> loader remains unrecovered.
 
 ## What was unreachable
 

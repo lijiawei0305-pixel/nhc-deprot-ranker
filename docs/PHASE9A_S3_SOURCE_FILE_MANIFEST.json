@@ -1,0 +1,44 @@
+{
+  "aimnet_source_files_read": 0,
+  "ase_source_files_read": 0,
+  "attempt": "phase9a-s3-v001",
+  "authenticated_files": [
+    {
+      "bytes": 783,
+      "is_regular_file": true,
+      "is_symlink": false,
+      "mode": "-rw-r--r--",
+      "path": "<REMOTE_PROJECT_ROOT>/env/envs/mlff.sh",
+      "role": "activation script",
+      "sha256": "9a8ae2b2fff81b317ef2569af51f9fa374b071551dfa4cb3e2948fe598e437b6"
+    },
+    {
+      "bytes": 2479,
+      "is_regular_file": true,
+      "is_symlink": false,
+      "path": "<CONDA_DISTRIBUTION_ROOT>/etc/profile.d/conda.sh",
+      "role": "unregistered sourced script (mechanism only, not the binding)",
+      "sha256": "c25916625c93f3c2039799c1aaeee48a480f2109ca2834689f29689f7134db46"
+    }
+  ],
+  "loader_decision": "unresolved",
+  "phase": "9A-S3",
+  "reason": "the single authorized SSH invocation stopped at interpreter enumeration; the seven-point gate was never evaluated and no installed source was read",
+  "schema_version": "phase9a_s3.source_file_manifest.v1",
+  "source_manifest": [],
+  "status": "not_performed",
+  "weights_stat_only": [
+    {
+      "bytes": 8836941,
+      "device": 66306,
+      "exists": true,
+      "inode": 25737086,
+      "is_regular_file": true,
+      "is_symlink": false,
+      "mode": "-rw-------",
+      "mtime_ns": 1784037872646661935,
+      "path": "<REMOTE_HOME>/.cache/aimnet/aimnet2_wb97m_d3_0.pt",
+      "realpath": "<REMOTE_HOME>/.cache/aimnet/aimnet2_wb97m_d3_0.pt"
+    }
+  ]
+}

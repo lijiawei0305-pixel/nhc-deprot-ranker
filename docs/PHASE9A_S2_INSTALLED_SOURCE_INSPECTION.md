@@ -9,6 +9,12 @@ Two environments carry python 3.11.15, aimnet 0.2.0, and ase 3.29.0. The
 without importing torch, which this phase forbids. Details and the next minimal
 test are in `docs/PHASE9A_S2_INTERPRETER_DISCOVERY.md`.
 
+> **Followed by Phase 9A-S3**, which resolved this ambiguity from the byte
+> identity and static content of `mlff.sh` rather than from package versions,
+> and then stopped one stage later on a separate enumeration defect. The
+> result recorded on this page is unchanged. See
+> `docs/PHASE9A_S3_ACTIVATION_BOUND_INSPECTION.md`.
+
 ## Consequences
 
 ```text
