@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -19,6 +20,13 @@ from nhc_deprot_ranker.quantum.phase9b_permit import (
     render_phase9b_permit,
     validate_exact_phase9b_authority,
 )
+from nhc_deprot_ranker.quantum.phase9b_resources import PHASE9B_RESOURCES
+from nhc_deprot_ranker.quantum.two_endpoint import (
+    LOCKED_PROTOCOL_SHA256,
+    REQUEST_SCHEMA_VERSION,
+)
+
+_FROZEN_TIMEOUT: int = int(cast(int, PHASE9B_RESOURCES["hard_wall_timeout_seconds"]))
 
 _REQ = "1" * 64
 _SRC = "2" * 64
@@ -45,6 +53,10 @@ class _Endpoint:
 
 @dataclass(frozen=True)
 class _Request:
+    schema_version: str
+    execution_authorized: bool
+    protocol_sha256: str
+    timeout_seconds: int
     request_sha256: str
     runner_source_sha256: str
     request_id: str
@@ -90,6 +102,10 @@ def _consumed(tmp_path: Path) -> ConsumedPhase9BPermit:
 def _request(consumed: ConsumedPhase9BPermit) -> _Request:
     permit = consumed.permit
     return _Request(
+        schema_version=REQUEST_SCHEMA_VERSION,
+        execution_authorized=True,
+        protocol_sha256=LOCKED_PROTOCOL_SHA256,
+        timeout_seconds=_FROZEN_TIMEOUT,
         request_sha256=permit.request_sha256,
         runner_source_sha256=permit.runner_source_sha256,
         request_id=REQUEST_ID,
@@ -207,5 +223,61 @@ def test_unlinearized_consumed_hash_fails(tmp_path: Path) -> None:
             _request(bad),
             bad,
             output_root=bad.permit.output_root,
+            attempt_id=ROUTE_ATTEMPT_IDS[ROUTE_DIRECT],
+        )
+
+
+def _valid(consumed: ConsumedPhase9BPermit) -> _Request:
+    return _request(consumed)
+
+
+def test_schema_version_drift_fails(tmp_path: Path) -> None:
+    """Parity with the Phase 8B frozen-worker match, which checks all four."""
+
+    consumed = _consumed(tmp_path)
+    bad = replace(_valid(consumed), schema_version="nhc-two-endpoint-request-v0")
+    with pytest.raises(Phase9BPermitValidationError, match="schema version drifted"):
+        validate_exact_phase9b_authority(
+            bad,
+            consumed,
+            output_root=consumed.permit.output_root,
+            attempt_id=ROUTE_ATTEMPT_IDS[ROUTE_DIRECT],
+        )
+
+
+def test_unauthorized_request_fails(tmp_path: Path) -> None:
+    consumed = _consumed(tmp_path)
+    bad = replace(_valid(consumed), execution_authorized=False)
+    with pytest.raises(Phase9BPermitValidationError, match="does not authorize execution"):
+        validate_exact_phase9b_authority(
+            bad,
+            consumed,
+            output_root=consumed.permit.output_root,
+            attempt_id=ROUTE_ATTEMPT_IDS[ROUTE_DIRECT],
+        )
+
+
+def test_non_locked_protocol_fails(tmp_path: Path) -> None:
+    consumed = _consumed(tmp_path)
+    bad = replace(_valid(consumed), protocol_sha256="e" * 64)
+    with pytest.raises(Phase9BPermitValidationError, match="locked protocol"):
+        validate_exact_phase9b_authority(
+            bad,
+            consumed,
+            output_root=consumed.permit.output_root,
+            attempt_id=ROUTE_ATTEMPT_IDS[ROUTE_DIRECT],
+        )
+
+
+def test_widened_wall_time_fails(tmp_path: Path) -> None:
+    """A request may not enlarge the frozen budget at runtime."""
+
+    consumed = _consumed(tmp_path)
+    bad = replace(_valid(consumed), timeout_seconds=86_400)
+    with pytest.raises(Phase9BPermitValidationError, match="frozen budget"):
+        validate_exact_phase9b_authority(
+            bad,
+            consumed,
+            output_root=consumed.permit.output_root,
             attempt_id=ROUTE_ATTEMPT_IDS[ROUTE_DIRECT],
         )

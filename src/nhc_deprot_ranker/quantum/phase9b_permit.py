@@ -505,6 +505,18 @@ class Phase9BRequestLike(Protocol):
     """The request fields the exact authority cross-checks."""
 
     @property
+    def schema_version(self) -> str: ...
+
+    @property
+    def execution_authorized(self) -> bool: ...
+
+    @property
+    def protocol_sha256(self) -> str: ...
+
+    @property
+    def timeout_seconds(self) -> int: ...
+
+    @property
     def request_sha256(self) -> str: ...
 
     @property
@@ -577,6 +589,23 @@ def validate_exact_phase9b_authority(
         raise Phase9BPermitValidationError("consumed permit hash is not linearized")
     if attempt_id != permit.attempt_id or attempt_id != ROUTE_ATTEMPT_IDS[permit.route]:
         raise Phase9BPermitValidationError("attempt identity disagrees with the consumed permit")
+    from nhc_deprot_ranker.quantum.phase9b_resources import PHASE9B_RESOURCES
+    from nhc_deprot_ranker.quantum.two_endpoint import (
+        LOCKED_PROTOCOL_SHA256,
+        REQUEST_SCHEMA_VERSION,
+    )
+
+    # Parity with the Phase 8B frozen-worker match: without these four the Phase
+    # 9B path would be weaker than the chain it replaces.
+    if request.schema_version != REQUEST_SCHEMA_VERSION:
+        raise Phase9BPermitValidationError("request schema version drifted")
+    if request.execution_authorized is not True:
+        raise Phase9BPermitValidationError("request does not authorize execution")
+    if request.protocol_sha256 != LOCKED_PROTOCOL_SHA256:
+        raise Phase9BPermitValidationError("request protocol is not the locked protocol")
+    expected_timeout = PHASE9B_RESOURCES["hard_wall_timeout_seconds"]
+    if request.timeout_seconds != expected_timeout:
+        raise Phase9BPermitValidationError("request wall-time is not the frozen budget")
     if request.request_id != REQUEST_ID:
         raise Phase9BPermitValidationError("request id disagrees with the Phase 9B chain")
     if request.inchikey != profile.inchikey:

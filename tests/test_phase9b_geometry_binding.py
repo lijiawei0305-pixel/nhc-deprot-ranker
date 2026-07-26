@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -34,6 +35,13 @@ from nhc_deprot_ranker.quantum.phase9b_permit import (
     render_phase9b_permit,
     validate_exact_phase9b_authority,
 )
+from nhc_deprot_ranker.quantum.phase9b_resources import PHASE9B_RESOURCES
+from nhc_deprot_ranker.quantum.two_endpoint import (
+    LOCKED_PROTOCOL_SHA256,
+    REQUEST_SCHEMA_VERSION,
+)
+
+_FROZEN_TIMEOUT: int = int(cast(int, PHASE9B_RESOURCES["hard_wall_timeout_seconds"]))
 
 _REQ = "1" * 64
 _SRC = "2" * 64
@@ -65,6 +73,10 @@ class _Endpoint:
 
 @dataclass(frozen=True)
 class _Request:
+    schema_version: str
+    execution_authorized: bool
+    protocol_sha256: str
+    timeout_seconds: int
     request_sha256: str
     runner_source_sha256: str
     request_id: str
@@ -150,6 +162,10 @@ def _authority(tmp_path: Path, route: str) -> object:
     consumed = _consumed(tmp_path, route)
     permit = consumed.permit
     request = _Request(
+        schema_version=REQUEST_SCHEMA_VERSION,
+        execution_authorized=True,
+        protocol_sha256=LOCKED_PROTOCOL_SHA256,
+        timeout_seconds=_FROZEN_TIMEOUT,
         request_sha256=permit.request_sha256,
         runner_source_sha256=permit.runner_source_sha256,
         request_id=REQUEST_ID,
@@ -214,6 +230,10 @@ def test_a_profile_with_drifted_provenance_cannot_authorize(tmp_path: Path) -> N
     consumed = _consumed(tmp_path, ROUTE_DIRECT)
     permit = consumed.permit
     request = _Request(
+        schema_version=REQUEST_SCHEMA_VERSION,
+        execution_authorized=True,
+        protocol_sha256=LOCKED_PROTOCOL_SHA256,
+        timeout_seconds=_FROZEN_TIMEOUT,
         request_sha256=permit.request_sha256,
         runner_source_sha256=permit.runner_source_sha256,
         request_id=REQUEST_ID,
