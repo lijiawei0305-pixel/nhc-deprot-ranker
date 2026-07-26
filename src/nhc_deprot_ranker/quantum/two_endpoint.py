@@ -56,7 +56,7 @@ ATTEMPT_SCHEMA_VERSION: Final = "nhc-two-endpoint-attempt-v2"
 SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-success-v2"
 SUPERVISOR_SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-supervisor-success-v1"
 FAILURE_SCHEMA_VERSION: Final = "nhc-two-endpoint-failure-v1"
-RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v3"
+RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v4"
 
 # This is a source-level gate, not a caller-provided option.  A later phase must
 # review and deliberately change it before any backend can load PySCF.
@@ -111,6 +111,13 @@ _RUNNER_SOURCE_RELATIVE_PATHS: Final[tuple[str, ...]] = (
     "nhc_deprot_ranker/quantum/phase8b_execution.py",
     "nhc_deprot_ranker/quantum/phase8b_permit.py",
     "nhc_deprot_ranker/quantum/phase8b_runtime.py",
+    # Phase 9B modules: the capability expectation builder below imports these at
+    # call time, so their content already determines closure-internal behaviour
+    # and must be hash-bound like the rest.
+    "nhc_deprot_ranker/quantum/phase9b_authority.py",
+    "nhc_deprot_ranker/quantum/phase9b_permit.py",
+    "nhc_deprot_ranker/quantum/phase9b_resources.py",
+    "nhc_deprot_ranker/quantum/phase9b_supervisor.py",
     "nhc_deprot_ranker/quantum/two_endpoint.py",
     "nhc_deprot_ranker/quantum/worker.py",
     "nhc_deprot_ranker/quantum/worker_bootstrap.py",

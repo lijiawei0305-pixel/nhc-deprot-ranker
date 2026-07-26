@@ -221,9 +221,44 @@ registered. The registry holds exactly two chains, and a capability presenting
 any other identity key still fails closed with `no frozen identity expectation`
 rather than falling back to a chain.
 
+## Closure wiring complete
+
+The runner source closure now holds **18** files: the historical 14 plus
+`phase9b_authority.py`, `phase9b_permit.py`, `phase9b_resources.py`, and
+`phase9b_supervisor.py`. `RUNNER_SOURCE_SCHEMA_VERSION` moved from
+`nhc-two-endpoint-runner-source-v3` to `-v4`, because a digest over a different
+file set must not silently share a version with the old one.
+
+```text
+schema  nhc-two-endpoint-runner-source-v4
+files   18
+digest  bada341d31e1a97d3ffa6461a7829edc3fe729243fc088fbe0bdec7cea033d16
+```
+
+The justification is correctness, not preparation. The capability expectation
+builder inside `two_endpoint.py` already imports the Phase 9B authority, permit,
+and resource modules at call time, so their content already determined
+closure-internal behaviour. Leaving them out would have meant those files could
+change without changing `runner_source_sha256`. The supervisor entry is included
+for the same reason its Phase 8B counterpart is: `run_phase8b_supervisor` lives
+inside `two_endpoint.py`, which is in the closure.
+
+`Phase9BExactAuthority` also gained `resources_sha256`, which the worker's claim
+validator reads. A regression now derives the field set the worker reads directly
+from `worker.py` and asserts the Phase 9B authority covers all of it, so this
+class of omission cannot recur silently.
+
+The schema bump changed `runner_source_sha256` for every path, including Phase
+8B's. That broke nothing: the Phase 8B routes are latched shut, its frozen
+artifacts are historical records rather than live comparisons, and its tests
+insulate themselves by patching `current_runner_source_sha256`. The entire
+pre-existing suite passed unchanged apart from two of this project's own
+assertions that had deliberately asserted the Phase 9B modules were *outside* the
+closure; both were rewritten to assert membership and to say why.
+
 ## Current state
 
-All three execution gates remain closed, the closure remains at 14 files with no
-Phase 9B module wired in, `phase8b_authority.py`, `phase8b_permit.py`, and
+All three execution gates remain closed, the closure now holds 18 files with every
+Phase 9B module hash-bound, `phase8b_authority.py`, `phase8b_permit.py`, and
 `two_endpoint.py` are untouched, `PHASE8B_DFT_SMOKE_V001.json` is unchanged, and
-the suite passes at 696.
+the suite passes at 707.
