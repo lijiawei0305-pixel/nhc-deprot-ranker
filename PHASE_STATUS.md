@@ -14,6 +14,8 @@ Updated: 2026-07-26
 | Phase 7 — four-row geometry smoke and dedicated runner | Complete and merged to `main` | Passed 2026-07-22; PR #7 / `133f8e3`; DFT execution prohibited |
 | Phase 8A — hard wall-time and read-only API preflight | Complete and merged to `main` | Passed 2026-07-22; PR #8 / `d621ca8`; DFT execution prohibited |
 | Phase 8B — single-candidate DFT smoke | Complete with rejected execution incident | Failed closed 2026-07-23; unique attempt consumed; retry prohibited |
+| Post-8B local safety closeout | Complete and merged to `main` | Passed 2026-07-26; PR #11 / `927ee26` |
+| Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
 
 ## Current completed work
 
@@ -119,17 +121,36 @@ the missing source gate and consumed latch to the directed deployment route,
 revival-resistance regressions, and a scope-matched quality gate. It connects
 to no server, runs no chemistry, and opens no execution gate.
 
+The user selected the third forward option — a wholly new calculation phase —
+and froze AIMNet2 as the structure preoptimization model. Phase 9A delivered the
+read-only audit and the document-first design for that pipeline:
+
+```text
+SMILES -> RDKit ETKDGv3 -> MMFF94 (UFF on exception)
+       -> cation and neutral endpoints
+       -> AIMNet2 geometry preoptimization
+       -> PySCF B3LYP-D3(BJ)/def2-SVP residual final optimization
+       -> final electronic energies -> deprotonation electronic-energy label
+```
+
+Phase 9A ran no AIMNet2, no PySCF, no force field, and no server command, wrote
+no implementation code, and opened no gate.
+
 ## Next action
 
-The closeout is the last work with a predetermined next step. After it, the
-project has exactly three legitimate forward options and the decision belongs
-to the user:
+Phase 9A-R, a single read-only server preflight, requires explicit user
+authorization. It records whether AIMNet2, torch, and ase are installed, which
+weights exist, their SHA256 values, and the real API for charge handling and
+units. It installs nothing, downloads nothing, loads no model, evaluates no
+energy, and writes nothing to the server.
 
-1. archive at the rejected Phase 8B and perform no further calculation;
-2. plan a new, strictly read-only server incident forensics pass;
-3. plan a wholly new calculation phase.
+Three user decisions are open and are set out in
+`docs/NEXT_PHASE_AUTHORIZATION.md`: whether the project may invoke the separate
+conda environment that holds AIMNet2, whether to proceed given the legacy
+project's recorded median 1.10x preoptimization speedup, and how to handle an
+ensemble for which only one member has evidence.
 
 Any new calculation requires a separate document-first plan, a new
 candidate/attempt/root/permit authority chain, and new explicit user
-authorization. No model or dataset ingestion may occur from this rejected
-attempt.
+authorization. No model or dataset ingestion may occur from the rejected
+Phase 8B attempt.
