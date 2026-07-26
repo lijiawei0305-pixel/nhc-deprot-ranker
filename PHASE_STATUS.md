@@ -1,6 +1,6 @@
 # Phase Status
 
-Updated: 2026-07-23
+Updated: 2026-07-26
 
 | Phase | Status | Gate |
 | --- | --- | --- |
@@ -93,19 +93,43 @@ Updated: 2026-07-23
 - Determined that a transient `S` to `R` process-state change was incorrectly compared as durable identity drift. Future code now compares only stable identity fields at terminal readback while retaining exact registration/acknowledgement/claim equality.
 - Corrected the future postflight reader to accept the registered zero-byte Phase 7 helper log only in the Phase 7 tree. The historical postflight remains incomplete, the immutable receipt remains rejected, and kernel invocation remains `indeterminate`.
 - Permanently retired the consumed QXH production bundle and launch routes, passed 556 closed-gate tests, Ruff, strict mypy for 72 source files, pre-commit, compileall, package build, privacy/diff checks, and a final security review with no remaining High, Critical, or Medium issue.
+- Published the rejected Phase 8B incident, future-code corrections, and closed-gate verification to `main` at merge commit `7d65f72`.
+- Audited the retired authority chain and found the directed deployment route carried neither the source execution gate nor a consumed latch, leaving the mutable private configuration as its only protection; added both checks ahead of the timeout check, configuration load, plan build, permit validation, and any injected command runner.
+- Closed the stale `server_write_authorized` bit that survived the consumed attempt in the ignored local Phase 8B configuration; the file remains untracked and uncommitted.
+- Added six no-chemistry revival-resistance regressions proving all three retired routes hold the latch simultaneously, the checked-in execution gate is false, a stale `server_write_authorized: true` configuration cannot revive deployment, and refusal precedes every input read and SSH attempt. Mutation-tested by flipping the deployment latch off, which failed four of the six.
+- Corrected current-state drift: `PHASE_STATUS.md` listed an already-completed publication as the next action, `AGENT.md` named only the PR #9 planning merge, and `AGENT.md` implied the frozen postflight rejected the attempt after reading the receipt when it had exited earlier at a legitimate zero-byte Phase 7 helper log.
+- Passed the closeout gate on CPython 3.14.3: 562 tests, Ruff lint and format, strict mypy for 72 source files, private-path scan, diff check, and an unchanged `docs/PHASE8B_DFT_SMOKE_V001.json` hash. Recorded, rather than fixed, a pre-existing `pre-commit` `UP038` failure in an untouched file caused by the hook pinning ruff `v0.12.4` against the project's `0.15.16`.
 
 ## Current boundary
 
-Phase 0–8A and the Phase 8B planning gate are complete and merged. The only
-authorized Phase 8B QXH attempt was consumed and rejected at the execution
-protocol layer. Its permit, attempt identity, bundle, and remote root are
-permanently unusable. No acceptable DFT endpoint or label was produced, and
+Phase 0–8A, the Phase 8B planning gate, and the rejected Phase 8B incident are
+all complete and merged. The rejected incident, its future-code corrections,
+and its closed-gate verification were published to `main` by merge commit
+`7d65f72`; that publication is done and is no longer pending.
+
+The only authorized Phase 8B QXH attempt was consumed and rejected at the
+execution protocol layer. Its permit, attempt identity, bundle, and remote root
+are permanently unusable. No acceptable DFT endpoint or label was produced, and
 the source execution gate is false.
+
+A local safety closeout follows the incident publication. It is local only and
+is planned in `docs/PHASE8B_CLOSEOUT_PLAN.md`: current-state document
+corrections, closing the stale private `server_write_authorized` bit, adding
+the missing source gate and consumed latch to the directed deployment route,
+revival-resistance regressions, and a scope-matched quality gate. It connects
+to no server, runs no chemistry, and opens no execution gate.
 
 ## Next action
 
-Publish the rejected Phase 8B incident, future-code corrections, and closed-gate
-verification to `main`, then stop. Any new calculation requires a separate
-document-first plan, a new candidate/attempt/root/permit authority chain, and
-new explicit user authorization. No model or dataset ingestion may occur from
-this rejected attempt.
+The closeout is the last work with a predetermined next step. After it, the
+project has exactly three legitimate forward options and the decision belongs
+to the user:
+
+1. archive at the rejected Phase 8B and perform no further calculation;
+2. plan a new, strictly read-only server incident forensics pass;
+3. plan a wholly new calculation phase.
+
+Any new calculation requires a separate document-first plan, a new
+candidate/attempt/root/permit authority chain, and new explicit user
+authorization. No model or dataset ingestion may occur from this rejected
+attempt.

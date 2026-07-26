@@ -5,6 +5,12 @@ one already validated transport tree to a standard-library-only receiver over
 one SSH process.  The receiver may only create the fixed, absent run root and
 the exact inventory members; it never overwrites, deletes, retries, or cleans
 up a partial deployment.
+
+The single authorized Phase 8B deployment was consumed, so this route is
+retired: ``deploy_phase8b_bundle`` checks the source execution gate and then an
+unconditional consumed latch before reading any input or opening SSH.  The
+private remote configuration is not an authorization source; a stale
+``server_write_authorized`` bit must never revive this route.
 """
 
 from __future__ import annotations
@@ -48,6 +54,7 @@ _IO_CHUNK_BYTES: Final = 64 * 1024
 _PUBLIC_MODE: Final = 0o640
 _PRIVATE_MODE: Final = 0o600
 _ROOT_MODE: Final = 0o700
+_PRODUCTION_AUTHORIZATION_CONSUMED: Final = True
 
 
 class Phase8BDeployError(RuntimeError):
@@ -1039,6 +1046,12 @@ def deploy_phase8b_bundle(
 ) -> dict[str, object]:
     """Create and revalidate the exact absent remote tree in one SSH call."""
 
+    from nhc_deprot_ranker.quantum import two_endpoint as runner
+
+    if runner.EXECUTION_AUTHORIZED is not True:
+        raise Phase8BDeployError("Phase 8B source execution gate is closed")
+    if _PRODUCTION_AUTHORIZATION_CONSUMED:
+        raise Phase8BDeployError("the unique Phase 8B deployment authorization has been consumed")
     if timeout_seconds <= 0.0 or timeout_seconds > 600.0:
         raise ValueError("deployment timeout must be in (0, 600]")
     config = load_phase8b_remote_config(config_path)

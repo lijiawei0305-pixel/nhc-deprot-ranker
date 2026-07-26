@@ -5,9 +5,10 @@ import json
 import stat
 import subprocess
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -24,7 +25,19 @@ from nhc_deprot_ranker.preparation.phase8b_remote import (
     PHASE8B_RUN_RELATIVE,
     load_phase8b_remote_config,
 )
+from nhc_deprot_ranker.quantum import two_endpoint as runner
 from nhc_deprot_ranker.quantum.phase8b_permit import render_phase8b_permit
+
+
+@pytest.fixture
+def open_retired_deploy_route() -> Iterator[None]:
+    """Reopen the retired deployment latches so the transport machinery stays testable."""
+
+    with (
+        patch.object(runner, "EXECUTION_AUTHORIZED", True),
+        patch.object(deploy_module, "_PRODUCTION_AUTHORIZATION_CONSUMED", False),
+    ):
+        yield
 
 
 def _canonical(payload: object) -> bytes:
@@ -242,6 +255,7 @@ def test_command_is_one_fixed_ssh_argv_without_copy_or_execution_tools(tmp_path:
 
 def test_directed_receiver_creates_exact_tree_and_rereads_canonical_evidence(
     tmp_path: Path,
+    open_retired_deploy_route: None,
 ) -> None:
     project = (tmp_path / "server-project").resolve()
     remote_parent = project / "data/runs"
@@ -278,7 +292,10 @@ def test_directed_receiver_creates_exact_tree_and_rereads_canonical_evidence(
     assert len(seen["input"]) < deploy_module._MAX_TRANSFER_BYTES
 
 
-def test_existing_remote_root_is_never_overwritten_deleted_or_retried(tmp_path: Path) -> None:
+def test_existing_remote_root_is_never_overwritten_deleted_or_retried(
+    tmp_path: Path,
+    open_retired_deploy_route: None,
+) -> None:
     project = (tmp_path / "server-project").resolve()
     (project / "data/runs").mkdir(parents=True)
     bundle = (tmp_path / "bundle").resolve()
@@ -311,7 +328,10 @@ def test_existing_remote_root_is_never_overwritten_deleted_or_retried(tmp_path: 
     assert _tree(remote_root) == before
 
 
-def test_closed_write_gate_and_local_hash_drift_stop_before_ssh(tmp_path: Path) -> None:
+def test_closed_write_gate_and_local_hash_drift_stop_before_ssh(
+    tmp_path: Path,
+    open_retired_deploy_route: None,
+) -> None:
     project = (tmp_path / "server-project").resolve()
     (project / "data/runs").mkdir(parents=True)
     bundle = (tmp_path / "bundle").resolve()
@@ -378,7 +398,10 @@ def test_receiver_rejects_trailing_bytes_and_preserves_partial_root(tmp_path: Pa
     assert _tree(remote_root) == _tree(bundle)
 
 
-def test_noncanonical_or_oversized_remote_evidence_is_rejected(tmp_path: Path) -> None:
+def test_noncanonical_or_oversized_remote_evidence_is_rejected(
+    tmp_path: Path,
+    open_retired_deploy_route: None,
+) -> None:
     project = (tmp_path / "server-project").resolve()
     (project / "data/runs").mkdir(parents=True)
     bundle = (tmp_path / "bundle").resolve()

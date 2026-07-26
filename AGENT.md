@@ -12,7 +12,7 @@
 
 ## 2. 当前阶段与阶段门禁
 
-- Phase 0 至 Phase 8A 已合入 `main`；Phase 8B 规划已由 PR #9 合入 `main`。用户授权的唯一 QXH 双端点 DFT smoke attempt 已消耗并被终态证据链拒绝；该授权不得复用，也不扩展到第二 attempt、其他候选或后续阶段。
+- Phase 0 至 Phase 8A 已合入 `main`；Phase 8B 规划由 PR #9 合入 `main`，其 rejected 执行事故、未来代码修正与关闭门回归已由 merge commit `7d65f72` 合入 `main`。用户授权的唯一 QXH 双端点 DFT smoke attempt 已消耗并被终态证据链拒绝；该授权不得复用，也不扩展到第二 attempt、其他候选或后续阶段。发布 rejected incident 已完成，不再是待办下一步。
 - Phase 4 裁定 `raw_xTB_wins`：B0 是生产排序默认，B1 只能作为绝对能量校准 companion，H1 不得用于正式全库排序。
 - Phase 5 只读取不可变的 `data/processed/v001`、B0/B1/Phase 4 决策及其 manifest；不得改写 Phase 1/2/3/4 结果，不得重新拟合或调参。
 - Phase 5 可生成本地评分表、适用域审计、候选建议与无 Hessian DFT 互操作 manifest；不得运行 PySCF、xTB、Hessian，不得连接或写入 HPC，不得提交作业。
@@ -243,4 +243,17 @@ dig +trace domain
 9. 每端点必须动态证明 D3(BJ) energy/gradient hook、summary 算术与一次 zero-SCF D3 分量复核；必须显式收敛且有限；不得运行 Hessian、频率、ZPE、热化学、no-D3 对照、额外电子单点、radical、Molden 或第二 attempt；
 10. 无论成功或失败，均先证明精确进程树消失、permit 已消费、远端/本地 hash 与 Phase 7 不变性，再下载 private result、关闭本地执行 gate、写 portable evidence 并停止；不得自动替换候选、重跑、摄取模型或进入下一阶段。
 
-上述唯一 attempt 已消耗：远端 permit 为 consumed，compute claim 已线性化，但不可变 guardian receipt 因终态身份比较错误记录 `cleanup_failed` 且未绑定 claim hash，冻结 postflight 因而正确拒绝验收。没有完成任何端点级工作流，也没有产生或接受最终 SCF 能量、动态 D3 证据或脱质子标签。现存证据不足以证明 SCF/DFT kernel 从未被调用；只可将其状态记录为 `indeterminate`。本阶段只允许生成独立 rejected incident evidence、修复未来代码并保持 execution gate 关闭；再次执行必须重新计划和授权。
+上述唯一 attempt 已消耗：远端 permit 为 consumed，compute claim 已线性化，但不可变 guardian receipt 因终态身份比较错误记录 `cleanup_failed` 且未绑定 claim hash。该 attempt 因此被拒绝。拒绝依据是不可变终态记录与冻结验收契约，不是冻结 postflight 的读取结论：冻结 postflight 在校验 receipt 之前，就已因 Phase 7 一个合法零字节 helper log 被通用 reader 拒绝而退出，从未产生 canonical postflight payload。没有完成任何端点级工作流，也没有产生或接受最终 SCF 能量、动态 D3 证据或脱质子标签。现存证据不足以证明 SCF/DFT kernel 从未被调用；只可将其状态记录为 `indeterminate`。本阶段只允许生成独立 rejected incident evidence、修复未来代码并保持 execution gate 关闭；再次执行必须重新计划和授权。
+
+## 20. Phase 8B 之后的本地安全收尾边界
+
+- 当前工作是纯本地安全收尾，计划见 `docs/PHASE8B_CLOSEOUT_PLAN.md`。它不连接服务器、不构造分子、不导入化学栈、不运行 worker、不打开任何执行门。
+- 收尾只涵盖：当前状态入口文档修正、关闭陈旧私有 `server_write_authorized` 位、为 deploy 路径补齐与 bundle/launch 一致的 consumed latch、增加复活抵抗回归、按记录解释器跑质量门、隐私与边界检查。
+- `phase8b_deploy.py` 此前既无源码执行门检查也无 consumed latch，是已退役授权链中最弱的一环。补齐后，deploy、bundle、launch 三条退役路径必须同时持有 latch，任何单模块 patch 都不得重开该链。
+- consumed latch 必须是模块级 `Final` 常量，不得来自参数、环境变量、配置键或请求字段；必须在读取本地输入、构建部署计划、校验 permit 和调用注入式 command runner 之前无条件拒绝。
+- 陈旧私有配置位一律不构成授权。即使 `configs/phase8b.local.yaml` 中 `server_write_authorized` 为 true，也不得据此复活 deploy/bundle/launch 或解释为用户许可；这一点必须由 checked-in 回归保证，而不是仅靠本地文件当前取值。
+- 收尾不得重构 Phase 0–8A、不得刷新任何不可变 artifact 或证据哈希、不得为命名对称重写历史报告，也不处理 `pyproject.toml` 的 setuptools `project.license` 弃用警告。
+- `docs/PHASE8B_DFT_SMOKE_V001.json` 必须保持逐字节不变，SHA256 仍为 `0767f20f5a5b9d0a6d87769b7de5e26010c5af9ecdd1a097fbfe4839319b6aa8`。
+- 本机 `.venv` 是 macOS CPython 3.11.15，缺少 `os.waitid(..., WNOWAIT)`，supervisor 套件在该解释器上按设计失败关闭；这是平台能力限制，不得报告为代码回归。质量门须在提供该原语的本机 CPython 3.14.3 上运行并记录解释器。
+- 软件门通过与科学结果不存在必须始终分开陈述。收尾中的任何测试结果都不改变 receipt 为 `cleanup_failed`、claim hash 为 null、无端点结果、无标签、kernel 状态为 `indeterminate` 的事实。
+- 收尾完成后只有三个合法前进选项：归档在 rejected Phase 8B、规划全新只读服务器事故取证、规划全新计算阶段。三者都不由本收尾启动，均需用户单独决定。
