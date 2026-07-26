@@ -272,6 +272,103 @@ succeeded, the outcome is recorded as possibly partial and names all four roots.
 The module does not roll back, because rolling back would mean a destructive
 remote delete, which it never performs.
 
+## Launch transaction
+
+Launching is one transaction over both routes, implemented in
+`preparation/phase9b_launch.py`. It is control plane: it lives outside the runner
+source closure, so editing it cannot change `runner_source_sha256` and cannot
+invalidate a frozen request, manifest, or permit.
+
+It consumes already-validated records and rebuilds none of them —
+the parsed permit, the bundle payload, the deploy `RoutePlan` with its verified
+byte sizes, the `DeploymentOutcome`, and the read-only `PreflightResult` — and
+cross-checks every field the records share:
+
+```text
+route            permit, payload, and deploy plan must name the same route
+attempt          all three must carry that route's frozen attempt identity
+request hash     permit against payload, and against the deployed request bytes
+manifest hash    permit against payload, and against the deployed manifest bytes
+final root       deploy plan against the permit's own run root
+paths            request, output, and permit paths must sit inside the final root
+files            the verified set, every SHA256, and every byte size
+retired chain    no root, path, or attempt may name a Phase 8B artifact
+```
+
+It selects nothing. GPU index comes from the preflight record, CPU affinity and
+wall-time from `PHASE9B_RESOURCES`, route order from `PHASE9B_RESOURCES["routes"]`
+— `direct` then `assisted`. If the frozen device budget no longer holds, or the
+preflight cannot prove it wrote nothing, the launch fails closed. There is no
+card swap, no queue, no wait, and no degraded run.
+
+### Deploy proof obligations
+
+```text
+state              DeployState.PROMOTED, nothing else
+promoted routes    exactly both
+failure record     no failure reason and no failure root
+ssh invocations    exactly three: two uploads and one promotion
+roots              both final and both staging roots match the launch plans
+```
+
+A possibly partial promotion is recorded by `deploy_both_routes` as `FAILED` with
+a failure reason naming all four roots, so it can never be read as launchable.
+A record that claims `PROMOTED` while still naming a failure is contradictory and
+is refused for that reason alone.
+
+### One-shot semantics
+
+The permit is verified locally before any call: the ready permit must be present,
+its bytes must hash to the permitted digest, and no consumed permit may exist. A
+consumed permit is never restored. The remote half is verified by the supervisor
+itself, which is passed `--expected-permit-sha256` along with the request,
+manifest, runner-source, and resource digests it must re-check before spawning.
+
+A route already launched under this permit is never launched again.
+
+### Canonical remote argv
+
+```text
+python3 -B -s -m nhc_deprot_ranker.quantum.phase9b_supervisor
+  --route --attempt-id --request-path --output-root --permit-path
+  --expected-request-sha256 --expected-payload-manifest-sha256
+  --expected-permit-sha256 --expected-runner-source-sha256
+  --expected-resources-sha256 --gpu-index --cpu-affinity --timeout-seconds
+```
+
+Thirteen whitelisted flags, rendered from structured fields, with a fixed
+argument count. Every value is refused if it contains a shell metacharacter, a
+path traversal segment, a newline, a NUL, or any control character; there is no
+`shell=True` and no free text anywhere. Only that entry may be started: AIMNet2
+and PySCF are never invoked directly and no script may stand in for the
+supervisor. The recorded argv has absolute paths replaced by `<PATH>`, so the
+audit trail keeps the shape without the private layout.
+
+The supervisor must print back its own identity, attempt, route, and entry. A
+zero exit that does not prove what it started leaves the remote state unknown.
+
+### States
+
+```text
+not_launched         nothing was started; every precondition failure lands here
+launched             both routes started and both proved their identity
+partially_launched   one route started, the second failed; terminal
+indeterminate        a remote state is unknowable; terminal
+failed               the first route failed, so the second was never started
+```
+
+Both routes always report their own identity and their own state, including the
+one that was never attempted. There is no retry, no rollback, and no backfill:
+every state except `launched` yields `stop_and_report`.
+
+The launch receipt records phase, candidate, request, host digest, start time,
+per-route request/manifest/permit/argv digests, SSH return codes, stdout and
+stderr digests, supervisor identity and PID, each route's state, and the overall
+state. It carries **no** endpoint energy, AIMNet2 energy or force, SCF or
+geometry convergence status, deprotonation label, or claim that a computation
+succeeded; every serialized key is screened so none can be added. Those belong to
+`phase9b_postflight`.
+
 ## Stopping conditions
 
 Phase 9B stops immediately and fails closed on:
