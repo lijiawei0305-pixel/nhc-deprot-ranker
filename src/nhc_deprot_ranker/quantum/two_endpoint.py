@@ -56,7 +56,11 @@ ATTEMPT_SCHEMA_VERSION: Final = "nhc-two-endpoint-attempt-v2"
 SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-success-v2"
 SUPERVISOR_SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-supervisor-success-v1"
 FAILURE_SCHEMA_VERSION: Final = "nhc-two-endpoint-failure-v1"
-RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v4"
+# v5: the Phase 9B supervisor gained its formal CLI, the capability expectation
+# became a multi-attempt registry, and the guarded Phase 9B executor adapter was
+# wired.  Every Phase 9B request, payload manifest, and permit built against v4 is
+# superseded before execution; see docs/PHASE9B_IDENTITY_REBASELINE.md.
+RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v5"
 
 # This is a source-level gate, not a caller-provided option.  A later phase must
 # review and deliberately change it before any backend can load PySCF.
@@ -1329,7 +1333,10 @@ class CapabilityIdentityExpectation:
     identity_key: str
     request_id: str
     inchikey: str
-    attempt_id: str
+    # A chain may open more than one attempt under one request identity: Phase 9B
+    # runs a direct and an assisted route.  A single value here would have made
+    # the assisted route unable to obtain a capability at all.
+    attempt_ids: tuple[str, ...]
     protocol_sha256: str
     electron_count: int
     resources_sha256: str
@@ -1348,7 +1355,7 @@ def _phase8b_capability_identity_expectation() -> CapabilityIdentityExpectation:
         identity_key=PHASE8B_CAPABILITY_IDENTITY_KEY,
         request_id=FROZEN_REQUEST_ID,
         inchikey=FROZEN_INCHIKEY,
-        attempt_id=FROZEN_ATTEMPT_ID,
+        attempt_ids=(FROZEN_ATTEMPT_ID,),
         protocol_sha256=FROZEN_PROTOCOL_SHA256,
         electron_count=FROZEN_ELECTRON_COUNT,
         resources_sha256=_frozen_resources_sha256(),
@@ -1364,23 +1371,42 @@ REQUEST_ID_PHASE9B: Final = "phase9b-lbnp-paired-smoke-v001"
 _PHASE9B_CAPABILITY_IDENTITY_KEY: Final = "phase9b-lbnp-paired-smoke"
 
 
+def handshake_attempt_ids() -> frozenset[str]:
+    """Attempts eligible for the guarded pre-import worker handshake.
+
+    A registry rather than one pinned constant: Phase 9B opens two attempts under
+    one request, and neither could reach the handshake while this was
+    ``FROZEN_ATTEMPT_ID``.  Route identity is read from the permit module so there
+    is exactly one source of truth; that module is inside this closure and imports
+    this one, so the import is deferred to call time.
+    """
+
+    from nhc_deprot_ranker.quantum.phase9b_permit import ROUTE_ATTEMPT_IDS
+
+    return frozenset({FROZEN_ATTEMPT_ID, *ROUTE_ATTEMPT_IDS.values()})
+
+
 def _phase9b_capability_identity_expectation() -> CapabilityIdentityExpectation:
     """Built from the frozen Phase 9B candidate profile and resource budget.
 
-    Imported lazily: those modules sit outside the runner source closure, so a
-    module-level import would couple closure-internal code to closure-external
-    code at import time.
+    Imported inside the function rather than at module scope: those modules are
+    themselves inside the runner source closure and import this one, so a
+    top-level import would be a cycle.
     """
 
     from nhc_deprot_ranker.quantum.phase9b_authority import PHASE9B_CANDIDATE
-    from nhc_deprot_ranker.quantum.phase9b_permit import ROUTE_ATTEMPT_IDS, ROUTE_DIRECT
+    from nhc_deprot_ranker.quantum.phase9b_permit import (
+        ROUTE_ASSISTED,
+        ROUTE_ATTEMPT_IDS,
+        ROUTE_DIRECT,
+    )
     from nhc_deprot_ranker.quantum.phase9b_resources import phase9b_resources_sha256
 
     return CapabilityIdentityExpectation(
         identity_key=_PHASE9B_CAPABILITY_IDENTITY_KEY,
         request_id=REQUEST_ID_PHASE9B,
         inchikey=PHASE9B_CANDIDATE.inchikey,
-        attempt_id=ROUTE_ATTEMPT_IDS[ROUTE_DIRECT],
+        attempt_ids=(ROUTE_ATTEMPT_IDS[ROUTE_DIRECT], ROUTE_ATTEMPT_IDS[ROUTE_ASSISTED]),
         protocol_sha256=LOCKED_PROTOCOL_SHA256,
         electron_count=PHASE9B_CANDIDATE.electron_count,
         resources_sha256=phase9b_resources_sha256(),
@@ -1742,7 +1768,7 @@ def _validate_compute_capability_fields(capability: _GuardedComputeCapability) -
     if (
         capability._request_id != expected.request_id
         or capability._inchikey != expected.inchikey
-        or capability._attempt_id != expected.attempt_id
+        or capability._attempt_id not in expected.attempt_ids
         or capability._protocol_sha256 != expected.protocol_sha256
         or capability._electron_count != expected.electron_count
         or capability._endpoint_atom_map_sha256 != expected.endpoint_atom_map_sha256
@@ -4010,10 +4036,10 @@ def _execute_supervised_request(
     if request.execution_authorized is not True:
         raise ExecutionNotAuthorizedError("frozen request does not authorize execution")
     if worker_launch is not None and (
-        attempt_id != FROZEN_ATTEMPT_ID or defer_final_acceptance is not True
+        attempt_id not in handshake_attempt_ids() or defer_final_acceptance is not True
     ):
         raise ExecutionNotAuthorizedError(
-            "Phase 8B handshake requires the fixed attempt and deferred final acceptance"
+            "the guarded handshake requires a registered attempt and deferred final acceptance"
         )
     _validate_output_root(output_root)
     if defer_final_acceptance:
@@ -4281,6 +4307,54 @@ def run_phase8b_supervisor(
         run_supervised=supervised_runner,
         supervision_policy=policy,
         attempt_id=FROZEN_ATTEMPT_ID,
+        defer_final_acceptance=True,
+        worker_launch=worker_launch,
+    )
+
+
+def run_phase9b_supervised_execution(
+    request: TwoEndpointRequest,
+    output_root: Path,
+    *,
+    attempt_id: str,
+    worker_launch: Phase8BWorkerLaunch,
+) -> TwoEndpointRunResult:
+    """The single guarded execution path for one Phase 9B route.
+
+    This is the production adapter that replaces the unwired ``execute=None``
+    hole in :mod:`nhc_deprot_ranker.quantum.phase9b_supervisor`.  It reimplements
+    nothing: the supervision policy, process handling, deadline, reaping, and
+    publication all remain the one copy in ``_execute_supervised_request``, which
+    carries the safety proofs.  Route-specific validation already happened in the
+    Phase 9B supervisor and is not repeated here in a second, driftable form.
+    """
+
+    _ensure_execution_authorized()
+    if attempt_id not in handshake_attempt_ids() or attempt_id == FROZEN_ATTEMPT_ID:
+        raise ExecutionNotAuthorizedError("attempt identity is not a registered Phase 9B route")
+    if not isinstance(worker_launch, Phase8BWorkerLaunch):
+        raise ExecutionNotAuthorizedError("a guarded worker launch handshake is required")
+    if os.path.lexists(output_root):
+        raise ExecutionNotAuthorizedError("Phase 9B output already exists; resume is prohibited")
+    deadline_monotonic = worker_launch.absolute_deadline_ns / 1_000_000_000
+    now = time.monotonic()
+    if deadline_monotonic <= now or deadline_monotonic > now + request.timeout_seconds:
+        raise ExecutionNotAuthorizedError("shared Phase 9B deadline is invalid or widened")
+    supervisor_module = importlib.import_module("nhc_deprot_ranker.quantum.process_supervisor")
+    policy_factory = cast(_SupervisionPolicyFactory, supervisor_module.SupervisionPolicy)
+    supervised_runner = cast(_RunSupervised, supervisor_module.run_supervised)
+    policy = policy_factory(
+        timeout_seconds=float(request.timeout_seconds),
+        terminate_grace_seconds=_SUPERVISOR_TERMINATE_GRACE_SECONDS,
+        stream_capture_limit_bytes=_SUPERVISOR_STREAM_CAPTURE_LIMIT_BYTES,
+        absolute_deadline_monotonic=deadline_monotonic,
+    )
+    return _execute_supervised_request(
+        request,
+        output_root,
+        run_supervised=supervised_runner,
+        supervision_policy=policy,
+        attempt_id=attempt_id,
         defer_final_acceptance=True,
         worker_launch=worker_launch,
     )

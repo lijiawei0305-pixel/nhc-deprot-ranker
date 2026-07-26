@@ -110,6 +110,32 @@ The correct order is: implement and test with the gate closed, freeze the source
 hash, then build the request and permit against that frozen hash. Building the
 permit first and editing source afterward would invalidate the chain.
 
+**Second correction, recorded after the launch control plane was built.** The
+inventory above was still incomplete. Two further Phase 8B bindings would have
+stopped Phase 9B after everything else was in place:
+
+- `CapabilityIdentityExpectation` carried one `attempt_id`, set to the direct
+  route. The assisted route could therefore never pass
+  `_validate_compute_capability_fields`, so the paired comparison — the entire
+  point of Phase 9B — could not have run. A test had recorded that as intended
+  behaviour.
+- the pre-import handshake gate in `_execute_supervised_request` compared
+  `attempt_id` against Phase 8B's `FROZEN_ATTEMPT_ID`, so neither Phase 9B route
+  could reach the handshake at all.
+
+Both are now registries rather than pinned constants, and both fixes are inside
+the closure. Together with the Phase 9B supervisor CLI they moved the source hash
+a second time; the re-baseline is recorded in
+`docs/PHASE9B_IDENTITY_REBASELINE.md`.
+
+**Still missing: the guardian.** What actually runs on the server in Phase 8B is
+`phase8b_runtime` in `guardian` mode. It consumes the permit irreversibly, then
+re-executes itself in `supervisor` mode, and only that mode constructs the
+`Phase8BWorkerLaunch` handshake. Phase 9B has a supervisor CLI and a guarded
+executor adapter but no guardian, so the handshake arrives through an injected
+factory and the CLI refuses when none is wired. That module is item 8/8 and no
+Phase 9B run can start without it.
+
 Historical Phase 8B artifacts must not be edited to accommodate this. They are
 immutable records of a rejected attempt.
 

@@ -37,9 +37,18 @@ from nhc_deprot_ranker.preparation.phase9b_bundle import (
     RoutePayload,
 )
 from nhc_deprot_ranker.preparation.phase9b_deploy import (
+    DEPLOY_VERIFICATION_SCHEMA_VERSION,
     DeploymentOutcome,
     DeployState,
+    DeployVerificationReceipt,
     RoutePlan,
+    recomputed_verification_sha256,
+)
+from nhc_deprot_ranker.preparation.phase9b_permit_stage import (
+    PLACEMENT_RECEIPT_SCHEMA_VERSION,
+    PermitPlacementReceipt,
+    Phase9BPermitStageError,
+    observed_permits,
 )
 from nhc_deprot_ranker.preparation.phase9b_preflight import PreflightResult
 from nhc_deprot_ranker.quantum.phase9b_permit import (
@@ -189,15 +198,6 @@ class RouteLaunchPlan:
 
 
 @dataclass(frozen=True, slots=True)
-class PermitPresence:
-    """Observed one-shot permit state for one route, before any launch."""
-
-    ready_present: bool
-    consumed_present: bool
-    ready_sha256: str | None
-
-
-@dataclass(frozen=True, slots=True)
 class RouteLaunchRecord:
     """One route's launch outcome.  Carries no scientific field."""
 
@@ -229,7 +229,9 @@ class LaunchReceipt:
     host_identity_sha256: str
     started_at: str
     deploy_outcome_sha256: str
+    deploy_verification_sha256: str
     preflight_receipt_sha256: str
+    placement_receipt_sha256: str
     resources_sha256: str
     runner_source_sha256: str
     routes: tuple[RouteLaunchRecord, ...]
@@ -293,12 +295,39 @@ def validate_argument_value(value: object, *, label: str) -> str:
     return text
 
 
+def verified_files_for_route(
+    verification: DeployVerificationReceipt | None, *, route: str
+) -> Mapping[str, tuple[str, int]]:
+    """Read one route's proved hash closure out of the deploy receipt.
+
+    Byte sizes are no longer accepted as a caller-supplied mapping: they come from
+    the receipt the deployment produced when it recomputed every file, and the
+    receipt's own digest is rechecked so a partially edited table is caught.
+    """
+
+    if verification is None:
+        raise Phase9BLaunchError("the deploy receipt carries no verified hash closure")
+    if verification.schema_version != DEPLOY_VERIFICATION_SCHEMA_VERSION:
+        raise Phase9BLaunchError("the deploy verification schema version drifted")
+    if verification.receipt_sha256 != recomputed_verification_sha256(verification):
+        raise Phase9BLaunchError("the deploy verification receipt digest does not match its body")
+    members = verification.routes.get(route)
+    if not members:
+        raise Phase9BLaunchError(f"the deploy receipt verified no files for route: {route}")
+    table: dict[str, tuple[str, int]] = {}
+    for member, entry in members.items():
+        if type(entry.bytes) is not int or entry.bytes <= 0:
+            raise Phase9BLaunchError(f"verified byte size is invalid: {member}")
+        table[member] = (_require_sha256(entry.sha256, label=f"verified {member}"), entry.bytes)
+    return table
+
+
 def build_route_launch_plan(
     *,
     permit: Phase9BPermit,
     payload: RoutePayload,
     deploy_plan: RoutePlan,
-    verified_sizes: Mapping[str, int],
+    deploy_outcome: DeploymentOutcome,
     preflight: PreflightResult,
 ) -> RouteLaunchPlan:
     """Fold four already-validated records into one launch identity, or refuse.
@@ -343,13 +372,14 @@ def build_route_launch_plan(
             raise Phase9BLaunchError(f"{label} is outside the final root: {route}")
     _reject_retired(attempt, label="attempt_id")
 
-    if set(verified_sizes) != set(deploy_plan.files):
+    verified = verified_files_for_route(deploy_outcome.verification, route=route)
+    if set(verified) != set(deploy_plan.files):
         raise Phase9BLaunchError(f"verified file set differs from the registered set: {route}")
     registered: dict[str, tuple[str, int]] = {}
     for member, digest in sorted(deploy_plan.files.items()):
-        size = verified_sizes[member]
-        if type(size) is not int or size <= 0:
-            raise Phase9BLaunchError(f"verified byte size is invalid: {member}")
+        proved, size = verified[member]
+        if proved != digest:
+            raise Phase9BLaunchError(f"the verified hash differs from the registered one: {member}")
         registered[member] = (_require_sha256(digest, label=f"registered {member}"), size)
 
     # The two files whose hashes the supervisor re-checks must be present in the
@@ -581,23 +611,50 @@ def verify_deploy_outcome(
     return deploy_outcome_digest(outcome)
 
 
-def verify_permit_unconsumed(
-    presence: Mapping[str, PermitPresence], *, plans: Sequence[RouteLaunchPlan]
-) -> None:
-    """One-shot: a consumed permit can never authorize a second attempt."""
+def verify_permit_placement(
+    placement: PermitPlacementReceipt | None, *, plans: Sequence[RouteLaunchPlan]
+) -> str:
+    """One-shot: launch reads the permit-stage receipt, never a caller's booleans.
+
+    An earlier revision took a ``ready_present``/``consumed_present`` pair straight
+    from the caller, which made the strongest guarantee in the chain an act of
+    trust.  Now the observation comes from the module that actually created the
+    file and re-read it, and every field is cross-checked against the permit
+    digest carried in the launch plan — a value derived from permit bytes, so it
+    cannot be set to match an invented receipt.
+    """
+
+    if placement is None:
+        raise Phase9BLaunchError("no permit placement receipt was supplied")
+    if placement.schema_version != PLACEMENT_RECEIPT_SCHEMA_VERSION:
+        raise Phase9BLaunchError("the permit placement schema version drifted")
+    try:
+        observed = observed_permits(placement)
+    except Phase9BPermitStageError as exc:
+        raise Phase9BLaunchError(f"permit placement is not launch-ready: {exc}") from exc
+    if placement.request_id != REQUEST_ID:
+        raise Phase9BLaunchError("the placement receipt names another request identity")
 
     for plan in plans:
-        observed = presence.get(plan.route)
-        if observed is None:
-            raise Phase9BLaunchError(f"no permit state was observed for route: {plan.route}")
-        if observed.consumed_present:
-            raise Phase9BLaunchError(
-                f"the one-shot permit for {plan.route} is already consumed; it is never restored"
-            )
-        if not observed.ready_present:
-            raise Phase9BLaunchError(f"no ready permit is in place for route: {plan.route}")
-        if observed.ready_sha256 != plan.permit_sha256:
-            raise Phase9BLaunchError(f"the ready permit is not the permitted bytes: {plan.route}")
+        entry = observed.get(plan.route)
+        if entry is None:
+            raise Phase9BLaunchError(f"no placed permit was observed for route: {plan.route}")
+        if entry.regular_file is not True:
+            raise Phase9BLaunchError(f"the placed permit is not a regular file: {plan.route}")
+        if entry.path != plan.permit_path:
+            raise Phase9BLaunchError(f"the placed permit is at another path: {plan.route}")
+        if entry.sha256 != plan.permit_sha256:
+            raise Phase9BLaunchError(f"the placed permit is not the permitted bytes: {plan.route}")
+        record = next(item for item in placement.routes if item.route == plan.route)
+        if record.attempt_id != plan.attempt_id or record.final_root != plan.final_root:
+            raise Phase9BLaunchError(f"the placement receipt names another attempt: {plan.route}")
+        if record.request_sha256 != plan.request_sha256:
+            raise Phase9BLaunchError(f"the placement receipt names another request: {plan.route}")
+        if record.payload_manifest_sha256 != plan.payload_manifest_sha256:
+            raise Phase9BLaunchError(f"the placement receipt names another manifest: {plan.route}")
+    if placement.runner_source_sha256 != plans[0].runner_source_sha256:
+        raise Phase9BLaunchError("the placement receipt was made against another source closure")
+    return placement.receipt_sha256
 
 
 def next_action_for(receipt: LaunchReceipt) -> NextAction:
@@ -636,7 +693,9 @@ def receipt_payload(
         "host_identity_sha256": receipt.host_identity_sha256,
         "started_at": receipt.started_at,
         "deploy_outcome_sha256": receipt.deploy_outcome_sha256,
+        "deploy_verification_sha256": receipt.deploy_verification_sha256,
         "preflight_receipt_sha256": receipt.preflight_receipt_sha256,
+        "placement_receipt_sha256": receipt.placement_receipt_sha256,
         "resources_sha256": receipt.resources_sha256,
         "runner_source_sha256": receipt.runner_source_sha256,
         "overall_state": receipt.overall_state.value,
@@ -743,7 +802,7 @@ def launch_both_routes(
     plans: Sequence[RouteLaunchPlan],
     deploy_outcome: DeploymentOutcome | None,
     preflight: PreflightResult,
-    permit_presence: Mapping[str, PermitPresence],
+    placement: PermitPlacementReceipt | None,
     already_launched: Sequence[str] = (),
     run_command: CommandRunner | None = None,
     clock: Clock | None = None,
@@ -773,7 +832,9 @@ def launch_both_routes(
         state: LaunchState,
         reason: str | None,
         deploy_hash: str = "",
+        verification_hash: str = "",
         preflight_hash: str = "",
+        placement_hash: str = "",
     ) -> LaunchReceipt:
         done = {record.route: record for record in records}
         # Every route always reports its own identity and its own actual state,
@@ -799,7 +860,9 @@ def launch_both_routes(
             host_identity_sha256=host_hash,
             started_at=stamp,
             deploy_outcome_sha256=deploy_hash,
+            deploy_verification_sha256=verification_hash,
             preflight_receipt_sha256=preflight_hash,
+            placement_receipt_sha256=placement_hash,
             resources_sha256=ordered[0].resources_sha256,
             runner_source_sha256=ordered[0].runner_source_sha256,
             routes=full,
@@ -818,7 +881,9 @@ def launch_both_routes(
     try:
         deploy_hash = verify_deploy_outcome(deploy_outcome, plans=ordered)
         preflight_hash = preflight_digest(preflight)
-        verify_permit_unconsumed(permit_presence, plans=ordered)
+        placement_hash = verify_permit_placement(placement, plans=ordered)
+        verification = deploy_outcome.verification if deploy_outcome is not None else None
+        verification_hash = "" if verification is None else verification.receipt_sha256
         # Both commands are rendered before either is issued, so a rejected argv
         # stops the transaction rather than leaving one route already started.
         prepared = [
@@ -958,7 +1023,9 @@ def launch_both_routes(
         state=overall,
         reason=failure,
         deploy_hash=deploy_hash,
+        verification_hash=verification_hash,
         preflight_hash=preflight_hash,
+        placement_hash=placement_hash,
     )
 
 
@@ -974,7 +1041,6 @@ __all__ = [
     "LaunchState",
     "LaunchTimeout",
     "NextAction",
-    "PermitPresence",
     "Phase9BLaunchError",
     "Phase9BLaunchNotAuthorizedError",
     "RouteLaunchPlan",
@@ -992,6 +1058,7 @@ __all__ = [
     "render_launch_argv",
     "validate_argument_value",
     "validate_plan_pair",
+    "verified_files_for_route",
     "verify_deploy_outcome",
-    "verify_permit_unconsumed",
+    "verify_permit_placement",
 ]
