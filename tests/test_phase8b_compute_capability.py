@@ -303,7 +303,7 @@ def test_valid_fake_authorized_worker_claims_capability_before_import(
 
     monkeypatch.setattr(runner, "EXECUTION_AUTHORIZED", True)
     monkeypatch.setattr(runner, "load_two_endpoint_request", lambda path: request)
-    monkeypatch.setattr(runner, "_validate_frozen_120_electron_pair", lambda *args: 120)
+    monkeypatch.setattr(runner, "_validate_endpoint_pair_electrons", lambda *args, **kwargs: 120)
     monkeypatch.setattr(runner, "current_runner_source_sha256", lambda: _SOURCE_SHA256)
     monkeypatch.setattr(importlib, "import_module", fake_import)
     monkeypatch.setattr(runner, "_execute_validated_request", fake_execute)
