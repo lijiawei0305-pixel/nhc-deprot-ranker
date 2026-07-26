@@ -17,7 +17,7 @@ Updated: 2026-07-26
 | Post-8B local safety closeout | Complete and merged to `main` | Passed 2026-07-26; PR #11 / `927ee26` |
 | Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
 | Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
-| Phase 9A-I — minimal inference characterization | Planned; docs, mock, and no-model tests only | 2026-07-26; awaiting authorization for the six real calls |
+| Phase 9A-I — minimal inference characterization | Passed; six single-point calls executed | 2026-07-26; no optimization, no PySCF, no label |
 
 ## Current completed work
 
