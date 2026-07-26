@@ -38,7 +38,7 @@ def test_phase8b_expectation_reproduces_the_historical_constants_verbatim() -> N
     assert expected.identity_key == runner.PHASE8B_CAPABILITY_IDENTITY_KEY
     assert expected.request_id == FROZEN_REQUEST_ID
     assert expected.inchikey == FROZEN_INCHIKEY
-    assert expected.attempt_id == FROZEN_ATTEMPT_ID
+    assert expected.attempt_ids == (FROZEN_ATTEMPT_ID,)
     assert expected.protocol_sha256 == FROZEN_PROTOCOL_SHA256
     assert expected.electron_count == FROZEN_ELECTRON_COUNT == 120
     assert expected.endpoint_atom_map_sha256 == FROZEN_INPUT_SHA256["endpoint_atom_map"]
@@ -101,7 +101,7 @@ class _FakeCapability:
         self._compute_claim_sha256 = "a" * 64
         self._request_id = expected.request_id
         self._inchikey = expected.inchikey
-        self._attempt_id = expected.attempt_id
+        self._attempt_id = expected.attempt_ids[0]
         self._protocol_sha256 = expected.protocol_sha256
         self._electron_count = expected.electron_count
         self._endpoint_atom_map_sha256 = expected.endpoint_atom_map_sha256

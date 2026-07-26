@@ -13,7 +13,7 @@ import dataclasses
 import hashlib
 import json
 import shlex
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +31,7 @@ from nhc_deprot_ranker.preparation.phase9b_deploy import (
     DeployState,
     RoutePlan,
     build_route_plan,
+    build_verification_receipt,
 )
 from nhc_deprot_ranker.preparation.phase9b_launch import (
     ALLOWED_ARGUMENTS,
@@ -38,7 +39,6 @@ from nhc_deprot_ranker.preparation.phase9b_launch import (
     LaunchState,
     LaunchTimeout,
     NextAction,
-    PermitPresence,
     Phase9BLaunchError,
     Phase9BLaunchNotAuthorizedError,
     RouteLaunchState,
@@ -52,11 +52,21 @@ from nhc_deprot_ranker.preparation.phase9b_launch import (
     validate_argument_value,
     validate_plan_pair,
     verify_deploy_outcome,
-    verify_permit_unconsumed,
+    verify_permit_placement,
+)
+from nhc_deprot_ranker.preparation.phase9b_permit_stage import (
+    PLACEMENT_RECEIPT_SCHEMA_VERSION,
+    ObservedPermitFile,
+    PermitPlacementReceipt,
+    PlacementState,
+    RoutePermitPlacement,
+    RoutePlacementState,
+    recomputed_receipt_sha256,
 )
 from nhc_deprot_ranker.preparation.phase9b_preflight import PreflightResult
 from nhc_deprot_ranker.quantum.phase9b_authority import PHASE9B_CANDIDATE
 from nhc_deprot_ranker.quantum.phase9b_permit import (
+    REQUEST_ID,
     REQUEST_RELATIVE,
     ROUTE_ASSISTED,
     ROUTE_ATTEMPT_IDS,
@@ -153,14 +163,69 @@ def _preflight(**kw: Any) -> PreflightResult:
     return PreflightResult(**base)
 
 
-def _plan(route: str, *, preflight: PreflightResult | None = None) -> lc.RouteLaunchPlan:
+def _deploy_side(
+    route: str,
+) -> tuple[RoutePayload, RoutePlan, dict[str, int]]:
     payload = _payload(route)
     deploy_plan, sizes = _deploy_plan(route, payload)
+    return payload, deploy_plan, sizes
+
+
+def _promoted_outcome(**kw: Any) -> DeploymentOutcome:
+    """A PROMOTED deployment carrying the hash closure it actually verified."""
+
+    deploy_plans: list[RoutePlan] = []
+    sizes_by_route: dict[str, dict[str, int]] = {}
+    for route in (ROUTE_DIRECT, ROUTE_ASSISTED):
+        _, deploy_plan, sizes = _deploy_side(route)
+        deploy_plans.append(deploy_plan)
+        sizes_by_route[route] = sizes
+    base: dict[str, Any] = {
+        "state": DeployState.PROMOTED,
+        "promoted_routes": (ROUTE_ASSISTED, ROUTE_DIRECT),
+        "staging_roots": {plan.route: plan.staging_root for plan in deploy_plans},
+        "final_roots": {plan.route: plan.final_root for plan in deploy_plans},
+        "failure_reason": None,
+        "failure_roots": (),
+        "ssh_invocations": 3,
+        "verification": build_verification_receipt(
+            plans=deploy_plans, verified_sizes=sizes_by_route
+        ),
+    }
+    base.update(kw)
+    return DeploymentOutcome(**base)
+
+
+def _outcome_matching(plan: RoutePlan, *, sizes: Mapping[str, int]) -> DeploymentOutcome:
+    """A deploy receipt that agrees with an *altered* plan.
+
+    Used where the point is a guard downstream of the set comparison: it models a
+    deployment that verified exactly the tampered file set, so the later check is
+    the one that has to bite.
+    """
+
+    other = ROUTE_ASSISTED if plan.route == ROUTE_DIRECT else ROUTE_DIRECT
+    _, other_plan, other_sizes = _deploy_side(other)
+    return _promoted_outcome(
+        verification=build_verification_receipt(
+            plans=[plan, other_plan],
+            verified_sizes={plan.route: dict(sizes), other: other_sizes},
+        )
+    )
+
+
+def _plan(
+    route: str,
+    *,
+    preflight: PreflightResult | None = None,
+    outcome: DeploymentOutcome | None = None,
+) -> lc.RouteLaunchPlan:
+    payload, deploy_plan, _ = _deploy_side(route)
     return build_route_launch_plan(
         permit=_permit(route, payload),
         payload=payload,
         deploy_plan=deploy_plan,
-        verified_sizes=sizes,
+        deploy_outcome=outcome if outcome is not None else _promoted_outcome(),
         preflight=preflight or _preflight(),
     )
 
@@ -170,29 +235,54 @@ def _plans(preflight: PreflightResult | None = None) -> tuple[lc.RouteLaunchPlan
 
 
 def _outcome(plans: Sequence[lc.RouteLaunchPlan], **kw: Any) -> DeploymentOutcome:
-    base: dict[str, Any] = {
-        "state": DeployState.PROMOTED,
-        "promoted_routes": tuple(sorted(plan.route for plan in plans)),
-        "staging_roots": {plan.route: plan.staging_root for plan in plans},
-        "final_roots": {plan.route: plan.final_root for plan in plans},
-        "failure_reason": None,
-        "failure_roots": (),
-        "ssh_invocations": 3,
-    }
-    base.update(kw)
-    return DeploymentOutcome(**base)
+    del plans
+    return _promoted_outcome(**kw)
 
 
-def _presence(plans: Sequence[lc.RouteLaunchPlan], **kw: Any) -> dict[str, PermitPresence]:
-    out = {
-        plan.route: PermitPresence(
-            ready_present=True, consumed_present=False, ready_sha256=plan.permit_sha256
+def _placement(plans: Sequence[lc.RouteLaunchPlan], **overrides: Any) -> PermitPlacementReceipt:
+    """A launch-ready placement receipt whose digest is recomputed, not asserted."""
+
+    records = tuple(
+        RoutePermitPlacement(
+            route=plan.route,
+            attempt_id=plan.attempt_id,
+            final_root=plan.final_root,
+            permit_sha256=plan.permit_sha256,
+            request_sha256=plan.request_sha256,
+            payload_manifest_sha256=plan.payload_manifest_sha256,
+            observed=ObservedPermitFile(
+                path=plan.permit_path,
+                bytes=900,
+                sha256=plan.permit_sha256,
+                regular_file=True,
+            ),
+            state=RoutePlacementState.PLACED,
+            detail=None,
         )
         for plan in plans
+    )
+    base: dict[str, Any] = {
+        "schema_version": PLACEMENT_RECEIPT_SCHEMA_VERSION,
+        "phase": "9B",
+        "candidate_inchikey": PHASE9B_CANDIDATE.inchikey,
+        "request_id": REQUEST_ID,
+        "host_identity_sha256": hashlib.sha256(_ALIAS.encode()).hexdigest(),
+        "placed_at": "2026-07-26T00:00:00Z",
+        "deploy_outcome_sha256": "b" * 64,
+        "runner_source_sha256": plans[0].runner_source_sha256,
+        "resources_sha256": plans[0].resources_sha256,
+        "routes": records,
+        "overall_state": PlacementState.PLACED,
+        "failure_reason": None,
+        "receipt_sha256": "0" * 64,
     }
-    for route, override in kw.items():
-        out[route] = override
-    return out
+    base.update(overrides)
+    draft = PermitPlacementReceipt(**base)
+    if "receipt_sha256" in overrides:
+        return draft
+    # Recompute so the fixture is internally consistent by construction; a test
+    # that wants a forged receipt overrides the digest explicitly.
+    return dataclasses.replace(draft, receipt_sha256=recomputed_receipt_sha256(draft))
 
 
 class _FakeSsh:
@@ -250,7 +340,7 @@ def _launch(**kw: Any) -> lc.LaunchReceipt:
         "plans": plans,
         "deploy_outcome": _outcome(plans),
         "preflight": _preflight(),
-        "permit_presence": _presence(plans),
+        "placement": _placement(plans),
         "run_command": _FakeSsh(),
         "clock": lambda: "2026-07-26T00:00:00Z",
     }
@@ -273,7 +363,7 @@ def test_source_gate_is_closed_and_a_real_launch_refuses() -> None:
             plans=plans,
             deploy_outcome=_outcome(plans),
             preflight=_preflight(),
-            permit_presence=_presence(plans),
+            placement=_placement(plans),
         )
 
 
@@ -375,7 +465,7 @@ def test_a_deploy_with_a_single_route_or_wrong_call_count_is_refused() -> None:
 
 def test_request_payload_and_permit_hashes_must_agree() -> None:
     payload = _payload(ROUTE_DIRECT)
-    deploy_plan, sizes = _deploy_plan(ROUTE_DIRECT, payload)
+    deploy_plan, _ = _deploy_plan(ROUTE_DIRECT, payload)
     permit = _permit(ROUTE_DIRECT, payload)
 
     drifted_request = dataclasses.replace(permit, request_sha256="9" * 64)
@@ -384,7 +474,7 @@ def test_request_payload_and_permit_hashes_must_agree() -> None:
             permit=drifted_request,
             payload=payload,
             deploy_plan=deploy_plan,
-            verified_sizes=sizes,
+            deploy_outcome=_promoted_outcome(),
             preflight=_preflight(),
         )
 
@@ -394,7 +484,7 @@ def test_request_payload_and_permit_hashes_must_agree() -> None:
             permit=drifted_manifest,
             payload=payload,
             deploy_plan=deploy_plan,
-            verified_sizes=sizes,
+            deploy_outcome=_promoted_outcome(),
             preflight=_preflight(),
         )
 
@@ -410,32 +500,58 @@ def test_a_deployed_file_whose_hash_drifted_is_refused() -> None:
             permit=_permit(ROUTE_DIRECT, payload),
             payload=payload,
             deploy_plan=tampered,
-            verified_sizes=sizes,
+            deploy_outcome=_outcome_matching(tampered, sizes=sizes),
             preflight=_preflight(),
         )
 
 
-def test_a_missing_or_invalid_byte_size_is_refused() -> None:
+def test_a_forged_or_absent_deploy_verification_is_refused() -> None:
+    """Launch no longer accepts a caller-supplied size map at all."""
+
     payload = _payload(ROUTE_DIRECT)
-    deploy_plan, sizes = _deploy_plan(ROUTE_DIRECT, payload)
+    deploy_plan, _ = _deploy_plan(ROUTE_DIRECT, payload)
     permit = _permit(ROUTE_DIRECT, payload)
-    short = {member: size for member, size in sizes.items() if member != REQUEST_RELATIVE}
+
+    def build(outcome: DeploymentOutcome) -> lc.RouteLaunchPlan:
+        return build_route_launch_plan(
+            permit=permit,
+            payload=payload,
+            deploy_plan=deploy_plan,
+            deploy_outcome=outcome,
+            preflight=_preflight(),
+        )
+
+    with pytest.raises(Phase9BLaunchError, match="no verified hash closure"):
+        build(_promoted_outcome(verification=None))
+
+    honest = _promoted_outcome()
+    assert honest.verification is not None
+    forged_digest = dataclasses.replace(honest.verification, receipt_sha256="9" * 64)
+    with pytest.raises(Phase9BLaunchError, match="digest does not match its body"):
+        build(_promoted_outcome(verification=forged_digest))
+
+    # An edited size table no longer agrees with the receipt's own digest.
+    edited = dict(honest.verification.routes[ROUTE_DIRECT])
+    edited[REQUEST_RELATIVE] = dataclasses.replace(edited[REQUEST_RELATIVE], bytes=1)
+    tampered = dataclasses.replace(
+        honest.verification,
+        routes={**honest.verification.routes, ROUTE_DIRECT: edited},
+    )
+    with pytest.raises(Phase9BLaunchError, match="digest does not match its body"):
+        build(_promoted_outcome(verification=tampered))
+
+    # And a receipt that verified a different file set is refused outright.
+    dropped = {
+        member: entry
+        for member, entry in honest.verification.routes[ROUTE_DIRECT].items()
+        if member != REQUEST_RELATIVE
+    }
+    short = build_verification_receipt(
+        plans=[dataclasses.replace(deploy_plan, files={m: e.sha256 for m, e in dropped.items()})],
+        verified_sizes={ROUTE_DIRECT: {m: e.bytes for m, e in dropped.items()}},
+    )
     with pytest.raises(Phase9BLaunchError, match="differs from the registered set"):
-        build_route_launch_plan(
-            permit=permit,
-            payload=payload,
-            deploy_plan=deploy_plan,
-            verified_sizes=short,
-            preflight=_preflight(),
-        )
-    with pytest.raises(Phase9BLaunchError, match="byte size is invalid"):
-        build_route_launch_plan(
-            permit=permit,
-            payload=payload,
-            deploy_plan=deploy_plan,
-            verified_sizes={**sizes, REQUEST_RELATIVE: 0},
-            preflight=_preflight(),
-        )
+        build(_promoted_outcome(verification=short))
 
 
 def test_a_deployed_permit_file_is_refused() -> None:
@@ -450,7 +566,9 @@ def test_a_deployed_permit_file_is_refused() -> None:
             permit=_permit(ROUTE_DIRECT, payload),
             payload=payload,
             deploy_plan=leaked,
-            verified_sizes={**sizes, "private/permit.ready.json": 900},
+            deploy_outcome=_outcome_matching(
+                leaked, sizes={**sizes, "private/permit.ready.json": 900}
+            ),
             preflight=_preflight(),
         )
 
@@ -466,7 +584,7 @@ def test_a_retired_phase8b_artifact_is_refused() -> None:
             permit=_permit(ROUTE_DIRECT, payload),
             payload=payload,
             deploy_plan=retired,
-            verified_sizes=sizes,
+            deploy_outcome=_outcome_matching(retired, sizes=sizes),
             preflight=_preflight(),
         )
     with pytest.raises(Phase9BLaunchError, match="retired Phase 8B artifact"):
@@ -486,7 +604,7 @@ def test_a_launch_plan_never_selects_gpu_cpu_or_timeout() -> None:
 
 def test_resource_or_host_drift_is_refused() -> None:
     payload = _payload(ROUTE_DIRECT)
-    deploy_plan, sizes = _deploy_plan(ROUTE_DIRECT, payload)
+    deploy_plan, _ = _deploy_plan(ROUTE_DIRECT, payload)
     permit = _permit(ROUTE_DIRECT, payload)
     for preflight, message in (
         (_preflight(wrote_nothing=False), "wrote nothing"),
@@ -498,7 +616,7 @@ def test_resource_or_host_drift_is_refused() -> None:
                 permit=permit,
                 payload=payload,
                 deploy_plan=deploy_plan,
-                verified_sizes=sizes,
+                deploy_outcome=_promoted_outcome(),
                 preflight=preflight,
             )
 
@@ -531,51 +649,65 @@ def test_routes_that_disagree_on_a_frozen_field_are_refused() -> None:
 # --- one-shot semantics ------------------------------------------------------
 
 
-def test_a_consumed_permit_never_launches() -> None:
+@pytest.mark.parametrize(
+    "state",
+    [
+        PlacementState.NOT_PLACED,
+        PlacementState.PARTIALLY_PLACED,
+        PlacementState.INDETERMINATE,
+        PlacementState.FAILED,
+    ],
+)
+def test_a_placement_that_is_not_fully_placed_never_launches(state: PlacementState) -> None:
     plans = _plans()
-    consumed = _presence(
-        plans,
-        **{
-            ROUTE_ASSISTED: PermitPresence(
-                ready_present=False, consumed_present=True, ready_sha256=None
-            )
-        },
-    )
     fake = _FakeSsh()
-    receipt = _launch(plans=plans, permit_presence=consumed, run_command=fake)
+    receipt = _launch(
+        plans=plans, placement=_placement(plans, overall_state=state), run_command=fake
+    )
     assert receipt.overall_state is LaunchState.NOT_LAUNCHED
-    assert "already consumed" in (receipt.failure_reason or "")
+    assert "not launch-ready" in (receipt.failure_reason or "")
     assert fake.commands == []
 
 
-def test_a_missing_or_mismatched_ready_permit_never_launches() -> None:
+def test_a_missing_placement_receipt_never_launches() -> None:
+    fake = _FakeSsh()
+    receipt = _launch(placement=None, run_command=fake)
+    assert receipt.overall_state is LaunchState.NOT_LAUNCHED
+    assert "no permit placement receipt" in (receipt.failure_reason or "")
+    assert fake.commands == []
+
+
+def test_a_forged_placement_receipt_is_refused() -> None:
+    """The strongest guarantee in the chain is no longer a caller's boolean."""
+
     plans = _plans()
-    with pytest.raises(Phase9BLaunchError, match="no ready permit"):
-        verify_permit_unconsumed(
-            _presence(
-                plans,
-                **{
-                    ROUTE_DIRECT: PermitPresence(
-                        ready_present=False, consumed_present=False, ready_sha256=None
-                    )
-                },
-            ),
-            plans=plans,
-        )
+
+    # A hand-set digest no longer matches the body it claims to cover.
+    with pytest.raises(Phase9BLaunchError, match="not launch-ready"):
+        verify_permit_placement(_placement(plans, receipt_sha256="1" * 64), plans=plans)
+
+    # Claiming a permit landed without any observation is refused.
+    stripped = tuple(
+        dataclasses.replace(record, observed=None) for record in _placement(plans).routes
+    )
+    with pytest.raises(Phase9BLaunchError, match="not launch-ready"):
+        verify_permit_placement(_placement(plans, routes=stripped), plans=plans)
+
+    # And an observation naming a different permit digest cannot be substituted,
+    # because the plan's digest comes from the permit bytes themselves.
+    swapped = list(_placement(plans).routes)
+    assert swapped[0].observed is not None
+    swapped[0] = dataclasses.replace(
+        swapped[0], observed=dataclasses.replace(swapped[0].observed, sha256="2" * 64)
+    )
     with pytest.raises(Phase9BLaunchError, match="not the permitted bytes"):
-        verify_permit_unconsumed(
-            _presence(
-                plans,
-                **{
-                    ROUTE_DIRECT: PermitPresence(
-                        ready_present=True, consumed_present=False, ready_sha256="0" * 64
-                    )
-                },
-            ),
-            plans=plans,
-        )
-    with pytest.raises(Phase9BLaunchError, match="no permit state"):
-        verify_permit_unconsumed({}, plans=plans)
+        verify_permit_placement(_placement(plans, routes=tuple(swapped)), plans=plans)
+
+
+def test_a_placement_made_against_another_closure_is_refused() -> None:
+    plans = _plans()
+    with pytest.raises(Phase9BLaunchError, match="another source closure"):
+        verify_permit_placement(_placement(plans, runner_source_sha256="3" * 64), plans=plans)
 
 
 def test_a_route_already_launched_is_never_launched_again() -> None:

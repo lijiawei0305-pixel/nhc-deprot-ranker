@@ -176,8 +176,19 @@ def test_bad_endpoint_pair_fails_closed(_open_gates: None) -> None:
         _run(request=broken)
 
 
-def test_missing_executor_fails_closed_rather_than_guessing(_open_gates: None) -> None:
-    with pytest.raises(Phase9BNotAuthorizedError, match="no production Phase 9B execution path"):
+def test_default_executor_is_the_one_guarded_adapter(_open_gates: None) -> None:
+    """``execute=None`` now resolves to the real path instead of a dead end.
+
+    The adapter itself refuses this fake worker launch, which is the point: the
+    default is a guarded production path, not an unwired hole. Both gates are
+    open in this fixture, so what stops it is the adapter's own validation.
+    """
+
+    from nhc_deprot_ranker.quantum import two_endpoint
+
+    with pytest.raises(
+        two_endpoint.ExecutionNotAuthorizedError, match="guarded worker launch handshake"
+    ):
         _run()
 
 

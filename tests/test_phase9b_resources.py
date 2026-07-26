@@ -20,6 +20,7 @@ from pathlib import Path
 import pytest
 
 from nhc_deprot_ranker.quantum import two_endpoint as runner
+from nhc_deprot_ranker.quantum.phase8b_permit import FROZEN_ATTEMPT_ID
 from nhc_deprot_ranker.quantum.phase8b_permit import FROZEN_RESOURCES as PHASE8B_RESOURCES
 from nhc_deprot_ranker.quantum.phase9b_resources import (
     AIMNET2_STAGE_BUDGET,
@@ -141,19 +142,40 @@ def test_phase8b_and_phase9b_expectations_cannot_be_confused() -> None:
     assert eight.electron_count == 120
     assert nine.electron_count == 160
     assert eight.inchikey != nine.inchikey
-    assert eight.attempt_id != nine.attempt_id
+    assert not set(eight.attempt_ids) & set(nine.attempt_ids)
     assert eight.resources_sha256 != nine.resources_sha256
 
 
-def test_expectation_attempt_id_is_the_direct_route() -> None:
-    """One expectation per key, so the key names the route it authorizes."""
+def test_expectation_covers_every_route_of_its_chain() -> None:
+    """Both Phase 9B routes must be able to obtain a capability.
 
-    from nhc_deprot_ranker.quantum.phase9b_permit import ROUTE_ATTEMPT_IDS, ROUTE_DIRECT
+    An earlier revision named only the direct route here, which meant the
+    assisted route could never pass ``_validate_compute_capability_fields`` and
+    the paired comparison could never run. One request may open several attempts,
+    so the expectation carries a tuple.
+    """
 
-    build = runner._CAPABILITY_IDENTITY_EXPECTATIONS[  # pyright: ignore[reportPrivateUsage]
-        PHASE9B_CAPABILITY_IDENTITY_KEY
-    ]
-    assert build().attempt_id == ROUTE_ATTEMPT_IDS[ROUTE_DIRECT]
+    from nhc_deprot_ranker.quantum.phase9b_permit import ROUTE_ATTEMPT_IDS
+
+    registry = runner._CAPABILITY_IDENTITY_EXPECTATIONS  # pyright: ignore[reportPrivateUsage]
+    nine = registry[PHASE9B_CAPABILITY_IDENTITY_KEY]()
+    assert set(nine.attempt_ids) == set(ROUTE_ATTEMPT_IDS.values())
+    assert len(nine.attempt_ids) == 2
+
+    # Phase 8B opened exactly one attempt, and still does.
+    eight = registry[runner.PHASE8B_CAPABILITY_IDENTITY_KEY]()
+    assert eight.attempt_ids == (FROZEN_ATTEMPT_ID,)
+
+
+def test_every_route_attempt_is_handshake_eligible() -> None:
+    """The pre-import handshake gate is a registry, not one pinned attempt."""
+
+    from nhc_deprot_ranker.quantum.phase9b_permit import ROUTE_ATTEMPT_IDS
+
+    eligible = runner.handshake_attempt_ids()
+    assert set(ROUTE_ATTEMPT_IDS.values()) <= eligible
+    assert FROZEN_ATTEMPT_ID in eligible
+    assert "attempt-anything-else" not in eligible
 
 
 def test_resources_mapping_is_read_only() -> None:

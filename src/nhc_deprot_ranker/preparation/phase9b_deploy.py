@@ -49,6 +49,10 @@ EXECUTION_AUTHORIZED: Final[bool] = False
 
 DEPLOY_STREAM_SCHEMA_VERSION: Final = "phase9b.directed-deploy-stream.v1"
 DEPLOY_EVIDENCE_SCHEMA_VERSION: Final = "phase9b.directed-deploy-evidence.v1"
+# v2 adds the per-route verified hash closure to the outcome, so a downstream
+# step consumes proof instead of a caller-supplied mapping.
+DEPLOY_OUTCOME_SCHEMA_VERSION: Final = "phase9b.directed-deploy-outcome.v2"
+DEPLOY_VERIFICATION_SCHEMA_VERSION: Final = "phase9b.directed-deploy-verification.v1"
 
 # Names that would let a Phase 8B artifact enter a Phase 9B deployment.
 _RETIRED_TOKENS: Final[tuple[str, ...]] = (
@@ -106,6 +110,30 @@ class RoutePlan:
 
 
 @dataclass(frozen=True, slots=True)
+class VerifiedFile:
+    """One registered file as recomputed from the bytes actually on disk."""
+
+    sha256: str
+    bytes: int
+
+
+@dataclass(frozen=True, slots=True)
+class DeployVerificationReceipt:
+    """The hash closure this deployment actually verified, per route.
+
+    Downstream steps consume this instead of being handed a bare size mapping.
+    ``receipt_sha256`` covers every other field, so a partially edited table is
+    detectable; what makes it hard to forge usefully is that a consumer compares
+    each entry against the permit's own request and manifest digests, which
+    cannot be changed to match an invented value.
+    """
+
+    schema_version: str
+    routes: Mapping[str, Mapping[str, VerifiedFile]]
+    receipt_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
 class DeploymentOutcome:
     """The transaction result.  A failure names every root it touched."""
 
@@ -116,6 +144,9 @@ class DeploymentOutcome:
     failure_reason: str | None
     failure_roots: tuple[str, ...]
     ssh_invocations: int
+    # v2 addition.  ``None`` on any outcome that never reached verification, so a
+    # failed deployment cannot hand downstream a hash closure it never proved.
+    verification: DeployVerificationReceipt | None = None
 
 
 def _canonical_json_bytes(payload: object) -> bytes:
@@ -351,6 +382,55 @@ print(json.dumps({"promoted": done}, sort_keys=True))
 """
 
 
+def _verification_body(routes: Mapping[str, Mapping[str, VerifiedFile]]) -> dict[str, object]:
+    return {
+        "schema_version": DEPLOY_VERIFICATION_SCHEMA_VERSION,
+        "routes": {
+            route: {
+                member: {"sha256": entry.sha256, "bytes": entry.bytes}
+                for member, entry in sorted(members.items())
+            }
+            for route, members in sorted(routes.items())
+        },
+    }
+
+
+def build_verification_receipt(
+    *, plans: Sequence[RoutePlan], verified_sizes: Mapping[str, Mapping[str, int]]
+) -> DeployVerificationReceipt:
+    """Fold each route's recomputed hashes and byte sizes into one receipt."""
+
+    routes: dict[str, Mapping[str, VerifiedFile]] = {}
+    for plan in plans:
+        sizes = verified_sizes.get(plan.route)
+        if sizes is None or set(sizes) != set(plan.files):
+            raise Phase9BDeployError(
+                f"verified size set differs from the registered set: {plan.route}"
+            )
+        members: dict[str, VerifiedFile] = {}
+        for member, digest in sorted(plan.files.items()):
+            size = sizes[member]
+            if type(size) is not int or size <= 0:
+                raise Phase9BDeployError(f"verified byte size is invalid: {member}")
+            members[member] = VerifiedFile(
+                sha256=_require_sha256(digest, label=f"registered sha256 {member}"), bytes=size
+            )
+        routes[plan.route] = members
+    return DeployVerificationReceipt(
+        schema_version=DEPLOY_VERIFICATION_SCHEMA_VERSION,
+        routes=routes,
+        receipt_sha256=hashlib.sha256(
+            _canonical_json_bytes(_verification_body(routes))
+        ).hexdigest(),
+    )
+
+
+def recomputed_verification_sha256(receipt: DeployVerificationReceipt) -> str:
+    """Recompute the digest over every field except the digest itself."""
+
+    return hashlib.sha256(_canonical_json_bytes(_verification_body(receipt.routes))).hexdigest()
+
+
 def build_upload_command(*, ssh_alias: str, plan: RoutePlan) -> tuple[str, ...]:
     """One bounded SSH call carrying one route's stream on stdin."""
 
@@ -553,26 +633,35 @@ def deploy_both_routes(
         failure_reason=None,
         failure_roots=(),
         ssh_invocations=invocations,
+        # Only a promoted transaction carries the hash closure; every failure path
+        # above leaves it None, so nothing downstream can read proof into a failure.
+        verification=build_verification_receipt(plans=plans, verified_sizes=verified_sizes),
     )
 
 
 __all__ = [
     "DEPLOY_EVIDENCE_SCHEMA_VERSION",
+    "DEPLOY_OUTCOME_SCHEMA_VERSION",
     "DEPLOY_STREAM_SCHEMA_VERSION",
+    "DEPLOY_VERIFICATION_SCHEMA_VERSION",
     "EXECUTION_AUTHORIZED",
     "REMOTE_PROMOTER_SOURCE",
     "REMOTE_RECEIVER_SOURCE",
     "CommandRunner",
     "DeployState",
+    "DeployVerificationReceipt",
     "DeploymentOutcome",
     "Phase9BDeployError",
     "Phase9BDeployNotAuthorizedError",
     "RoutePlan",
+    "VerifiedFile",
     "build_deploy_stream",
     "build_promote_command",
     "build_route_plan",
     "build_upload_command",
+    "build_verification_receipt",
     "deploy_both_routes",
+    "recomputed_verification_sha256",
     "validate_absolute_root",
     "validate_relative_member",
     "verify_local_payload",

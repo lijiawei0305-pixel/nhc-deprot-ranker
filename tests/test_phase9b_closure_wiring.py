@@ -32,7 +32,7 @@ def _closure() -> tuple[str, ...]:
 def test_schema_version_reflects_the_changed_file_set() -> None:
     """A digest over a different file set must not share the old version."""
 
-    assert runner.RUNNER_SOURCE_SCHEMA_VERSION == "nhc-two-endpoint-runner-source-v4"
+    assert runner.RUNNER_SOURCE_SCHEMA_VERSION == "nhc-two-endpoint-runner-source-v5"
     assert "v3" not in runner.RUNNER_SOURCE_SCHEMA_VERSION
 
 
