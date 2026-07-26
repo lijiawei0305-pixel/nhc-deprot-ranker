@@ -16,6 +16,7 @@ Updated: 2026-07-26
 | Phase 8B — single-candidate DFT smoke | Complete with rejected execution incident | Failed closed 2026-07-23; unique attempt consumed; retry prohibited |
 | Post-8B local safety closeout | Complete and merged to `main` | Passed 2026-07-26; PR #11 / `927ee26` |
 | Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
+| Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
 
 ## Current completed work
 
@@ -136,19 +137,36 @@ SMILES -> RDKit ETKDGv3 -> MMFF94 (UFF on exception)
 Phase 9A ran no AIMNet2, no PySCF, no force field, and no server command, wrote
 no implementation code, and opened no gate.
 
+Phase 9A-R was authorized and executed as a read-only inspection. It passed:
+torch `2.8.0+cu128` with `sm_70`, ase `3.29.0`, and aimnet `0.2.0` are installed
+on 8x Tesla V100-SXM2-32GB, and the calculator accepts total charge and
+multiplicity explicitly. The weight cache was byte- and mtime-identical before
+and after, so the inspection changed nothing.
+
+Two blocking findings were recorded. Only ensemble member `_0` exists locally
+(`aimnet2_wb97m_d3_0.pt`, SHA256 `f0f7c054...4e28`); members `_1`, `_2`, and
+`_3` are absent and may not be downloaded. Separately, the calculator's default
+model string exposes a remote-fetch path that any future run must pin offline.
+
 ## Next action
 
-Phase 9A-R, a single read-only server preflight, requires explicit user
-authorization. It records whether AIMNet2, torch, and ase are installed, which
-weights exist, their SHA256 values, and the real API for charge handling and
-units. It installs nothing, downloads nothing, loads no model, evaluates no
-energy, and writes nothing to the server.
+The AIMNet2 route is not blocked on missing software; it is constrained by a
+single-member ensemble, which removes the designed per-atom disagreement signal
+at the C2 carbene centre.
 
-Three user decisions are open and are set out in
-`docs/NEXT_PHASE_AUTHORIZATION.md`: whether the project may invoke the separate
-conda environment that holds AIMNet2, whether to proceed given the legacy
-project's recorded median 1.10x preoptimization speedup, and how to handle an
-ensemble for which only one member has evidence.
+The user must resolve that before Phase 9B is requested:
+
+1. proceed with one deterministic member, accepting no ensemble uncertainty;
+2. treat the incomplete ensemble as a blocker and stop the AIMNet2 route;
+3. authorize a separate minimal inference test first, to measure units, element
+   coverage, and determinism on one small molecule.
+
+Element coverage, energy and force units, and deterministic-mode support remain
+deliberately unmeasured, because establishing them requires running the model.
+
+Phase 9B additionally requires a new document-first plan, a new
+candidate/attempt/root/permit authority chain, and new explicit authorization.
+No model or dataset ingestion may occur from the rejected Phase 8B attempt.
 
 Any new calculation requires a separate document-first plan, a new
 candidate/attempt/root/permit authority chain, and new explicit user

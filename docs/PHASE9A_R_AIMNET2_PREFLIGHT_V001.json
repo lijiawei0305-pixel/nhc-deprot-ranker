@@ -1,0 +1,152 @@
+{
+  "schema_version": "phase9a_r.aimnet2_readonly_preflight.v1",
+  "phase": "9A-R",
+  "status": "passed",
+  "scope": "read_only_inspection_only",
+  "ssh_invocations": 2,
+  "actions_performed": [
+    "host_and_interpreter_facts",
+    "gpu_presence_query",
+    "package_import_and_version_inspection",
+    "torch_capability_query",
+    "api_signature_inspection",
+    "weight_file_enumeration_and_hashing",
+    "cache_mutation_guard_before_and_after"
+  ],
+  "actions_prohibited_and_not_performed": [
+    "install_package",
+    "upgrade_package",
+    "download_weight",
+    "populate_cache",
+    "load_model",
+    "construct_ase_atoms_with_calculator",
+    "evaluate_energy",
+    "evaluate_forces",
+    "run_geometry_optimization",
+    "construct_pyscf_mole",
+    "call_any_compute_kernel",
+    "write_to_server",
+    "modify_environment",
+    "create_bytecode"
+  ],
+  "side_effect_guard": {
+    "offline_flags_set": [
+      "HF_HUB_OFFLINE",
+      "TRANSFORMERS_OFFLINE",
+      "HF_DATASETS_OFFLINE"
+    ],
+    "pythondontwritebytecode": true,
+    "python_flags": "-I -B",
+    "weight_cache_before_equals_after": true,
+    "weight_cache_bytes_changed": false,
+    "weight_cache_mtime_changed": false,
+    "new_bytecode_detected": false,
+    "download_detected": false
+  },
+  "host": {
+    "kernel": "Linux 6.17.0-35-generic",
+    "logical_cpus": 112,
+    "shared_host": true,
+    "other_user_gpu_jobs_present": true
+  },
+  "accelerator": {
+    "device_model": "Tesla V100-SXM2-32GB",
+    "device_count": 8,
+    "memory_total_mib_per_device": 32768,
+    "architecture": "Volta sm_70"
+  },
+  "environment": {
+    "activation": "project_explicit_mlff_env_script",
+    "bashrc_sourced": false,
+    "python_version": "3.11.15"
+  },
+  "packages": {
+    "torch": {
+      "importable": true,
+      "version": "2.8.0+cu128",
+      "cuda_version": "12.8",
+      "cuda_is_available": true,
+      "device_count": 8,
+      "sm_70_supported": true,
+      "arch_list": [
+        "sm_70",
+        "sm_75",
+        "sm_80",
+        "sm_86",
+        "sm_90",
+        "sm_100",
+        "sm_120"
+      ]
+    },
+    "ase": {
+      "importable": true,
+      "version": "3.29.0"
+    },
+    "aimnet": {
+      "importable": true,
+      "version": "0.2.0"
+    }
+  },
+  "api_surface": {
+    "AIMNet2ASE_signature": "(self, base_calc: AIMNet2Calculator | str = 'aimnet2', charge=0, mult=1, validate_species: bool = True)",
+    "AIMNet2ASE_accepts_total_charge": true,
+    "AIMNet2ASE_accepts_multiplicity": true,
+    "AIMNet2Calculator_signature": "(self, model: str | torch.nn.Module = 'aimnet2', nb_threshold: int = 120, needs_coulomb: bool | None = None, needs_dispersion: bool | None = None, device: str | None = None, compile_model: bool = False, compile_kwargs: dict | None = None, train: bool = False, ensemble_member: int = 0, revision: str | None = None, token: str | None = None)",
+    "ensemble_member_parameter_present": true,
+    "remote_fetch_parameters_present": [
+      "revision",
+      "token"
+    ],
+    "model_registry_symbol_present": true,
+    "validate_species_default": true
+  },
+  "weights_present": [
+    {
+      "filename": "aimnet2_wb97m_d3_0.pt",
+      "bytes": 8836941,
+      "sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28",
+      "ensemble_member_index": 0,
+      "family": "wb97m-d3"
+    }
+  ],
+  "weights_absent": [
+    "aimnet2_wb97m_d3_1",
+    "aimnet2_wb97m_d3_2",
+    "aimnet2_wb97m_d3_3"
+  ],
+  "not_established_deliberately": {
+    "declared_element_coverage": "requires_checkpoint_load_deferred",
+    "energy_output_unit_measured": "requires_evaluation_deferred",
+    "force_output_unit_measured": "requires_evaluation_deferred",
+    "deterministic_mode_support": "requires_evaluation_deferred",
+    "license_string": "not_exposed_by_package_metadata_inspection"
+  },
+  "blocking_findings": [
+    {
+      "id": "ensemble_incomplete",
+      "detail": "only ensemble member 0 is present in the local weight cache; members 1-3 are absent and downloading them is prohibited",
+      "consequence": "ensemble-mean optimization and member-disagreement uncertainty are unavailable offline"
+    },
+    {
+      "id": "silent_download_surface",
+      "detail": "the calculator constructor exposes revision and token parameters, so a default model string can attempt a remote fetch",
+      "consequence": "any future run must pin offline mode and a local weight path explicitly"
+    }
+  ],
+  "privacy": {
+    "contains_absolute_path": false,
+    "contains_hostname": false,
+    "contains_account_name": false,
+    "contains_ip_address": false,
+    "contains_pid": false,
+    "contains_credential": false,
+    "contains_molecular_coordinates": false
+  },
+  "authorization_boundary": {
+    "this_evidence_authorizes": "nothing",
+    "server_write_authorized": false,
+    "quantum_execution_authorized": false,
+    "aimnet2_inference_authorized": false,
+    "phase9b_authorized": false
+  }
+}
