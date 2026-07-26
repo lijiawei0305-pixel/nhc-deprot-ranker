@@ -150,6 +150,13 @@ load_consumed_phase8b_permit          permit schema and loader
                                          per-route one-shot; outside the
                                          closure until wiring)
 validate_exact_phase8b_authority      authority validation and its types
+                                      -> Phase 9B counterpart now exists:
+                                         validate_exact_phase9b_authority +
+                                         Phase9BExactAuthority in
+                                         quantum/phase9b_permit.py (real
+                                         isinstance gate on the consumed permit
+                                         type; profile-driven; outside the
+                                         closure until wiring)
 _issue_phase8b_compute_capability     capability issue, including the frozen
                                       worker-authority match in two_endpoint.py
 _require_phase8b_arguments            name and message kept: the message is
@@ -162,4 +169,4 @@ _require_phase8b_arguments            name and message kept: the message is
 All three execution gates remain closed, the closure remains at 14 files with no
 Phase 9B module wired in, `phase8b_authority.py`, `phase8b_permit.py`, and
 `two_endpoint.py` are untouched, `PHASE8B_DFT_SMOKE_V001.json` is unchanged, and
-the suite passes at 637.
+the suite passes at 661.
