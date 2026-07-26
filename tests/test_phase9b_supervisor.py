@@ -232,12 +232,21 @@ def test_route_parity_rejects_swapped_or_duplicated_labels() -> None:
         )
 
 
-def test_neither_phase9b_module_is_in_the_runner_source_closure() -> None:
+def test_phase9b_modules_are_hash_bound_in_the_runner_source_closure() -> None:
+    """The supervisor entry is hash-bound like the Phase 8B entry it parallels.
+
+    run_phase8b_supervisor lives in two_endpoint.py, which is inside the closure,
+    so the Phase 9B supervisor entry must be bound too, or its content could
+    change without changing runner_source_sha256.
+    """
+
     from nhc_deprot_ranker.quantum import two_endpoint
 
     closure = two_endpoint._RUNNER_SOURCE_RELATIVE_PATHS  # pyright: ignore[reportPrivateUsage]
-    assert "nhc_deprot_ranker/quantum/phase9b_supervisor.py" not in closure
-    assert "nhc_deprot_ranker/quantum/phase9b_authority.py" not in closure
+    assert "nhc_deprot_ranker/quantum/phase9b_supervisor.py" in closure
+    assert "nhc_deprot_ranker/quantum/phase9b_authority.py" in closure
+    assert "nhc_deprot_ranker/quantum/phase9b_permit.py" in closure
+    assert "nhc_deprot_ranker/quantum/phase9b_resources.py" in closure
 
 
 def test_supervision_logic_is_delegated_not_reimplemented() -> None:

@@ -540,6 +540,7 @@ class Phase9BExactAuthority:
     legacy_atom_map_sha256: str
     endpoint_atom_map_sha256: str
     geometry_validation_sha256: str
+    resources_sha256: str
     electron_count: int
     request_id: str
     inchikey: str
@@ -560,6 +561,8 @@ def validate_exact_phase9b_authority(
     require_output_absent: bool = True,
 ) -> Phase9BExactAuthority:
     """Cross-check a loaded request against one route's consumed exact permit."""
+
+    from nhc_deprot_ranker.quantum.phase9b_resources import phase9b_resources_sha256
 
     if not isinstance(consumed, ConsumedPhase9BPermit):
         raise Phase9BPermitValidationError("a consumed Phase 9B permit is required")
@@ -608,6 +611,7 @@ def validate_exact_phase9b_authority(
         legacy_atom_map_sha256=profile.legacy_atom_map_sha256,
         endpoint_atom_map_sha256=profile.endpoint_atom_map_sha256,
         geometry_validation_sha256=profile.geometry_validation_sha256,
+        resources_sha256=phase9b_resources_sha256(),
         electron_count=profile.electron_count,
         request_id=REQUEST_ID,
         inchikey=profile.inchikey,

@@ -193,13 +193,19 @@ def test_profile_is_reusable_for_a_different_candidate() -> None:
     assert other.atom_map["C2_carbene"] == 4
 
 
-def test_module_is_not_yet_inside_the_runner_source_closure() -> None:
-    """Wiring changes runner_source_sha256 and belongs with permit generation."""
+def test_module_is_hash_bound_inside_the_runner_source_closure() -> None:
+    """Now wired: the capability expectation builder imports this at call time.
+
+    It was deliberately outside the closure while unused. Once closure-internal
+    code depended on its content, leaving it out would have meant this module
+    could change without changing runner_source_sha256.
+    """
 
     from nhc_deprot_ranker.quantum import two_endpoint
 
     closure = two_endpoint._RUNNER_SOURCE_RELATIVE_PATHS  # pyright: ignore[reportPrivateUsage]
-    assert "nhc_deprot_ranker/quantum/phase9b_authority.py" not in closure
+    assert "nhc_deprot_ranker/quantum/phase9b_authority.py" in closure
+    assert two_endpoint.RUNNER_SOURCE_SCHEMA_VERSION.endswith("-v4")
 
 
 def test_module_imports_no_chemistry_and_declares_no_label() -> None:
