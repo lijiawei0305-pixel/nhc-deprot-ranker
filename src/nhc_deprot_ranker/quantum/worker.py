@@ -3,6 +3,16 @@
 The module imports no chemistry package.  Its ``main`` function repeats the
 source-level gate as its first action, before inspecting arguments or requests.
 Phase 8A deliberately leaves that gate closed.
+
+Candidate-specific expectations — electron count, CPU affinity, and chain
+identity — are no longer hard-coded in the validation flow.  They come from a
+:class:`WorkerAuthorityProfile` selected by exact attempt identity from a
+source-frozen table in this file, which is itself inside the runner source
+closure, so profile values are hash-bound exactly like code.
+
+There is still exactly one live validation path.  The Phase 8B profile binds it;
+the Phase 9B profile is registered for identity and cross-checking but refuses
+execution until its permit and capability wiring exist.
 """
 
 from __future__ import annotations
@@ -27,6 +37,66 @@ from nhc_deprot_ranker.quantum.phase8b_execution import (
     TaskAffinityReader,
     load_and_validate_compute_claim_for_worker,
 )
+
+
+@dataclass(frozen=True)
+class WorkerAuthorityProfile:
+    """Source-frozen, candidate-specific expectations for one authority chain.
+
+    Values are data, but they live inside the runner source closure, so editing
+    them changes ``runner_source_sha256`` exactly as editing code would.
+    """
+
+    profile_id: str
+    request_id: str
+    inchikey: str
+    attempt_ids: tuple[str, ...]
+    electron_count: int
+    allowed_cpus: frozenset[int]
+
+
+PHASE8B_WORKER_PROFILE = WorkerAuthorityProfile(
+    profile_id="phase8b-qxh-smoke",
+    request_id="phase8b-qxh-smoke-v001",
+    inchikey="QXHIEGFUWOLQIJ-UHFFFAOYSA-N",
+    attempt_ids=("attempt-phase8b-qxh-v001",),
+    electron_count=120,
+    allowed_cpus=frozenset({0, 1, 2, 3}),
+)
+
+# Registered for identity closure only; execution refuses until the Phase 9B
+# permit and capability wiring exist.  The CPU set repeats the shared-host
+# envelope; the final resource freeze happens in the Phase 9B execution request,
+# and changing it here is a closure-visible source edit by construction.
+PHASE9B_WORKER_PROFILE = WorkerAuthorityProfile(
+    profile_id="phase9b-lbnp-paired-smoke",
+    request_id="phase9b-lbnp-paired-smoke-v001",
+    inchikey="LBNPGYISTSLAHY-UHFFFAOYSA-N",
+    attempt_ids=(
+        "attempt-phase9b-lbnp-direct-v001",
+        "attempt-phase9b-lbnp-assisted-v001",
+    ),
+    electron_count=160,
+    allowed_cpus=frozenset({0, 1, 2, 3}),
+)
+
+WORKER_AUTHORITY_PROFILES: tuple[WorkerAuthorityProfile, ...] = (
+    PHASE8B_WORKER_PROFILE,
+    PHASE9B_WORKER_PROFILE,
+)
+
+
+def _resolve_worker_profile(attempt_id: str) -> WorkerAuthorityProfile:
+    """Exact, unique attempt-identity match; anything else fails closed."""
+
+    matches = [
+        profile for profile in WORKER_AUTHORITY_PROFILES if attempt_id in profile.attempt_ids
+    ]
+    if len(matches) != 1:
+        raise runner.ExecutionNotAuthorizedError(
+            "no worker authority profile matches the requested attempt"
+        )
+    return matches[0]
 
 
 @dataclass(frozen=True)
@@ -238,6 +308,11 @@ def main(
         absolute_deadline_ns,
         release_token,
     ) = _require_phase8b_arguments(arguments)
+    profile = _resolve_worker_profile(arguments.attempt_id)
+    if profile is not PHASE8B_WORKER_PROFILE:
+        raise runner.ExecutionNotAuthorizedError(
+            "worker authority profile is registered but not wired for execution"
+        )
     from nhc_deprot_ranker.quantum.phase8b_authority import (
         Phase8BRequestLike,
         validate_exact_phase8b_authority,
@@ -251,8 +326,10 @@ def main(
         expected_runner_source_sha256=runner_source_sha256,
         expected_payload_manifest_sha256=payload_manifest_sha256,
     )
-    runner._validate_frozen_120_electron_pair(  # pyright: ignore[reportPrivateUsage]
-        request.cation, request.neutral
+    runner._validate_endpoint_pair_electrons(  # pyright: ignore[reportPrivateUsage]
+        request.cation,
+        request.neutral,
+        expected_electron_count=profile.electron_count,
     )
     exact_authority = validate_exact_phase8b_authority(
         cast(Phase8BRequestLike, request),
@@ -272,7 +349,7 @@ def main(
         release_token=release_token,
         expected_parent_pid=os.getppid(),
         expected_absolute_deadline_ns=absolute_deadline_ns,
-        expected_allowed_cpus=frozenset({0, 1, 2, 3}),
+        expected_allowed_cpus=profile.allowed_cpus,
         identity_reader=identity_reader,
         task_affinity_reader=task_affinity_reader,
         clock_ns=clock_ns,

@@ -123,8 +123,38 @@ generate a permit before the source hash is final
 open any execution gate
 ```
 
+## Step 1 status — worker authority parameterization complete
+
+The user selected Option C, and step 1 is implemented. `worker.py` now carries a
+source-frozen `WorkerAuthorityProfile` table — inside the closure file itself,
+so profile values are hash-bound exactly like code — selected by exact, unique
+attempt identity. The electron-count check calls the pre-existing generic
+validator with `profile.electron_count`, and the compute-claim CPU expectation
+flows from `profile.allowed_cpus`. The Phase 8B profile reproduces the
+historical constants verbatim and remains the only live path; the Phase 9B
+profile (160 electrons, both route attempts) is registered but refuses execution
+before any permit read.
+
+Resolved bindings from the inventory above: line 254 (the 120-electron pin) and
+line 275 (the literal CPU set).
+
+Remaining bindings, deliberately deferred to the wiring step because each
+requires the Phase 9B permit and capability designs that are generated together
+with the closure change:
+
+```text
+load_consumed_phase8b_permit          permit schema and loader
+validate_exact_phase8b_authority      authority validation and its types
+_issue_phase8b_compute_capability     capability issue, including the frozen
+                                      worker-authority match in two_endpoint.py
+_require_phase8b_arguments            name and message kept: the message is
+                                      pinned by an existing test and the
+                                      argument shape is already phase-agnostic
+```
+
 ## Current state
 
 All three execution gates remain closed, the closure remains at 14 files with no
-Phase 9B module wired in, `PHASE8B_DFT_SMOKE_V001.json` is unchanged, and the
-suite passes at 625.
+Phase 9B module wired in, `phase8b_authority.py`, `phase8b_permit.py`, and
+`two_endpoint.py` are untouched, `PHASE8B_DFT_SMOKE_V001.json` is unchanged, and
+the suite passes at 637.
