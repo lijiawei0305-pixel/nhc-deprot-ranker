@@ -36,10 +36,13 @@ import json
 import os
 import stat
 import time
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
+from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, Protocol
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Final, Protocol
 
 from nhc_deprot_ranker.quantum.phase9b_authority import (
     PHASE9B_CANDIDATE,
@@ -78,7 +81,24 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 # Running a real model is a separate authorization.  Source-level gate.
 EXECUTION_AUTHORIZED: Final[bool] = False
 
-RUNTIME_SCHEMA_VERSION: Final = "nhc-phase9b-aimnet2-runtime-v1"
+RUNTIME_SCHEMA_VERSION: Final = "nhc-phase9b-aimnet2-runtime-v2"
+TRAJECTORY_SCHEMA_VERSION: Final = "nhc-phase9b-aimnet2-trajectory-v1"
+
+# --- the loader decision, proved from installed source in Phase 9A-S4 --------
+#
+# An absolute local path fails aimnet's inline one-slash Hugging Face pattern and
+# is not a directory, so ``AIMNet2Calculator.__init__`` takes its local branch,
+# where ``os.path.isfile`` short-circuits the registry family lookup and
+# ``get_model_path`` returns the path unchanged.  ``get_registry_model_path`` --
+# the only route to ``requests.get`` -- is unreachable for a path that exists.
+# See docs/PHASE9A_S4_DEDUPLICATED_SOURCE_INSPECTION.md.
+LOADER_DECISION: Final = "A"
+LOADER_EVIDENCE_GRADE: Final = "source_proven"
+LOADER_EVIDENCE_PHASE: Final = "9A-S4"
+MODEL_PATH_MUST_BE_ABSOLUTE: Final[bool] = True
+COMPILE_MODEL: Final[bool] = False
+VALIDATE_SPECIES: Final[bool] = True
+BASE_MODEL_LOADS_PER_ROUTE: Final = 1
 
 # --- the frozen optimizer contract (docs/PHASE9B_AIMNET2_SMOKE_PLAN.md) ------
 OPTIMIZER: Final = "LBFGS"
@@ -94,6 +114,27 @@ ENSEMBLE_MEMBERS: Final = 1
 ENSEMBLE_UNCERTAINTY: Final = "unavailable_single_member"
 OPTIMIZER_RESTART_AUTHORIZED: Final[bool] = False
 FALLBACK_AUTHORIZED: Final[bool] = False
+
+# ASE 3.29.0's own ``LBFGS.__init__`` defaults, read from the installed source in
+# Phase 9A-S4 and pinned here so a future ASE default drift is a receipt change
+# rather than a silent change of method.  The runtime sets none of them; it
+# records them, and refuses to run against an ASE whose defaults have moved.
+LBFGS_FROZEN_DEFAULTS: Final[Mapping[str, object]] = MappingProxyType(
+    {
+        "restart": None,
+        "logfile": "-",
+        "trajectory": None,
+        "maxstep": None,
+        "memory": 100,
+        "damping": 1.0,
+        "alpha": 70.0,
+        "use_line_search": False,
+    }
+)
+# Passed explicitly rather than left to the default, because the contract names
+# them: no restart file may be written or read, and the authoritative trajectory
+# is this project's canonical JSONL, not an unregistered ASE binary.
+LBFGS_EXPLICIT_ARGUMENTS: Final[tuple[str, ...]] = ("restart", "trajectory")
 
 # --- offline and cache isolation --------------------------------------------
 OFFLINE_ENVIRONMENT: Final[Mapping[str, str]] = {
@@ -120,6 +161,7 @@ _ENDPOINT_MULTIPLICITY: Final[Mapping[str, int]] = {"cation": 1, "neutral": 1}
 _FILE_MODE: Final = 0o600
 _ROOT_MODE: Final = 0o700
 _MAX_XYZ_BYTES: Final = 1 << 20
+MAX_TRAJECTORY_BYTES: Final = 8 << 20
 
 
 class Aimnet2RuntimeError(RuntimeError):
@@ -128,6 +170,28 @@ class Aimnet2RuntimeError(RuntimeError):
 
 class Aimnet2NotAuthorizedError(Aimnet2RuntimeError):
     """A real model load was attempted while the source gate is closed."""
+
+
+class Aimnet2TimeoutError(Aimnet2RuntimeError):
+    """The local budget or the route deadline ran out during optimization."""
+
+
+def enforce_source_execution_gate() -> None:
+    """The one place the source gate is read.  Called before any lazy import.
+
+    Every production entry point calls this *first*, so a closed gate stops the
+    route before ``torch``, ``ase``, or ``aimnet`` can enter the process.  There
+    is deliberately no parameter, no environment variable, and no request field
+    that can reach it: opening the gate means editing this module's source, which
+    moves ``runner_source_sha256`` and invalidates every prepared identity.
+    """
+
+    if EXECUTION_AUTHORIZED is not True:
+        raise Aimnet2NotAuthorizedError(
+            "the Phase 9B production AIMNet2 runtime is wired but the source "
+            "execution gate is closed; running a real model requires separate "
+            "explicit authorization"
+        )
 
 
 # --- injected seams ----------------------------------------------------------
@@ -139,6 +203,64 @@ class Calculator(Protocol):
     def energy_and_forces(
         self, coordinates: Sequence[Sequence[float]]
     ) -> tuple[float, Sequence[Sequence[float]]]: ...
+
+
+class AseEndpointCalculator(ABC):
+    """The declared contract the production ASE optimizer requires.
+
+    ASE's ``LBFGS`` needs an ``Atoms`` object with a calculator bound to it, which
+    the generic :class:`Calculator` protocol cannot express.  Rather than reach
+    for that capability with ``hasattr`` or by reading a private field, the
+    production optimizer requires this type by name.  It is an abstract base
+    class, not a structural protocol, so conformance is nominal: an object either
+    declares itself an ASE endpoint adapter or the optimizer refuses it.
+
+    Mock optimizers keep using :class:`Calculator`; only the production optimizer
+    demands this.
+    """
+
+    __slots__ = ()
+
+    @abstractmethod
+    def new_atoms(
+        self,
+        *,
+        elements: Sequence[str],
+        coordinates: Sequence[Sequence[float]],
+    ) -> object:
+        """A fresh ``Atoms`` with this endpoint's calculator and copied coordinates."""
+
+    @abstractmethod
+    def energy_and_forces(
+        self, coordinates: Sequence[Sequence[float]]
+    ) -> tuple[float, Sequence[Sequence[float]]]: ...
+
+    @abstractmethod
+    def install_boundary_probe(self, probe: Callable[[str], None] | None) -> None:
+        """Install (or clear) the deadline probe run either side of an evaluation."""
+
+    @abstractmethod
+    def evaluation_counts(self) -> tuple[int, int, int]:
+        """``(energy_evaluations, force_evaluations, calculator_invocations)``.
+
+        The third number is what matters for cost: ASE asks for energy and forces
+        in a single ``calculate`` call, so one model execution can increment both
+        of the first two.  Reporting those two as if they were separate model runs
+        would double-count the work, so the invocation count is carried alongside
+        them and is the figure the receipt calls a model execution.
+        """
+
+    @property
+    @abstractmethod
+    def endpoint(self) -> str: ...
+
+    @property
+    @abstractmethod
+    def charge(self) -> int: ...
+
+    @property
+    @abstractmethod
+    def multiplicity(self) -> int: ...
 
 
 class BaseModel(Protocol):
@@ -167,8 +289,51 @@ class Optimizer(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
+class TrajectoryFrame:
+    """One recorded point of a real optimization.  Diagnostic evidence only.
+
+    Carries AIMNet2 energies because they are what the optimizer minimized.  They
+    are never a scientific result: no field here reaches the deprotonation label,
+    which is computed from PySCF electronic energies alone.
+    """
+
+    schema_version: str
+    endpoint: str
+    frame_index: int
+    elapsed_seconds: float
+    charge: int
+    multiplicity: int
+    atom_count: int
+    element_order_sha256: str
+    coordinates: tuple[tuple[float, float, float], ...]
+    energy_ev: float
+    max_force_ev_per_angstrom: float
+    calculator_invocation_index: int
+    optimizer_step: int
+    is_initial: bool
+    is_terminal: bool
+
+
+class TerminalState(Enum):
+    """How one endpoint's optimization actually ended."""
+
+    CONVERGED = "converged"
+    UNCONVERGED = "unconverged"
+    TIMEOUT = "timeout"
+    FAILED = "failed"
+
+
+@dataclass(frozen=True, slots=True)
 class OptimizerOutcome:
-    """What one endpoint's optimization produced.  Energies are diagnostic only."""
+    """What one endpoint's optimization produced.  Energies are diagnostic only.
+
+    Every field is measured, not assumed.  In particular ``steps`` comes from
+    ASE's own ``get_number_of_steps()``, never from ``len(trajectory) - 1``, and
+    the evaluation counts come from the endpoint wrapper's ledger, never from an
+    assumption that a step costs one force evaluation.  ASE reads the gradient
+    again for its convergence test, so the counts routinely exceed the step
+    count, and a step may cost more than one evaluation when a line search runs.
+    """
 
     coordinates: tuple[tuple[float, float, float], ...]
     converged: bool
@@ -178,6 +343,14 @@ class OptimizerOutcome:
     initial_max_force: float
     final_max_force: float
     trajectory_frames: int
+    calculator_invocations: int = 0
+    initial_energy_ev: float = 0.0
+    final_energy_ev: float = 0.0
+    trajectory: tuple[TrajectoryFrame, ...] = ()
+    trajectory_sha256: str = ""
+    elapsed_seconds: float = 0.0
+    deadline_monotonic: float = 0.0
+    terminal_state: TerminalState = TerminalState.CONVERGED
     failure_reason: str | None = None
 
 
@@ -526,19 +699,584 @@ def observe_cache(cache_root: Path, *, before: Mapping[str, int]) -> CacheObserv
 # --- the single model load ---------------------------------------------------
 
 
-def _load_base_model(*, weight_path: Path, device: str) -> BaseModel:  # pragma: no cover
-    """Load AIMNet2 once.  The only place torch/aimnet may be imported.
+class _EvaluationLedger:
+    """Counts what the model actually did, and runs the deadline probe.
 
-    Unreachable while the source gate is closed, and never executed in tests: the
-    injected loader is used instead, so no test loads a model or touches a GPU.
+    One ledger per endpoint.  It sits on the single funnel every ASE property
+    request passes through, so the counts are observations rather than estimates.
     """
 
-    if EXECUTION_AUTHORIZED is not True:
-        raise Aimnet2NotAuthorizedError("a real AIMNet2 model load is not authorized")
-    raise Aimnet2NotAuthorizedError(
-        "the production loader is wired but the source gate is closed; a real load "
-        "requires separate explicit authorization"
+    __slots__ = ("_probe", "calculator_invocations", "energy_evaluations", "force_evaluations")
+
+    def __init__(self) -> None:
+        self.energy_evaluations = 0
+        self.force_evaluations = 0
+        self.calculator_invocations = 0
+        self._probe: Callable[[str], None] | None = None
+
+    def install_probe(self, probe: Callable[[str], None] | None) -> None:
+        self._probe = probe
+
+    def before(self) -> None:
+        if self._probe is not None:
+            self._probe("before")
+
+    def after(self, properties: Sequence[str] | None) -> None:
+        self.calculator_invocations += 1
+        requested = tuple(properties) if properties else ("energy",)
+        if "energy" in requested or "free_energy" in requested:
+            self.energy_evaluations += 1
+        if "forces" in requested:
+            self.force_evaluations += 1
+        if self._probe is not None:
+            self._probe("after")
+
+
+def _verify_device(device: str, *, gpu_index: int | None = None) -> None:
+    """The device is exact.  No ``"cuda"`` auto-select, no CPU fallback."""
+
+    if not device.startswith("cuda:"):
+        raise Aimnet2RuntimeError(f"the device must be an exact cuda:<index>, got {device!r}")
+    suffix = device.removeprefix("cuda:")
+    if not suffix.isdigit():
+        raise Aimnet2RuntimeError(f"the device index is not a plain integer: {device!r}")
+    if gpu_index is not None and int(suffix) != gpu_index:
+        raise Aimnet2RuntimeError("the device index is not the one the route was granted")
+
+
+def _load_base_model(*, weight_path: Path, device: str) -> BaseModel:
+    """The single production entry point for loading AIMNet2.
+
+    Order matters: the source gate is read *before* anything else, so a closed
+    gate refuses without importing a machine-learning stack into this process.
+    Only after the gate, the weight identity, and the isolation environment all
+    pass does this delegate to the construction core, which is where the lazy
+    imports and the source-proven constructor live.
+    """
+
+    enforce_source_execution_gate()
+    _verify_device(device)
+    verify_weight(weight_path)
+    verify_offline_environment(os.environ, cache_root=_cache_root_from_environment(os.environ))
+    return _construct_base_model_after_authorization(weight_path=weight_path, device=device)
+
+
+def _cache_root_from_environment(environ: Mapping[str, str]) -> Path:
+    """The attempt's own cache root, taken from the redirection already in place."""
+
+    value = environ.get(CACHE_ENVIRONMENT_VARIABLES[0])
+    if not value:
+        raise Aimnet2RuntimeError("the isolated cache root is not redirected")
+    return Path(value).parent
+
+
+def _construct_base_model_after_authorization(
+    *, weight_path: Path, device: str
+) -> _Aimnet2BaseModel:
+    """Build the one base calculator, exactly as Phase 9A-S4 proved is safe.
+
+    This is scheme **A**: the absolute local path goes straight to
+    ``AIMNet2Calculator``.  Scheme B -- calling ``aimnet.models.base.load_model``
+    by hand and passing the resulting module -- is not used, because A already
+    reaches that same public loader, while B would enter the ``nn.Module`` branch
+    whose ``cutoff`` silently falls back to ``5.0`` when the attribute is absent.
+    B adds a code path and a silent default and removes no network call.
+
+    ``.eval()`` is deliberately not called: the constructor already runs
+    ``self.model.train(False)`` and clears ``requires_grad`` on every parameter.
+    Adding it would be an unrecorded state change on top of audited control flow.
+    """
+
+    # Reached only after enforce_source_execution_gate().  Import path taken from
+    # the installed source read in Phase 9A-S4, not from published documentation.
+    from aimnet.calculators import (  # type: ignore[import-not-found]
+        AIMNet2ASE,
+        AIMNet2Calculator,
     )
+    from ase import Atoms
+
+    if not weight_path.is_absolute():
+        raise Aimnet2RuntimeError("the weight path must be absolute")
+    base_calculator = AIMNet2Calculator(
+        model=str(weight_path),
+        device=device,
+        compile_model=COMPILE_MODEL,
+    )
+    return _Aimnet2BaseModel(
+        base_calculator=base_calculator,
+        endpoint_class=AIMNet2ASE,
+        atoms_class=Atoms,
+        device=device,
+        weight_path=weight_path,
+    )
+
+
+class _Aimnet2EndpointCalculator(AseEndpointCalculator):
+    """One endpoint's ASE adapter over one ``AIMNet2ASE`` wrapper.
+
+    Owns its own ``AIMNet2ASE``, its own ledger, and builds a fresh ``Atoms``
+    every time it is asked.  Nothing is shared with the other endpoint: not the
+    wrapper, not the atoms, not the coordinates, not the counts.
+    """
+
+    __slots__ = (
+        "_ase_calculator",
+        "_atoms_class",
+        "_charge",
+        "_elements",
+        "_endpoint",
+        "_ledger",
+        "_multiplicity",
+    )
+
+    def __init__(
+        self,
+        *,
+        endpoint: str,
+        charge: int,
+        multiplicity: int,
+        ase_calculator: object,
+        atoms_class: Callable[..., object],
+        ledger: _EvaluationLedger,
+        elements: Sequence[str] = (),
+    ) -> None:
+        self._endpoint = endpoint
+        self._charge = charge
+        self._multiplicity = multiplicity
+        self._ase_calculator = ase_calculator
+        self._atoms_class = atoms_class
+        self._ledger = ledger
+        self._elements = tuple(elements)
+
+    @property
+    def endpoint(self) -> str:
+        return self._endpoint
+
+    @property
+    def charge(self) -> int:
+        return self._charge
+
+    @property
+    def multiplicity(self) -> int:
+        return self._multiplicity
+
+    def new_atoms(
+        self, *, elements: Sequence[str], coordinates: Sequence[Sequence[float]]
+    ) -> object:
+        symbols = tuple(elements)
+        if not symbols:
+            raise Aimnet2RuntimeError("an endpoint geometry must have at least one atom")
+        if len(coordinates) != len(symbols):
+            raise Aimnet2RuntimeError("element and coordinate counts differ")
+        if self._elements and symbols != self._elements:
+            raise Aimnet2RuntimeError("the element order changed for this endpoint")
+        # A fresh copy: the caller's coordinates are never handed to ASE, so
+        # nothing downstream can mutate the frozen input geometry in place.
+        positions: list[list[float]] = []
+        for point in coordinates:
+            if len(point) != 3:
+                raise Aimnet2RuntimeError("a coordinate is not three-dimensional")
+            row = [float(value) for value in point]
+            if not all(value == value and abs(value) != float("inf") for value in row):
+                raise Aimnet2RuntimeError("a coordinate is not finite")
+            positions.append(row)
+        self._elements = symbols
+        atoms: Any = self._atoms_class(symbols=list(symbols), positions=positions)
+        atoms.calc = self._ase_calculator
+        return atoms
+
+    def energy_and_forces(
+        self, coordinates: Sequence[Sequence[float]]
+    ) -> tuple[float, Sequence[Sequence[float]]]:
+        atoms = self.new_atoms(elements=self._elements, coordinates=coordinates)
+        return read_energy_and_forces(atoms, atom_count=len(self._elements))
+
+    def install_boundary_probe(self, probe: Callable[[str], None] | None) -> None:
+        self._ledger.install_probe(probe)
+
+    def evaluation_counts(self) -> tuple[int, int, int]:
+        return (
+            self._ledger.energy_evaluations,
+            self._ledger.force_evaluations,
+            self._ledger.calculator_invocations,
+        )
+
+
+def read_energy_and_forces(atoms: Any, *, atom_count: int) -> tuple[float, list[list[float]]]:
+    """Read one ASE result and prove its shape and finiteness before using it."""
+
+    energy = float(atoms.get_potential_energy())
+    if energy != energy or abs(energy) == float("inf"):
+        raise Aimnet2RuntimeError("the calculator returned a non-finite energy")
+    raw = atoms.get_forces()
+    forces = [[float(component) for component in row] for row in raw]
+    if len(forces) != atom_count:
+        raise Aimnet2RuntimeError("the force array does not have one row per atom")
+    for row in forces:
+        if len(row) != 3:
+            raise Aimnet2RuntimeError("a force row is not three-dimensional")
+        for component in row:
+            if component != component or abs(component) == float("inf"):
+                raise Aimnet2RuntimeError("the calculator returned a non-finite force")
+    return energy, forces
+
+
+def max_force(forces: Sequence[Sequence[float]]) -> float:
+    """Largest per-atom force magnitude, in eV/A."""
+
+    return max(
+        (sum(component * component for component in row) ** 0.5 for row in forces),
+        default=0.0,
+    )
+
+
+class _Aimnet2BaseModel:
+    """The one loaded model for a route.  Endpoint wrappers come from it.
+
+    The weight is read once, into one ``AIMNet2Calculator``.  Asking for an
+    endpoint calculator builds a fresh ``AIMNet2ASE`` around that same base
+    object; it never re-reads the weight, never rebuilds the base calculator, and
+    never changes the device.
+    """
+
+    __slots__ = (
+        "_atoms_class",
+        "_base_calculator",
+        "_device",
+        "_endpoint_class",
+        "_issued",
+        "_weight_path",
+        "load_count",
+    )
+
+    def __init__(
+        self,
+        *,
+        base_calculator: object,
+        endpoint_class: Callable[..., object],
+        atoms_class: Callable[..., object],
+        device: str,
+        weight_path: Path,
+    ) -> None:
+        self._base_calculator = base_calculator
+        self._endpoint_class = endpoint_class
+        self._atoms_class = atoms_class
+        self._device = device
+        self._weight_path = weight_path
+        self._issued: dict[str, _Aimnet2EndpointCalculator] = {}
+        self.load_count = BASE_MODEL_LOADS_PER_ROUTE
+
+    @property
+    def device(self) -> str:
+        return self._device
+
+    def calculator_for(self, *, charge: int, multiplicity: int) -> Calculator:
+        endpoint = _endpoint_for_contract(charge=charge, multiplicity=multiplicity)
+        if endpoint in self._issued:
+            raise Aimnet2RuntimeError(
+                f"a second {endpoint} calculator was requested; each endpoint gets one, "
+                "so the two can never share mutable charge or coordinate state"
+            )
+        ledger = _EvaluationLedger()
+        counting_class = _counting_endpoint_class(self._endpoint_class, ledger)
+        ase_calculator = counting_class(
+            self._base_calculator,
+            charge=charge,
+            mult=multiplicity,
+            validate_species=VALIDATE_SPECIES,
+        )
+        wrapper = _Aimnet2EndpointCalculator(
+            endpoint=endpoint,
+            charge=charge,
+            multiplicity=multiplicity,
+            ase_calculator=ase_calculator,
+            atoms_class=self._atoms_class,
+            ledger=ledger,
+        )
+        self._issued[endpoint] = wrapper
+        return wrapper
+
+
+def _endpoint_for_contract(*, charge: int, multiplicity: int) -> str:
+    """Only the two contracted endpoints exist.  Anything else is refused."""
+
+    for endpoint in ENDPOINT_ORDER:
+        if (
+            _ENDPOINT_CHARGE[endpoint] == charge
+            and _ENDPOINT_MULTIPLICITY[endpoint] == multiplicity
+        ):
+            return endpoint
+    raise Aimnet2RuntimeError(
+        f"charge {charge} multiplicity {multiplicity} is not a Phase 9B endpoint"
+    )
+
+
+def _counting_endpoint_class(
+    endpoint_class: Callable[..., object], ledger: _EvaluationLedger
+) -> Callable[..., object]:
+    """Subclass ``AIMNet2ASE`` so every property request passes one funnel.
+
+    ``AIMNet2ASE.calculate`` is the single method ASE routes every energy and
+    force request through, so overriding it counts real model executions instead
+    of inferring them, and gives the deadline a place to be checked either side
+    of a call.  Arguments are forwarded untouched -- nothing about the
+    calculation is reimplemented here.
+    """
+
+    class _CountingEndpointCalculator(endpoint_class):  # type: ignore[misc,valid-type]
+        def calculate(self, *args: object, **kwargs: object) -> object:
+            ledger.before()
+            result = super().calculate(*args, **kwargs)
+            properties = kwargs.get("properties")
+            if properties is None and len(args) >= 2:
+                properties = args[1]
+            ledger.after(properties if isinstance(properties, Sequence) else None)
+            return result
+
+    return _CountingEndpointCalculator
+
+
+# --- the production optimizer -------------------------------------------------
+
+
+class _DeadlineExceeded(Exception):
+    """Internal signal.  Raised at an evaluation or step boundary, never escapes."""
+
+
+class _Expiry:
+    """One mutable flag, so the after-boundary can arm a stop the next check sees."""
+
+    __slots__ = ("armed",)
+
+    def __init__(self) -> None:
+        self.armed = False
+
+
+def serialize_trajectory(frames: Sequence[TrajectoryFrame]) -> bytes:
+    """Canonical JSONL.  The same bytes are digested and written, never re-derived."""
+
+    lines: list[bytes] = []
+    for frame in frames:
+        payload = {
+            "schema_version": frame.schema_version,
+            "endpoint": frame.endpoint,
+            "frame_index": frame.frame_index,
+            "elapsed_seconds": round(frame.elapsed_seconds, 6),
+            "charge": frame.charge,
+            "multiplicity": frame.multiplicity,
+            "atom_count": frame.atom_count,
+            "element_order_sha256": frame.element_order_sha256,
+            "coordinates": [[round(value, 10) for value in point] for point in frame.coordinates],
+            "energy_ev": frame.energy_ev,
+            "max_force_ev_per_angstrom": frame.max_force_ev_per_angstrom,
+            "calculator_invocation_index": frame.calculator_invocation_index,
+            "optimizer_step": frame.optimizer_step,
+            "is_initial": frame.is_initial,
+            "is_terminal": frame.is_terminal,
+        }
+        lines.append(
+            json.dumps(payload, sort_keys=True, ensure_ascii=True, allow_nan=False).encode("utf-8")
+        )
+    raw = b"\n".join(lines) + (b"\n" if lines else b"")
+    if len(raw) > MAX_TRAJECTORY_BYTES:
+        raise Aimnet2RuntimeError("the trajectory exceeded its frozen size limit")
+    return raw
+
+
+@dataclass(frozen=True, slots=True)
+class AseLBFGSOptimizer:
+    """The production optimizer: ASE 3.29.0 ``LBFGS``, on the frozen contract.
+
+    Only the two arguments the contract names are passed -- ``restart=None`` so no
+    restart file is ever read or written, and ``trajectory=None`` so ASE writes no
+    unregistered binary alongside this project's canonical JSONL.  Every other
+    ``LBFGS`` argument is left at ASE's own default and recorded in
+    :data:`LBFGS_FROZEN_DEFAULTS`, so a future ASE default drift shows up as a
+    receipt mismatch instead of a quietly different method.
+    """
+
+    monotonic: Callable[[], float] = time.monotonic
+    logfile: object = None
+
+    def optimize(
+        self,
+        *,
+        calculator: Calculator,
+        coordinates: Sequence[Sequence[float]],
+        elements: Sequence[str],
+        fmax: float,
+        max_steps: int,
+        deadline_monotonic: float,
+    ) -> OptimizerOutcome:
+        """Run one endpoint to convergence, the step budget, or the deadline."""
+
+        # Nominal, not structural: the optimizer requires a declared ASE endpoint
+        # adapter by type.  It never inspects an unknown object for capabilities.
+        if not isinstance(calculator, AseEndpointCalculator):
+            raise Aimnet2RuntimeError(
+                "the production optimizer requires a declared AseEndpointCalculator; "
+                "it will not probe an unknown object for ASE capability"
+            )
+        if fmax != FMAX_EV_PER_ANGSTROM or max_steps != MAX_STEPS:
+            raise Aimnet2RuntimeError("the frozen optimizer contract was not used")
+
+        started = self.monotonic()
+        # 1 of 3: nothing is constructed and no model runs if the budget is gone.
+        if started >= deadline_monotonic:
+            raise Aimnet2TimeoutError(
+                "the local deadline had already passed before optimization began"
+            )
+
+        from ase.optimize import LBFGS
+
+        _verify_lbfgs_defaults(LBFGS)
+        # ASE ships partial annotations, so the class and the Atoms handle are
+        # opaque here on purpose.  What the adapter relies on is pinned by
+        # _verify_lbfgs_defaults and by the fake-stack tests, not by ASE's stubs.
+        lbfgs: Any = LBFGS
+        atoms: Any = calculator.new_atoms(elements=elements, coordinates=coordinates)
+        order_digest = hashlib.sha256(" ".join(elements).encode("utf-8")).hexdigest()
+        frames: list[TrajectoryFrame] = []
+        expiry = _Expiry()
+
+        def probe(phase: str) -> None:
+            # 2 of 3: either side of every real evaluation.  A call that itself
+            # crosses the deadline is allowed to return -- arming the flag stops
+            # the run before the next step rather than mid-evaluation.
+            now = self.monotonic()
+            if phase == "before":
+                if expiry.armed or now >= deadline_monotonic:
+                    raise _DeadlineExceeded
+            elif now >= deadline_monotonic:
+                expiry.armed = True
+
+        def observer() -> None:
+            # 3 of 3: after every completed LBFGS step, and once at step zero.
+            # ASE calls observers with a warm result cache, so reading energy and
+            # forces here costs no extra model execution -- and if it ever did,
+            # the invocation counter would show it.
+            now = self.monotonic()
+            energy, forces = read_energy_and_forces(atoms, atom_count=len(elements))
+            _, _, invocations = calculator.evaluation_counts()
+            index = len(frames)
+            frames.append(
+                TrajectoryFrame(
+                    schema_version=TRAJECTORY_SCHEMA_VERSION,
+                    endpoint=calculator.endpoint,
+                    frame_index=index,
+                    elapsed_seconds=max(0.0, now - started),
+                    charge=calculator.charge,
+                    multiplicity=calculator.multiplicity,
+                    atom_count=len(elements),
+                    element_order_sha256=order_digest,
+                    coordinates=_as_points(atoms.get_positions()),
+                    energy_ev=energy,
+                    max_force_ev_per_angstrom=max_force(forces),
+                    calculator_invocation_index=invocations,
+                    optimizer_step=index,
+                    is_initial=index == 0,
+                    is_terminal=False,
+                )
+            )
+            if expiry.armed or now >= deadline_monotonic:
+                raise _DeadlineExceeded
+
+        calculator.install_boundary_probe(probe)
+        optimizer = lbfgs(atoms, restart=None, trajectory=None, logfile=self.logfile)
+        optimizer.attach(observer, interval=1)
+
+        terminal = TerminalState.CONVERGED
+        failure: str | None = None
+        converged = False
+        try:
+            converged = bool(optimizer.run(fmax=fmax, steps=max_steps))
+        except _DeadlineExceeded:
+            terminal = TerminalState.TIMEOUT
+            failure = "the local AIMNet2 budget or the route deadline expired"
+        except Exception as exc:
+            terminal = TerminalState.FAILED
+            failure = f"{type(exc).__name__}: {exc}"
+        finally:
+            calculator.install_boundary_probe(None)
+
+        steps = int(optimizer.get_number_of_steps())
+        energy_evaluations, force_evaluations, invocations = calculator.evaluation_counts()
+        if terminal is TerminalState.CONVERGED and not converged:
+            terminal = TerminalState.UNCONVERGED
+            failure = failure or "the optimizer reached its step budget without converging"
+        if frames:
+            frames[-1] = replace(frames[-1], is_terminal=True)
+        if not frames:
+            raise Aimnet2RuntimeError("the optimization recorded no trajectory frame")
+
+        final = frames[-1]
+        raw = serialize_trajectory(frames)
+        return OptimizerOutcome(
+            coordinates=final.coordinates,
+            converged=converged and terminal is TerminalState.CONVERGED,
+            steps=steps,
+            energy_evaluations=energy_evaluations,
+            force_evaluations=force_evaluations,
+            initial_max_force=frames[0].max_force_ev_per_angstrom,
+            final_max_force=final.max_force_ev_per_angstrom,
+            trajectory_frames=len(frames),
+            calculator_invocations=invocations,
+            initial_energy_ev=frames[0].energy_ev,
+            final_energy_ev=final.energy_ev,
+            trajectory=tuple(frames),
+            trajectory_sha256=hashlib.sha256(raw).hexdigest(),
+            elapsed_seconds=self.monotonic() - started,
+            deadline_monotonic=deadline_monotonic,
+            terminal_state=terminal,
+            failure_reason=failure,
+        )
+
+
+def _as_points(rows: Any) -> tuple[tuple[float, float, float], ...]:
+    points: list[tuple[float, float, float]] = []
+    for row in rows:
+        values = [float(value) for value in row]
+        if len(values) != 3:
+            raise Aimnet2RuntimeError("a position row is not three-dimensional")
+        points.append((values[0], values[1], values[2]))
+    return tuple(points)
+
+
+def _verify_lbfgs_defaults(lbfgs: Any) -> None:
+    """Refuse an ASE whose ``LBFGS`` defaults have moved away from the frozen set.
+
+    The runtime sets none of these; leaving them at the default is the contract.
+    That only means something if the default is still what Phase 9A-S4 read.
+    """
+
+    import inspect
+
+    parameters = inspect.signature(lbfgs.__init__).parameters
+    for name, expected in LBFGS_FROZEN_DEFAULTS.items():
+        if name in LBFGS_EXPLICIT_ARGUMENTS:
+            continue
+        parameter = parameters.get(name)
+        if parameter is None:
+            raise Aimnet2RuntimeError(f"ASE LBFGS no longer accepts {name!r}")
+        if parameter.default != expected:
+            raise Aimnet2RuntimeError(
+                f"ASE LBFGS default for {name!r} drifted from the frozen contract"
+            )
+
+
+def build_production_assisted_runtime(
+    *,
+    monotonic: Callable[[], float] = time.monotonic,
+) -> tuple[ModelLoader, Optimizer]:
+    """The only way the assisted route gets its runtime.  No request touches it.
+
+    Returned as a pair so the route cannot end up with a real loader and no
+    optimizer.  The direct route never calls this, and nothing in a request,
+    manifest, permit, or CLI can select a different optimizer: the assisted
+    adapter calls this function with no arguments derived from input.
+    """
+
+    return _load_base_model, AseLBFGSOptimizer(monotonic=monotonic)
 
 
 # --- durable evidence --------------------------------------------------------
@@ -658,7 +1396,18 @@ def run_assisted_stage(
     resolved_weight = weight_path or Path(environment.get("PHASE9B_AIMNET2_WEIGHT", "/nonexistent"))
     weight = verify_weight(resolved_weight)
 
-    loader = model_loader if model_loader is not None else _load_base_model
+    # Resolved here, before a single endpoint starts.  If the assisted route
+    # reached this point without an optimizer, that is discovered now -- not
+    # after the cation has already written durable evidence.
+    if model_loader is None or optimizer is None:
+        production_loader, production_optimizer = build_production_assisted_runtime(
+            monotonic=monotonic
+        )
+        loader = model_loader if model_loader is not None else production_loader
+        resolved_optimizer = optimizer if optimizer is not None else production_optimizer
+    else:
+        loader, resolved_optimizer = model_loader, optimizer
+
     load_started = monotonic()
     base_model = loader(weight_path=resolved_weight, device=f"cuda:{gpu_index}")
     model_load_seconds = monotonic() - load_started
@@ -681,7 +1430,7 @@ def run_assisted_stage(
                 log_root=log_root,
                 attempt_id=attempt_id,
                 base_model=base_model,
-                optimizer=optimizer,
+                optimizer=resolved_optimizer,
                 absolute_deadline_monotonic=absolute_deadline_monotonic,
                 monotonic=monotonic,
                 profile=profile,
@@ -733,7 +1482,7 @@ def _run_one_endpoint(
     log_root: Path,
     attempt_id: str,
     base_model: BaseModel,
-    optimizer: Optimizer | None,
+    optimizer: Optimizer,
     absolute_deadline_monotonic: float,
     monotonic: Callable[[], float],
     profile: CandidateProfile,
@@ -762,8 +1511,6 @@ def _run_one_endpoint(
 
     calculator = base_model.calculator_for(charge=charge, multiplicity=multiplicity)
     progress.advance(EndpointState.AIMNET2_RUNNING)
-    if optimizer is None:
-        raise Aimnet2NotAuthorizedError("no AIMNet2 optimizer is wired for this stage")
     outcome = optimizer.optimize(
         calculator=calculator,
         coordinates=before,
@@ -772,7 +1519,11 @@ def _run_one_endpoint(
         max_steps=MAX_STEPS,
         deadline_monotonic=local_deadline,
     )
-    if not outcome.converged:
+    if outcome.terminal_state is TerminalState.TIMEOUT:
+        raise Aimnet2TimeoutError(
+            f"{endpoint} preoptimization ran out of time: {outcome.failure_reason}"
+        )
+    if outcome.terminal_state is not TerminalState.CONVERGED or not outcome.converged:
         detail = outcome.failure_reason or "unconverged"
         raise Aimnet2RuntimeError(f"{endpoint} preoptimization did not converge: {detail}")
     if outcome.steps > MAX_STEPS:
@@ -807,16 +1558,30 @@ def _run_one_endpoint(
         raise Aimnet2RuntimeError(f"{endpoint} atom order changed during preoptimization")
     output_path = endpoint_dir / "output.xyz"
     write_exclusively(output_path, output_bytes)
-    write_exclusively(
-        endpoint_dir / "trajectory.jsonl",
-        b"".join(
-            json.dumps({"frame": index}, sort_keys=True).encode() + b"\n"
-            for index in range(outcome.trajectory_frames)
-        ),
+
+    # The trajectory is evidence, not a placeholder.  The optimizer digested the
+    # frames it produced; this serializes them again and refuses to continue
+    # unless the two digests and the digest of what actually landed all agree.
+    trajectory_bytes = serialize_trajectory(outcome.trajectory)
+    _verify_trajectory(
+        outcome=outcome,
+        endpoint=endpoint,
+        charge=charge,
+        multiplicity=multiplicity,
+        elements=elements,
+        raw=trajectory_bytes,
     )
+    trajectory_digest = write_exclusively(endpoint_dir / "trajectory.jsonl", trajectory_bytes)
+    if trajectory_digest != outcome.trajectory_sha256:
+        raise Aimnet2RuntimeError(f"{endpoint} trajectory bytes differ from the optimizer digest")
     write_exclusively(
         log_root / f"{endpoint}.aimnet2.log",
-        f"steps={outcome.steps} converged={outcome.converged}\n".encode(),
+        (
+            f"steps={outcome.steps} converged={outcome.converged} "
+            f"terminal={outcome.terminal_state.value} "
+            f"invocations={outcome.calculator_invocations} "
+            f"frames={outcome.trajectory_frames}\n"
+        ).encode(),
     )
 
     preopt = build_preoptimization_receipt(
@@ -830,10 +1595,16 @@ def _run_one_endpoint(
         optimizer_steps=outcome.steps,
         energy_evaluations=outcome.energy_evaluations,
         force_evaluations=outcome.force_evaluations,
+        calculator_invocations=outcome.calculator_invocations,
         initial_max_force_ev_per_angstrom=outcome.initial_max_force,
         final_max_force_ev_per_angstrom=outcome.final_max_force,
-        wall_time_seconds=monotonic() - (local_deadline - MAX_LOCAL_WALLTIME_SECONDS),
+        initial_energy_ev=outcome.initial_energy_ev,
+        final_energy_ev=outcome.final_energy_ev,
+        wall_time_seconds=outcome.elapsed_seconds,
         isolated_cache_bytes_written=0,
+        trajectory_sha256=trajectory_digest,
+        trajectory_frames=outcome.trajectory_frames,
+        terminal_state=outcome.terminal_state.value,
         validation=validation,
         state=PreoptimizationState.CONVERGED,
     )
@@ -874,6 +1645,57 @@ def _run_one_endpoint(
         output_xyz_path=output_path.as_posix(),
         failure_reason=None,
     )
+
+
+def _verify_trajectory(
+    *,
+    outcome: OptimizerOutcome,
+    endpoint: str,
+    charge: int,
+    multiplicity: int,
+    elements: Sequence[str],
+    raw: bytes,
+) -> None:
+    """Prove the trajectory is real evidence before it is written or digested."""
+
+    frames = outcome.trajectory
+    if not frames:
+        raise Aimnet2RuntimeError(f"{endpoint} produced no trajectory frames")
+    if len(frames) != outcome.trajectory_frames:
+        raise Aimnet2RuntimeError(f"{endpoint} trajectory frame count disagrees with the outcome")
+    if hashlib.sha256(raw).hexdigest() != outcome.trajectory_sha256:
+        raise Aimnet2RuntimeError(f"{endpoint} trajectory digest does not match its frames")
+    if not frames[0].is_initial or not frames[-1].is_terminal:
+        raise Aimnet2RuntimeError(f"{endpoint} trajectory is missing an initial or terminal frame")
+    order_digest = hashlib.sha256(" ".join(elements).encode("utf-8")).hexdigest()
+    previous_elapsed = -1.0
+    for index, frame in enumerate(frames):
+        if frame.schema_version != TRAJECTORY_SCHEMA_VERSION:
+            raise Aimnet2RuntimeError(f"{endpoint} trajectory schema drifted")
+        if frame.frame_index != index:
+            raise Aimnet2RuntimeError(f"{endpoint} trajectory frame index is not strictly ordered")
+        if frame.elapsed_seconds < previous_elapsed:
+            raise Aimnet2RuntimeError(f"{endpoint} trajectory elapsed time went backwards")
+        previous_elapsed = frame.elapsed_seconds
+        if frame.endpoint != endpoint or frame.charge != charge:
+            raise Aimnet2RuntimeError(f"{endpoint} trajectory frame carries another endpoint")
+        if frame.multiplicity != multiplicity:
+            raise Aimnet2RuntimeError(f"{endpoint} trajectory multiplicity drifted")
+        if frame.atom_count != len(elements) or frame.element_order_sha256 != order_digest:
+            raise Aimnet2RuntimeError(f"{endpoint} trajectory atom order changed")
+        if len(frame.coordinates) != len(elements):
+            raise Aimnet2RuntimeError(f"{endpoint} trajectory frame has the wrong atom count")
+        for value in (frame.energy_ev, frame.max_force_ev_per_angstrom):
+            if value != value or abs(value) == float("inf"):
+                raise Aimnet2RuntimeError(f"{endpoint} trajectory carries a non-finite value")
+        for point in frame.coordinates:
+            for component in point:
+                if component != component or abs(component) == float("inf"):
+                    raise Aimnet2RuntimeError(
+                        f"{endpoint} trajectory carries a non-finite coordinate"
+                    )
+    if frames[-1].coordinates != outcome.coordinates:
+        raise Aimnet2RuntimeError(f"{endpoint} final coordinates differ from the terminal frame")
 
 
 def _rebind_request_to_handoff(

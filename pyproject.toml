@@ -42,6 +42,8 @@ where = ["src"]
 [tool.pytest.ini_options]
 addopts = "-q --strict-markers --strict-config"
 testpaths = ["tests"]
+# tests/fake_ml_stack.py is imported by name by the production-runtime tests.
+pythonpath = ["tests"]
 
 [tool.ruff]
 target-version = "py311"

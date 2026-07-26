@@ -595,3 +595,21 @@ Phase 9B does not compare other machine-learning potentials, does not tune
 AIMNet2, does not calibrate AIMNet2 against DFT, does not compute Hessians or
 frequencies, does not claim frequency-verified minima, and does not promote the
 pipeline to production. Promotion requires the Phase 9C pilot.
+
+## What the frozen optimizer contract now means in code
+
+`ase.optimize.LBFGS` with `restart=None` and `trajectory=None` passed
+explicitly, `run(fmax=0.05, steps=200)`, and every other argument left at ASE
+3.29.0's own default -- pinned in `LBFGS_FROZEN_DEFAULTS` so a library default
+drift becomes a receipt mismatch instead of a quietly different method. The
+runtime refuses to start against an ASE whose defaults have moved.
+
+Convergence is ASE's own return value; the step count is
+`get_number_of_steps()`. Model executions are counted at
+`AIMNet2ASE.calculate`, the single funnel ASE routes property requests through.
+Because ASE requests energy and forces together, one execution increments both
+of those counters -- `calculator_invocations` is the honest cost figure.
+
+The authoritative trajectory is this project's canonical JSONL
+(`nhc-phase9b-aimnet2-trajectory-v1`), not an ASE binary; `trajectory=None`
+guarantees no unregistered file appears beside it.

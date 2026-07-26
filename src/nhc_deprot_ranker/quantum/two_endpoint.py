@@ -70,7 +70,7 @@ FAILURE_SCHEMA_VERSION: Final = "nhc-two-endpoint-failure-v1"
 # can obtain a capability; and the worker CLI became a closed parser.  Every
 # Phase 9B asset built against v4, v5, or v6 is superseded before execution; see
 # docs/PHASE9B_IDENTITY_REBASELINE.md.
-RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v7"
+RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v8"
 
 # This is a source-level gate, not a caller-provided option.  A later phase must
 # review and deliberately change it before any backend can load PySCF.

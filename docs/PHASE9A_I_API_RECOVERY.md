@@ -201,6 +201,14 @@ The local-path branch reaches no registry, no Hugging Face, and no network call.
 `requires_grad_(False)` does the same job. Full evidence, with line numbers and
 digests, in `docs/PHASE9A_S4_DEDUPLICATED_SOURCE_INSPECTION.md`.
 
+## Resolved and implemented
+
+The recovered API is now implemented in
+`src/nhc_deprot_ranker/quantum/phase9b_aimnet2_runtime.py` as scheme A, with the
+ASE/LBFGS optimizer alongside it. `validate_species=True` is set on
+`AIMNet2ASE`, which both the 9A-R introspected signature and the 9A-S4 source
+agree is where it lives. See `docs/PHASE9B_EXECUTION_RUNTIME_CLOSURE.md`.
+
 ## Note on question 9
 
 Phase 9A-I ran **no optimizer**: `geometry_optimizations: 0`. So the ASE `LBFGS`

@@ -229,3 +229,28 @@ exact attempt -> WorkerAuthorityProfile -> ClaimIdentityView -> one comparison
 Three profiles exist, each binding exactly one attempt. Phase 8B's behaviour,
 durable bytes, schemas, and refusal semantics are unchanged, and its own
 regressions prove it.
+
+## Item 8/10 closure — v8
+
+The production AIMNet2 loader and ASE/LBFGS optimizer are implemented, so the
+runner source closure moved again and both chains were regenerated:
+
+```text
+runner source schema   nhc-two-endpoint-runner-source-v8
+runner_source_sha256   5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2
+direct request         acc22c67ba07e245ae001211cfb34038eeb486c3a4fbccdefdf6991b35d66635
+direct manifest        906b1f39982107218fec079150851b9d14a4d9a3e4d43bf401c2dec00ed3afa9
+assisted request       b74cd3b7e433059ea5d5a9ae213917766a236f4a2c72ef97e3edc9fe6298bef1
+assisted manifest      d23b12f9d7b31c6e6bd19665cf847e1f45ab6ec8825ff86a84e560fcf1f56081
+state                  prepared_not_authorized
+```
+
+The permit now binds how the model is *obtained*, not only what is run: loader
+decision A with grade `source_proven`, the absolute-path requirement, no
+registry alias, no Hugging Face, no revision or token, no manual `load_model`,
+no extra `.eval()`, `compile_model=False`, `validate_species=True`, one base
+model load per route with two endpoint wrappers, ASE's own LBFGS defaults, and
+the three points at which the deadline is checked.
+
+Every v7 identity is recorded as `superseded_before_execution` in
+`docs/PHASE9B_IDENTITY_REBASELINE.md`. None was deployed, launched, or consumed.

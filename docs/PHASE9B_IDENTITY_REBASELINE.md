@@ -58,6 +58,14 @@ state                  superseded_before_execution
 
 runner source schema   nhc-two-endpoint-runner-source-v7
 runner_source_sha256   d7060a314993225595c616f4329b08689c6974de621ef663c18f891d6a7d9c22
+direct request         acc22c67ba07e245ae001211cfb34038eeb486c3a4fbccdefdf6991b35d66635
+direct manifest        906b1f39982107218fec079150851b9d14a4d9a3e4d43bf401c2dec00ed3afa9
+assisted request       b74cd3b7e433059ea5d5a9ae213917766a236f4a2c72ef97e3edc9fe6298bef1
+assisted manifest      d23b12f9d7b31c6e6bd19665cf847e1f45ab6ec8825ff86a84e560fcf1f56081
+state                  superseded_before_execution
+
+runner source schema   nhc-two-endpoint-runner-source-v8
+runner_source_sha256   5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2
 closure files          23 (two added: execution adapters, AIMNet2 runtime)
 resources_sha256       0fec2c1914f413a2762e1fafc7daa9900551981b5af72897746864edffac7df8
 request schema         nhc-two-endpoint-request-v2
@@ -92,9 +100,9 @@ preoptimized geometry that cannot exist before the route runs.
 ```text
 request_id              phase9b-lbnp-paired-smoke-v001
 attempt_id              attempt-phase9b-lbnp-direct-v001
-runner_source_sha256    d7060a314993225595c616f4329b08689c6974de621ef663c18f891d6a7d9c22
-request_sha256          a53c26201fd1f2989fd242681c3c382fd17cc1c88c1433cd5dcc7c0a58ec04d2
-payload_manifest_sha256 f73cdb9a3a34fe49738994800a1d7d79bc0b854ae197a385c3151cce2c8305b5
+runner_source_sha256    5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2
+request_sha256          acc22c67ba07e245ae001211cfb34038eeb486c3a4fbccdefdf6991b35d66635
+payload_manifest_sha256 906b1f39982107218fec079150851b9d14a4d9a3e4d43bf401c2dec00ed3afa9
 preoptimization         stage: none
 ```
 
@@ -103,9 +111,9 @@ preoptimization         stage: none
 ```text
 request_id              phase9b-lbnp-paired-smoke-v001   (shared)
 attempt_id              attempt-phase9b-lbnp-assisted-v001
-runner_source_sha256    d7060a314993225595c616f4329b08689c6974de621ef663c18f891d6a7d9c22
-request_sha256          feaecb7b6de9e7ab0f8710b4fd9e094d019b3cc6c1f68d349dc901137ebe7659
-payload_manifest_sha256 bc0534f72fe16eb69338af1eb897c3a705b71b7973825f7a4fe9e9732e236d7b
+runner_source_sha256    5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2
+request_sha256          b74cd3b7e433059ea5d5a9ae213917766a236f4a2c72ef97e3edc9fe6298bef1
+payload_manifest_sha256 d23b12f9d7b31c6e6bd19665cf847e1f45ab6ec8825ff86a84e560fcf1f56081
 preoptimization         stage: aimnet2, runs_inside_route: true
 cation/neutral xyz      identical to Route D
 ```
