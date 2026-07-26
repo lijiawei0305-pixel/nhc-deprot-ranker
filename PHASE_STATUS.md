@@ -18,7 +18,7 @@ Updated: 2026-07-26
 | Phase 9A — AIMNet2 preoptimization audit and design | Complete; documents only | 2026-07-26; no execution, no server, no code |
 | Phase 9A-R — read-only AIMNet2 server preflight | Passed with two blocking findings | 2026-07-26; read-only; no install, download, model load, or compute |
 | Phase 9A-I — minimal inference characterization | Passed; six single-point calls executed | 2026-07-26; no optimization, no PySCF, no label |
-| Phase 9B — paired direct / assisted smoke | Planned; documents only | 2026-07-26; needs implementation then separate execution authorization |
+| Phase 9B — paired direct / assisted smoke | Implementation in progress; 4 of 6 components | 2026-07-26; gates closed; needs the remaining components then separate execution authorization |
 
 ## Current completed work
 

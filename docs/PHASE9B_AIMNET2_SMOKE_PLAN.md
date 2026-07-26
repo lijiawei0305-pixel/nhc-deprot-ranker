@@ -238,6 +238,40 @@ A Phase 9B label is a smoke result. It does not join the production label table
 by virtue of existing; the data-contract protocol and conflict rules govern
 that separately.
 
+## Deployment transaction
+
+Deployment is one transaction over both routes, implemented in
+`preparation/phase9b_deploy.py`.
+
+```text
+verify local     paths, regular-file type, byte size, recomputed SHA256, and the
+                 exact registered set in both directions
+roots absent     both final roots and both staging roots
+stage            one directed stream per route into a fresh, attempt-unique
+                 staging root, exclusive-create only
+verify remote    per-file relative path, type, size, SHA256, total count, and no
+                 extra file
+promote          only after BOTH routes verify
+```
+
+Only manifest-registered files are sent; there is no directory-level sync, and an
+unregistered file in the bundle is a hard stop. The transport uses a
+standard-library receiver over one SSH call per route: no `rsync`, no `scp`, no
+`--delete`, `O_EXCL` and `O_NOFOLLOW` on every create, and no delete verb
+anywhere on either side.
+
+Three SSH invocations total: two uploads and one promotion.
+
+**A single successful upload is never grounds for launchability.** If either
+route fails, nothing is promoted, and the failure record names every root it
+touched so the state is auditable rather than guessed.
+
+**Promotion is two renames and therefore cannot be one atomic step.** This is
+stated rather than papered over: if the second rename fails after the first
+succeeded, the outcome is recorded as possibly partial and names all four roots.
+The module does not roll back, because rolling back would mean a destructive
+remote delete, which it never performs.
+
 ## Stopping conditions
 
 Phase 9B stops immediately and fails closed on:
