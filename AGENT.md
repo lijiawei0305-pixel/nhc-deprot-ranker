@@ -512,3 +512,36 @@ dig +trace domain
   gates 仍为 false，生产标签仍为 71。
 - Item 11/12 Postflight 源码尚不存在，Item 12/12 rehearsal 尚未开始。下一项唯一
   允许工作是另行授权的 Item 11/12 split-process-aware Postflight。
+
+## 29. Phase 9B Item 11/12 — Postflight Evidence Sufficiency Audit
+
+- Item 11 已按硬停止规则结束于 `blocked_by_v9_evidence_gap`。没有实现 local
+  validator、remote inspector、fixture system 或 Linux Postflight suite；没有 SSH、
+  服务器读取、真实 Postflight、permit、deploy、launch、模型、GPU、PySCF、D3、
+  rehearsal 或 label。
+- 真实 writer 审计确认 production A1/A2 不写 supervisor 成功路径强制读取的
+  `capability_consumption.json`；该 receipt 只有 Item 10 fake stage writer。因此
+  production assisted accepted tree 在冻结 v9 中不可达。
+- paired direct v003 只有 execution adapter 和 gate-closed request generation；外部
+  direct guardian、launch planner、permit/supervisor 常量与 worker authority registry
+  仍绑定 v001，没有 v003 production authority/evidence writer。
+- `A2DiskInputEvidence` 只作为进程内返回值，production main 丢弃；A2 terminal
+  不绑定 parser-input SHA、byte count、element order 或 shared-core result SHA。
+  campaign manifest 也不覆盖单独的 shared-core output tree。
+- production A1 在内存检查 model-load-once，但 durable receipt 不记录 model load、
+  wrapper count、完整 loader/optimizer参数、初末 energy/force 证据或
+  `base_model_forward_calls=unmeasured`。source control flow 不可替代 runtime evidence。
+- guardian 原始 process identity 和 internal capability 的 private profile binding 未持久化；
+  多个 guardian/supervisor异常分支也在 terminal/final manifest 前退出。详细逐路径矩阵见
+  `docs/PHASE9B_ITEM11_WRITER_READER_MATRIX.md`，阻断分类见
+  `docs/PHASE9B_ITEM11_EVIDENCE_GAP_REPORT.md`。
+- guardian 与 supervisor 使用不同的进程内 `CampaignEvidenceStore` registry；后者
+  不 adopt guardian 的 consumption/launch receipts。因此这两文件不是被判 extra，
+  就是在 final manifest 之后出现而未绑定，完整 accepted evidence tree 仍不可达。
+- runner v9 五个 leaf、dependency edge、deployment inventory、composite、paired v3
+  request/manifest/resources 都必须保持不变；不得在 Item 11 内修 writer、生成 v10、
+  弱化 Postflight 或用日志/mtime/remote bool补证。
+- Item 11 不 complete，Item 12 不得开始。下一项唯一允许工作是另行授权的
+  runner-remediation design：允许在执行前 supersede v9、补齐 durable writers 与
+  direct authority，再一次性冻结新 source/generation，并重新做 Evidence Sufficiency
+  Audit。11 个 public gates 持续 false，生产标签保持 71。
