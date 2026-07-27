@@ -95,3 +95,9 @@ must validate guardian, supervisor, A1, handoff, A2, two interpreters, source
 leaves, non-overlap, process absence, final PySCF evidence and partial terminal
 trees. This report does not authorize Postflight implementation, rehearsal or
 execution.
+
+> Item 11 forward link (2026-07-27): the mandatory writer/reader Evidence
+> Sufficiency Audit stopped fail closed with `blocked_by_v9_evidence_gap`.
+> Frozen v9 was not edited or reinterpreted. See
+> `PHASE9B_ITEM11_WRITER_READER_MATRIX.md` and
+> `PHASE9B_ITEM11_EVIDENCE_GAP_REPORT.md`.

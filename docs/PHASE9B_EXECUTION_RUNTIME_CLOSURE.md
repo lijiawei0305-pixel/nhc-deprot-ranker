@@ -7,6 +7,13 @@
 > Validation was local/mock plus Linux fake subprocess only. Postflight remains
 > unimplemented, no real permit exists, and eleven execution gates remain false.
 
+> Item 11 audit update: Postflight remains unimplemented because the mandatory
+> writer/reader sufficiency audit found acceptance-blocking gaps in frozen v9.
+> Most importantly, production stages do not write their required durable
+> capability-consumption receipts, A2 disk/parser equality is not persisted,
+> and the paired direct-v003 authority chain is not reachable. Item 11 is
+> `blocked_by_v9_evidence_gap`; v9 and all gates remain unchanged.
+
 Item 8/12 (historically 8/10). What the execution-reachability audit found
 unreachable, and what was built to close it, as one source-freeze unit.
 

@@ -25,7 +25,8 @@ Updated: 2026-07-27
 | Phase 9B item 8/12 — single-process production runtime v8 | Complete, host-incompatible; loader, ASE/LBFGS optimizer, trajectory evidence, v8 rebaseline | 2026-07-27; local only; no model, no GPU, no server; eleven gates still false |
 | Phase 9B item 9/12 — split-process design | Complete; documents and static schemas only | 2026-07-27; one permit / one campaign / exact MLFF A1 then exact GPU-PySCF A2; no server or runtime source change |
 | Phase 9B item 10/12 — split-process runtime + v9 | Complete; local/mock and Linux process authority only | 2026-07-27; one-time v9 freeze; no server, chemistry, real permit, deploy or launch; eleven gates false |
-| Phase 9B — paired direct / assisted smoke | Framework 10 of 12 complete; execution stopped before any irreversible action | 2026-07-27; Item 11 Postflight and Item 12 rehearsal not started |
+| Phase 9B item 11/12 — split-process-aware Postflight | `blocked_by_v9_evidence_gap`; stopped at writer/reader sufficiency audit | 2026-07-27; no Postflight implementation, SSH, v9 edit, v10, permit, rehearsal or chemistry |
+| Phase 9B — paired direct / assisted smoke | Framework 10 of 12 complete; execution stopped before any irreversible action | 2026-07-27; Item 11 blocked by acceptance evidence gaps; Item 12 not started |
 | Phase 9B-U1 — dedicated unified environment build and audit | Failed closed; incomplete v001 retained and unusable | 2026-07-27; exact stack installed, but capability harness observed 4 calculator invocations vs 2 expected; no retry; old environments unchanged |
 | Phase 9B-U2 — unified environment v002 | Rejected environment; retained and unusable | 2026-07-27; capability counts/native/cache passed, but protected snapshot schema mismatch failed the canonical gate; no retry |
 | Phase 9B-U3 — qualified metrology / v003 | Failed before environment creation; retained | 2026-07-27; helper rejected normal Conda Python symlinks as invalid; v003 resources never created |
@@ -194,7 +195,7 @@ gates closed:
 8/12  single-process production runtime v8             complete, host-incompatible
 9/12  dual-environment split-process design            complete
 10/12 split-process runtime implementation + v9 freeze complete
-11/12 split-process-aware Postflight                    not started
+11/12 split-process-aware Postflight                    blocked_by_v9_evidence_gap
 12/12 closed-gate full-chain rehearsal                  not started
 ```
 
@@ -428,5 +429,16 @@ consumed, or launched. The final v9 composite is
 No real permit bytes exist. All eleven gates remain false and the production
 high-fidelity label count remains 71.
 
-The only allowed next work is Item 11/12 split-process-aware Postflight. Item
-12/12 rehearsal and all scientific execution remain unauthorized.
+Item 11/12 stopped at its mandatory Evidence Sufficiency Audit. Frozen v9 does
+not durably write several acceptance-critical facts: production stage
+capability-consumption receipts, A2 disk-to-parser identity, complete A1
+metrology, campaign-to-shared-core result binding, exact guardian/private-profile
+identity, a manifest-closed guardian/supervisor evidence registry, or a reachable
+direct-v003 authority chain. The full matrix and gap
+classification are in `docs/PHASE9B_ITEM11_WRITER_READER_MATRIX.md` and
+`docs/PHASE9B_ITEM11_EVIDENCE_GAP_REPORT.md`.
+
+No Postflight source was implemented, no v9 leaf moved, and no v10 was created.
+Item 12/12 rehearsal cannot start. The only allowed next work is a separately
+authorized runner-remediation design that permits superseding v9 before
+execution and then requires a fresh evidence-sufficiency audit.

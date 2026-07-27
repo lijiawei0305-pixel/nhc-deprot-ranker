@@ -301,3 +301,24 @@ GPU-PySCF stable profile shared by direct and A2. Host-local absolute bindings
 remain private and must be proven by a later authorized preflight. Postflight
 does not exist yet; it is Item 11/12. All eleven public execution gates remain
 false and the production label count remains 71.
+
+## Item 11 Evidence Sufficiency Audit
+
+Item 11 did not create a Postflight source identity. Its mandatory writer/reader
+audit found acceptance-blocking gaps and stopped with
+`blocked_by_v9_evidence_gap`. No v9 leaf, dependency edge, deployment inventory,
+request, manifest or resource byte was changed, and no v10 was generated.
+
+The retained v9 identities remain exactly:
+
+```text
+shared schema       3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b
+shared PySCF core   40ebf95cc709bb18720e9da19bc022d51d285b11cbfcac54620aac1024c57f9e
+campaign control    e24c5b7d6a9a4b299d60753239f6088bddbbc341625bc1152e7b0d9ab2fca38e
+A1                  8aab997e67fcadab4f98dc2cb7aaaedece7a83a7c4d58e65b117d9b1ebc9279c
+A2                  fb1a3f62486d6cb354483f8458d8a70ffc63ea35386e5f3fc25f28887b04687c
+full composite      13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5
+```
+
+The next identity action requires new authorization to remediate and supersede
+v9 before execution. Item 11 itself does not authorize a successor freeze.

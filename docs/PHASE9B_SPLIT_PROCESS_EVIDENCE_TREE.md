@@ -1,5 +1,13 @@
 # Phase 9B Split-Process Evidence Tree
 
+> Item 11 audit correction: this document freezes the intended/allowed layout,
+> not a terminal-specific required set. The production writer does not create
+> every path shown here. In particular, production A1/A2 do not write their
+> capability-consumption receipts, A2 input/endpoint-result paths are not
+> written into the campaign tree, and `process_tree.json` is accepted-only.
+> `PHASE9B_ITEM11_WRITER_READER_MATRIX.md` is the authoritative writer-derived
+> existence matrix. These gaps block Postflight completion without changing v9.
+
 ## Frozen layout
 
 ```text

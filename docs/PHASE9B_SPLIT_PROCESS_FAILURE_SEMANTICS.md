@@ -1,5 +1,13 @@
 # Phase 9B Split-Process Failure Semantics
 
+> Item 11 audit qualification: the classifications below remain the frozen
+> design taxonomy, but not every class has a durable production terminal writer
+> in v9. Several guardian/supervisor exceptions exit before campaign terminal
+> publication, and A2 maps every shared-core nonzero exit to
+> `rejected_cation`. A read-only reader must classify such trees as incomplete
+> or indeterminate; it must not infer the intended class. See
+> `PHASE9B_ITEM11_EVIDENCE_GAP_REPORT.md`.
+
 Every classification below is terminal for the assisted attempt. Retry,
 authority restoration, resume, fallback, output repair, and label are forbidden.
 
