@@ -386,6 +386,12 @@ package, import, native, endpoint, cache, runner, request, resource, or permit
 identity was produced. The v8 closure remains byte-identical and ineligible for
 execution.
 
+U5's metadata-native helper and its inventory schemas likewise remain outside
+the runner closure. Neither the document-first gate nor Q5 may edit runner,
+request, resources, manifest, or permit. Conditional v005 construction also
+stops before integration. Throughout U5 this closure remains schema v8 with
+SHA256 `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`.
+
 ## 11. What this round did not do
 
 No SSH, no server, no deploy, no permit placed, no launch, no guardian or

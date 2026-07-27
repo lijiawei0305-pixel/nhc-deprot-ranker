@@ -417,3 +417,28 @@ dig +trace domain
   failure stage 晋升为 portable evidence，而是输出失败 snapshot sentinel；此
   observability 限制必须公开保留，不得通过第二次 SSH、推断补写或 helper 修复。
   U4 终态为 `failed_before_environment_creation`，不得 build、重跑或创建 U5。
+
+## 26. Phase 9B-U5 — Conda-metadata-native metrology 边界
+
+- U1/U2/U3/U4 终态原样冻结。U5 是全新 helper/schema/Q5/request/attempt/v005
+  identity；不修复、重跑或复用任何旧 attempt。
+- U4 六对象均越过 launcher 与 Python probe 后报告 `CONDA_EXPLICIT_FAILED`，但
+  portable receipt 未保存真实 command stage、return code 或 stderr。具体 CLI
+  原因仍 unresolved，不得猜测；U4 仅证明 CLI-dependent capture 未通过，未证明
+  protected environment 内容损坏。
+- U5 protected identity 不得调用或 import conda/pip/mamba/micromamba，不得读取
+  用户配置、registry、channel 或 cache。唯一子进程是已认证的环境内绝对 Python，
+  以 `-I -B -c` 执行 stdlib-only probe。权威事实来自 `conda-meta/history`、全部
+  package record、全部 `dist-info`、launcher/executable 与冻结 tree identity。
+- capture 必须保存分阶段真实 evidence。Python probe 失败仍继续保存磁盘 metadata；
+  后续失败不得用 sentinel 覆盖 launcher、probe、Conda 或 distribution evidence。
+  每个非 present 结果必须有 code/stage/assertion/object/digests；不可表达的 evidence
+  必须升级为 `PROTECTED_SNAPSHOT_EVIDENCE_INCOMPLETE`。
+- document-first PR 合入前禁止 SSH。合入后仅一次 no-write/no-CLI Q5，对六对象
+  各 A/B；全部 present、failure null、raw/normalized Conda inventory、dist-info、
+  tree、projection 完全相等才可创建 v005。失败不得改 helper、重跑、放宽或建 U6。
+- 若 Q5 因 helper 设计缺陷失败，不再创建统一环境 attempt；后续唯一设计方向是
+  另行授权的 dual-environment / split-process assisted route。
+- 即使 v005 validated，本轮仍禁止 runner/resources/request/permit、deploy、
+  launch、optimizer、PySCF、D3、Postflight、rehearsal 和 label。runner v8 SHA、
+  十一个 false gates 与 71 个生产标签保持不变。

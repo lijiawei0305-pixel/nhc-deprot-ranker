@@ -223,3 +223,11 @@ all six objects reporting `CONDA_EXPLICIT_FAILED`. No v004 resource or
 SHA256 can be computed. Runner schema v8 and SHA256
 `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`
 remain unchanged; nothing is eligible for Integration or supersession.
+
+## U5 identity boundary
+
+U5 introduces only a new protected-metrology helper outside
+`_RUNNER_SOURCE_RELATIVE_PATHS`. Its document-first and Q5 work cannot alter the
+v8 closure. Even a validated v005 would require a later Unified Environment
+Identity Integration to bind its interpreter and deliberately move the runner
+source identity; that integration is not authorized in U5.

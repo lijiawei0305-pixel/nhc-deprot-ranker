@@ -28,6 +28,7 @@ Updated: 2026-07-27
 | Phase 9B-U2 — unified environment v002 | Rejected environment; retained and unusable | 2026-07-27; capability counts/native/cache passed, but protected snapshot schema mismatch failed the canonical gate; no retry |
 | Phase 9B-U3 — qualified metrology / v003 | Failed before environment creation; retained | 2026-07-27; helper rejected normal Conda Python symlinks as invalid; v003 resources never created |
 | Phase 9B-U4 — symlink-aware metrology / v004 | Failed before environment creation; retained | Q4 reached conda evidence then returned `CONDA_EXPLICIT_FAILED` for all six; v004 resources never created |
+| Phase 9B-U5 — metadata-native metrology / v005 | Document-first contract in progress | No SSH before PR merge; Q5 must pass all six objects before any v005 resource can exist |
 
 ## Current completed work
 
@@ -313,6 +314,15 @@ failed all six A/B captures with the registered code
 absent before and after. No build, artifact, import, native, capability, cache,
 GPU, endpoint, or scientific gate ran. U4 is terminal
 `failed_before_environment_creation` and cannot be repaired or rerun.
+
+Phase 9B-U5 is a newly authorized helper/schema/qualification/attempt, not a
+U4 repair. U4's exact CLI subfailure remains unresolved because its portable
+receipt omitted command-level details; U5 does not guess it. Instead, protected
+identity is derived directly from stable launcher/Python, `conda-meta`, all
+`dist-info`, and tree bytes. The document-first PR must merge before any SSH.
+Only one later no-write/no-CLI Q5 A/B qualification may unlock v005 creation.
+All six must be present and exactly stable; failure is terminal and no U6 may be
+created.
 
 A one-shot execution authorization was granted and its section 11 pre-execution
 audit failed: at that time there was no single interpreter on the compute host

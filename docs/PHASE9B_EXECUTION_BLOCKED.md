@@ -213,3 +213,11 @@ all six objects. The v004 resources stayed absent, and no build or capability
 gate ran. The portable qualification summary also retained an observability
 gap for launcher-chain and command-stage details; it was not repaired or
 rerun. No validated unified environment exists.
+
+U5 is separately authorized under
+`PHASE9B_UNIFIED_ENVIRONMENT_V005_PLAN.md`. It leaves the exact U4 CLI
+subfailure unresolved and removes that external CLI from authoritative
+protected metrology. Its document-first helper must merge before any SSH; then
+one read-only Q5 must prove all six on-disk prefix identities present and stable
+before v005 can be created. This does not open Identity Integration, Postflight,
+rehearsal, permit, launch, or science.

@@ -74,3 +74,11 @@ recomputed, or hidden; no second SSH was used.
 
 No optimizer, PySCF kernel/gradient, D3, Postflight, rehearsal, permit, or
 label ran.
+
+## Forward link (U4 remains immutable)
+
+The separately authorized U5 design is
+`PHASE9B_UNIFIED_ENVIRONMENT_V005_PLAN.md`. It replaces external-CLI authority
+with direct, read-only prefix metadata capture under a new helper/schema/Q5 and
+possible v005 identity. This link does not resolve U4's unknown command
+subfailure or modify its status, receipts, evidence limitation, or conclusion.
