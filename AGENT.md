@@ -380,3 +380,12 @@ dig +trace domain
 - runner source 保持 v8 / SHA256
   `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`；
   十一个 public execution gates 必须持续为 false，生产标签持续为 71。
+- U3 document-first 合同已由 PR #52 合入。其后唯一一次只读 measurement
+  qualification 在创建环境前 fail closed：六个对象的 A/B schema keyset、
+  projection bytes 与 SHA 均精确相等，但 capture state 全部为 `invalid` 而非
+  `present`。状态为 `failed_before_environment_creation`；v003 prefix、
+  wheelhouse 与 cache 前后均不存在，未下载 artifact、未 build、未 import、
+  未运行 capability。不得修 helper 后重跑、不得补写、不得自动创建 v004。
+- 因 U3 未签发 identity，目前仍不存在 validated unified environment；不得进入
+  Identity Integration、Postflight、rehearsal 或科学执行。唯一允许动作是发布
+  已脱敏的 qualification failure evidence 后停止。

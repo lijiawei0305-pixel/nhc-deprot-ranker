@@ -369,6 +369,12 @@ semantics, so this closure remains schema v8 with SHA256
 Only a later, separately authorized Unified Environment Identity Integration
 may move that source identity.
 
+U3 then failed its read-only measurement qualification before environment
+creation because all six captures were stably `invalid`, not `present`. No v003
+prefix, wheelhouse, cache, package, import, native map, endpoint, optimizer, or
+kernel operation followed. Consequently there is still no identity eligible
+for that later integration, and this v8 closure remains untouched.
+
 ## 11. What this round did not do
 
 No SSH, no server, no deploy, no permit placed, no launch, no guardian or

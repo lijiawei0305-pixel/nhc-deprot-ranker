@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -313,3 +314,47 @@ def test_u3_metrology_is_outside_runner_source_closure() -> None:
         "nhc_deprot_ranker/preparation/phase9b_u3_metrology.py"
         not in two_endpoint._RUNNER_SOURCE_RELATIVE_PATHS  # pyright: ignore[reportPrivateUsage]
     )
+
+
+def test_public_u3_failure_evidence_is_closed_and_mutation_resistant() -> None:
+    repository = Path(__file__).resolve().parents[1]
+
+    def load(name: str) -> dict[str, object]:
+        value = json.loads((repository / "docs" / name).read_bytes())
+        assert isinstance(value, dict)
+        return value
+
+    manifest = load("PHASE9B_UNIFIED_ENVIRONMENT_V003_MANIFEST.json")
+    qualification = load("PHASE9B_MEASUREMENT_QUALIFICATION_RECEIPT.json")
+    comparison = load("PHASE9B_PROTECTED_SNAPSHOT_COMPARISON.json")
+    capability = load("PHASE9B_UNIFIED_ENVIRONMENT_V003_CAPABILITY.json")
+
+    def assert_failed_before_creation(candidate: dict[str, object]) -> None:
+        assert candidate["status"] == "failed_before_environment_creation"
+        resources = candidate["resources"]
+        assert isinstance(resources, dict)
+        assert set(resources.values()) == {"absent", True}
+        identity = candidate["identity"]
+        assert isinstance(identity, dict)
+        assert identity["unified_execution_environment_identity_v3_issued"] is False
+        assert identity["environment_canonical_sha256"] is None
+        terminal = candidate["terminal"]
+        assert isinstance(terminal, dict)
+        failure = terminal["failure"]
+        assert isinstance(failure, dict)
+        assert failure["code"] == u3.CAPTURE_FAILURE
+        assert failure["stage"] and failure["assertion"]
+
+    assert_failed_before_creation(manifest)
+    assert qualification["all_passed"] is False
+    rows = qualification["object_results"]
+    assert isinstance(rows, list) and len(rows) == 6
+    assert all(row["qualification_result"] == "failed" for row in rows)
+    assert comparison["all_six_states_present"] is False
+    assert capability["property_reads"] == 0
+    assert capability["aimnet2ase_calculate_calls"] == 0
+
+    status_mutation = deepcopy(manifest)
+    status_mutation["status"] = "validated"
+    with pytest.raises(AssertionError):
+        assert_failed_before_creation(status_mutation)

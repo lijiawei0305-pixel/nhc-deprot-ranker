@@ -1,0 +1,59 @@
+{
+  "schema_version": "nhc-phase9b-protected-snapshot-comparison-public-v1",
+  "status": "failed_before_environment_creation",
+  "comparison_scope": "measurement_qualification_a_vs_b",
+  "formal_protected_before_after_comparison_run": false,
+  "objects": [
+    {
+      "object_id": "project_mlff",
+      "capture_state": "invalid",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true
+    },
+    {
+      "object_id": "project_aimnet2",
+      "capture_state": "invalid",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true
+    },
+    {
+      "object_id": "project_gpupyscf",
+      "capture_state": "invalid",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true
+    },
+    {
+      "object_id": "shared_molecular",
+      "capture_state": "invalid",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true
+    },
+    {
+      "object_id": "phase9b_unified_v001_env",
+      "capture_state": "invalid",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true
+    },
+    {
+      "object_id": "phase9b_unified_v002_env",
+      "capture_state": "invalid",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true
+    }
+  ],
+  "all_six_states_present": false,
+  "qualification_accepted": false,
+  "failure_code": "PROTECTED_SNAPSHOT_CAPTURE_FAILURE"
+}

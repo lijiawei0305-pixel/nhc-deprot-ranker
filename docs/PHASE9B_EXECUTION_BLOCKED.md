@@ -194,3 +194,10 @@ resources until a document-first PR has merged and the six-object read-only
 measurement qualification passes. Even a validated v003 would not authorize
 Phase 9B science: Unified Environment Identity Integration would remain the
 only next stage. Postflight and closed-gate rehearsal are still blocked.
+
+That U3 gate has now run once and failed before environment creation. All six
+A/B schema and stable-projection comparisons were internally equal, but the
+qualified helper returned `state=invalid` instead of `present` for every
+protected object. The v003 resources remained absent and no build or capability
+operation began. U3 is retained as `failed_before_environment_creation` and
+cannot enter Identity Integration. No validated unified environment exists.
