@@ -18,6 +18,12 @@ Machine-readable public evidence:
 - `docs/PHASE9B_UNIFIED_ENVIRONMENT_CAPABILITY_SMOKE.json`
 - `docs/PHASE9B_UNIFIED_ENVIRONMENT_ARTIFACTS.json`
 
+The independently authorized successor attempt is planned in
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_V002_PLAN.md`, with preregistered counter
+definitions in `docs/PHASE9B_CALCULATOR_INVOCATION_SEMANTICS.md`. Those links
+do not amend this report, complete its missing evidence, or change U1's
+`failed_incomplete_environment` result.
+
 ## Why MLFF was cloned
 
 The project MLFF prefix is the only audited project environment that already

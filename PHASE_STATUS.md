@@ -25,6 +25,7 @@ Updated: 2026-07-27
 | Phase 9B item 8/10 — production execution runtime | Complete; loader, ASE/LBFGS optimizer, trajectory evidence, v8 rebaseline | 2026-07-27; local only; no model, no GPU, no server; eleven gates still false |
 | Phase 9B — paired direct / assisted smoke | Framework 8 of 10 complete; execution stopped before any irreversible action | 2026-07-27; no single interpreter carries both the MLFF and PySCF stacks; nothing deployed, placed, consumed, or launched |
 | Phase 9B-U1 — dedicated unified environment build and audit | Failed closed; incomplete v001 retained and unusable | 2026-07-27; exact stack installed, but capability harness observed 4 calculator invocations vs 2 expected; no retry; old environments unchanged |
+| Phase 9B-U2 — unified environment v002 | Document-first contract in progress; server write gate closed | 2026-07-27; new authorization and identities; U1 immutable; no scientific execution |
 
 ## Current completed work
 
@@ -262,10 +263,13 @@ capability harness observed four calculator invocations against a preregistered
 expectation of two; portable native-map, endpoint and global-cache-after
 evidence was therefore incomplete and the environment was not validated.
 
-The only safe next action is to stop. A new attempt would require explicit user
-authorization, a new v002 prefix and wheelhouse, and a document-first resolution
-of calculator invocation versus energy/force property-read semantics. It may
-not proceed under this authorization and may not reuse v001.
+The user has now explicitly authorized Phase 9B-U2 as a new, independent v002
+environment-build and validation attempt. Its document-first contract is
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_V002_PLAN.md`; calculator terminology is
+frozen in `docs/PHASE9B_CALCULATOR_INVOCATION_SEMANTICS.md`. No server write may
+occur until that contract, its remote harness, and local tests are merged to
+`main`. U2 may not reuse or alter v001 and does not authorize scientific
+execution, postflight, or a closed-gate rehearsal.
 
 A one-shot execution authorization was granted and its section 11 pre-execution
 audit failed: at that time there was no single interpreter on the compute host

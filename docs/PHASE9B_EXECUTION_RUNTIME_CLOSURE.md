@@ -343,6 +343,16 @@ resources and permit carry no unified-environment identity. A future attempt
 would require a separately authorized v002 build and then a gate-closed identity
 integration round; neither is authorized by the failed U1 attempt.
 
+That v002 build is now separately authorized as Phase 9B-U2, but only under the
+document-first and no-science boundary in
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_V002_PLAN.md`. U1 observed that the current
+production energy-then-force property sequence enters `AIMNet2ASE.calculate()`
+twice per endpoint. The exact U2 terms and counts, plus the deferred runner
+source gap, are registered in
+`docs/PHASE9B_CALCULATOR_INVOCATION_SEMANTICS.md`. U2 does not edit this runner
+closure, so schema v8 and its SHA256 remain unchanged during environment
+validation.
+
 ## 11. What this round did not do
 
 No SSH, no server, no deploy, no permit placed, no launch, no guardian or
