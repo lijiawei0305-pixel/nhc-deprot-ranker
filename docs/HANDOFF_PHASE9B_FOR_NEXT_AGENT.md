@@ -74,6 +74,15 @@ tests                     1282 passing
 production labels         71 (unchanged; no Phase 9B label exists)
 ```
 
+Phase 9B-U1 was attempted after this framework freeze. A new v001 prefix was
+offline-cloned from project MLFF and populated with the exact PySCF stack, but
+the capability harness observed four calculator invocations against two
+expected and failed before all portable validation evidence was committed. The
+prefix and wheelhouse are retained as `failed_incomplete_environment`; they may
+not be deleted, repaired, retried or reused. All four pre-existing environments
+were proven byte-metadata unchanged. The v8 source identity above did not move,
+all gates remain false, and Items 9/10 and 10/10 remain not started.
+
 ---
 
 ## 3. The frozen science — never change any of this
@@ -260,6 +269,12 @@ intersection                                     empty
 
 Route A must run AIMNet2 and then PySCF **inside one guarded worker process**,
 because that is what the byte-closed handoff and the assisted permit bind.
+
+Phase 9B-U1 later produced a prefix containing both installed stacks, but that
+prefix failed its capability validation and is not an accepted interpreter.
+The current blocker is therefore `no_validated_single_interpreter`, not the
+continued physical absence of both package trees from one prefix. See
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_BUILD_REPORT.md`.
 
 The search covered the whole host, not just the project: environments were
 located by their own `conda-meta` and `pyvenv.cfg` markers across `/home`,

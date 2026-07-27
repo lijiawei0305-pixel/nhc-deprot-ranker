@@ -1,7 +1,14 @@
 # Phase 9B execution — stopped before any irreversible action
 
-**Status: `hard_stop_no_single_interpreter`. Nothing was deployed, no permit was
-placed or consumed, no process was started, and the server is unchanged.**
+**Current status: `hard_stop_no_validated_single_interpreter`. Nothing was
+deployed, no permit was placed or consumed, and no Phase 9B route process was
+started.**
+
+Phase 9B-U1 subsequently created one new, isolated prefix carrying both package
+stacks, but its capability validation failed closed and the prefix is retained
+as `failed_incomplete_environment`. It is not an accepted interpreter and may
+not be used. All environments that existed before U1 remain unchanged. See
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_BUILD_REPORT.md`.
 
 The one-shot execution authorization requires, in its section 11, a single exact
 interpreter able to run the whole assisted route. That interpreter does not
@@ -33,7 +40,7 @@ non-conda virtualenvs found    0
 home directories               1
 ```
 
-## Every environment on the host
+## Every environment on the host before Phase 9B-U1
 
 ```text
 environment                            python    torch        aimnet  ase     pyscf   geom   disp
@@ -52,9 +59,10 @@ environment                            python    torch        aimnet  ase     py
 <REMOTE_PROJECT_ROOT>/env/conda/mlff   3.11.15   2.8.0        0.2.0   3.29.0  -       -      -
 ```
 
-`pyscf` exists in exactly **two** site-packages trees; `aimnet` in exactly
-**two**. **The two sets do not intersect.** No environment anywhere on the host
-carries both stacks.
+At the time of this audit, `pyscf` existed in exactly **two** site-packages
+trees; `aimnet` in exactly **two**, with no intersection. Phase 9B-U1 later
+created an additional prefix containing both, but that new prefix failed its
+validation contract and does not supersede this audit with an accepted runtime.
 
 Note the shared `<SHARED_MINIFORGE_ROOT>/envs/mlff` is a different, essentially
 empty environment from the project's own `env/conda/mlff` — which is exactly why
@@ -101,7 +109,7 @@ Route D alone would run — `gpupyscf` carries the complete PySCF stack. It is
 deliberately **not** run. A direct-only result is not a paired experiment, and
 presenting it as one is explicitly forbidden by section 11.
 
-## What was not done, on purpose
+## What was not done in the blocked execution attempt, on purpose
 
 ```text
 installing or upgrading a package        forbidden by the authorization
@@ -114,7 +122,7 @@ The authorization also says this must not be discovered *after* a permit is
 consumed. It was found before deploy, before placement, and before launch, so no
 permit was spent and no remote root exists.
 
-## Irreversibility
+## Irreversibility of the blocked execution attempt
 
 ```text
 irreversible action taken     none
@@ -129,7 +137,7 @@ public main execution gates   eleven, all false
 The only remote action in this round was one read-only metadata probe under
 `python -I -B` with all four offline flags and `PATH=/usr/bin:/bin`.
 
-## The single safe next action
+## The original safe next action and its outcome
 
 Decide how the assisted route should obtain one interpreter, then re-authorize.
 The options are a decision for the project owner, not for this agent, because
@@ -151,6 +159,14 @@ established:
 Option 4 is the only one that needs no install, but it is a change to the frozen
 handoff contract and to what the assisted permit binds, so it is a design round,
 not an execution round.
+
+The project owner selected option 1 and authorized Phase 9B-U1. The exact
+installation completed, but the capability harness observed four calculator
+invocations while it expected two, and portable native/cache/endpoint evidence
+was not completed. U1 therefore stopped with the new v001 prefix retained and
+unusable. The present safe action is again to stop. A retry requires a separately
+authorized v002 target and a preregistered resolution of calculator-invocation
+versus property-read counting; v001 may not be reused.
 
 Full evidence is in `docs/PHASE9B_SERVER_WIDE_ENVIRONMENT_SEARCH.json` (the
 server-wide search this conclusion rests on) and

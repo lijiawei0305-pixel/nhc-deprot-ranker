@@ -323,18 +323,25 @@ correction, never mixed with PySCF, and never part of the label, which stays
 
 Without Hessians or frequencies, nothing claims a frequency-confirmed minimum.
 
-## 10. What is still missing
+## 10. Environment prerequisite and U1 outcome
 
-```text
-_load_base_model()      raises unconditionally; no production construction
-AseLBFGSOptimizer       does not exist
-run_assisted_stage()    refuses without an injected optimizer
-```
+The runtime implementation is complete: `_load_base_model` delegates to the
+source-proven constructor behind its closed gate, `AseLBFGSOptimizer` exists,
+and `run_assisted_stage` resolves the production loader/optimizer pair when no
+test seam is injected.
 
-The security contract, the gates, the evidence writer, and the handoff are real
-and tested. What is absent is the code that actually builds an AIMNet2 model and
-runs an optimizer, which is blocked on recovering how Phase 9A-I passed its
-explicit local weight to `AIMNet2Calculator`.
+What remains absent is a **validated unified interpreter identity**. The
+original server-wide audit found MLFF and PySCF in disjoint environments.
+Phase 9B-U1 later cloned MLFF and installed the exact PySCF stack into a new
+v001 prefix, but its capability harness observed four calculator invocations
+against an expectation of two and failed before portable native-map,
+endpoint-payload and global-cache-after evidence was committed. That prefix is
+retained as `failed_incomplete_environment` and may not be used.
+
+The current preflight also invokes an unbound `python3`, while request,
+resources and permit carry no unified-environment identity. A future attempt
+would require a separately authorized v002 build and then a gate-closed identity
+integration round; neither is authorized by the failed U1 attempt.
 
 ## 11. What this round did not do
 

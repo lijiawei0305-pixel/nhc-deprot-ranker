@@ -223,8 +223,10 @@ def test_the_superseded_identities_are_recorded_and_correctly_labelled() -> None
 def test_the_rebaseline_record_names_what_is_still_not_wired() -> None:
     text = _DOC.read_text(encoding="utf-8")
     assert "Postflight does not exist" in text
-    assert "no runtime implementation inside the route" in text
-    assert "Nothing here has been executed" in text
+    assert "no validated unified" in text
+    assert "preflight invokes unbound `python3`" in text
+    assert "failed_incomplete_environment" in text
+    assert "No Phase 9B payload has been deployed" in text
 
 
 def test_the_record_leaks_no_private_path_or_host() -> None:
