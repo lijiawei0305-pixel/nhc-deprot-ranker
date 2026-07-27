@@ -248,11 +248,19 @@ audit failed: there is no single interpreter on the compute host that can run
 the assisted route. The MLFF stack and the PySCF stack live in disjoint conda
 environments.
 
+The search covers the whole host, not just the project: environments were found
+by their own `conda-meta` and `pyvenv.cfg` markers across `/home`, `/opt`,
+`/usr/local`, `/srv` and `/mnt`, cross-checked against conda's own registry.
+**14 environment roots, 27 interpreters, 11 registry entries — all probed.**
+
 ```text
-mlff / aimnet2   torch 2.8.0, aimnet 0.2.0, ase 3.29.0     no pyscf stack
-gpupyscf         pyscf 2.13.1, geometric 1.1.1,            no MLFF stack
-                 pyscf-dispersion 1.5.0
+pyscf  present in exactly 2 site-packages   (molecular, gpupyscf)
+aimnet present in exactly 2 site-packages   (mlff, aimnet2)
+intersection                                 empty
 ```
+
+The nearest miss is the shared `molecular` environment: pyscf 2.13.1, geometric
+1.1.1, pyscf-dispersion 1.5.0 and ase **3.28.0**, but no torch and no aimnet.
 
 Every version present is exactly the frozen one; nothing drifted. They simply do
 not coexist, and Route A must run AIMNet2 and PySCF in one guarded worker
@@ -266,7 +274,7 @@ not a paired experiment.
 
 The reasoning, the options, and the single safe next action are in
 `docs/PHASE9B_EXECUTION_BLOCKED.md`; the evidence is in
-`docs/PHASE9B_PRE_EXECUTION_INTERPRETER_AUDIT.json`.
+`docs/PHASE9B_SERVER_WIDE_ENVIRONMENT_SEARCH.json`.
 
 Items 9/10 — postflight and the closed-gate full-chain rehearsal — remain not
 started. They are unaffected by this blocker and are the natural next build
