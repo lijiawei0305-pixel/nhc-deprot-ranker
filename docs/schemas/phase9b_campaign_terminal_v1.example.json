@@ -1,24 +1,68 @@
 {
-  "attempt_id": "example-assisted-attempt",
+  "attempt_id": "example-assisted-attempt-v003",
+  "attempt_lifecycle": {
+    "derived_from_immutable_receipts": true,
+    "furthest_proven_state": "ROUTE_TERMINAL",
+    "lifecycle_receipt_set_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "authorization": {
+    "execution_authorized": false,
+    "label_authorized": false,
+    "one_shot": true,
+    "permit_state": "not_consumed"
+  },
+  "campaign_id": "example-phase9b-assisted-campaign-v003",
+  "campaign_runtime_state": "route_rejected",
+  "candidate": "example-candidate",
   "deadline": {
     "a1_a2_overlap": false,
-    "campaign_absolute_deadline_ns": 7200000000000,
-    "remaining_seconds_at_a2_admission": 6400.0,
-    "total_wall_seconds": 0.0
+    "campaign_absolute_deadline_ns": 12200000000000,
+    "campaign_monotonic_start_ns": 5000000000000,
+    "clock_domain_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "clock_type": "CLOCK_MONOTONIC",
+    "linux_boot_id_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "remaining_budget_ns_at_a2_admission": 6400000000000
   },
-  "evidence_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "evidence": {
+    "evidence_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "evidence_tree_identity_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "handoff_proposal_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "handoff_verification_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stage_a2_admission_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
   "failure": {
-    "classification": "failed_before_irreversible_action",
-    "details_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "stage": "permit_validation"
+    "classification": "a2_cation_rejected",
+    "details_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "stage": "stage_a2"
+  },
+  "guardian_launch_state": "acknowledged",
+  "inputs": {
+    "cation_initial_xyz_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "neutral_initial_xyz_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+  },
+  "interpreter_profiles": {
+    "a1_stable_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "direct_and_a2_stable_profile_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
   },
   "label": null,
-  "permit_state": "not_consumed",
+  "receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+  "request_manifest_resources_identity_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+  "remote_root_identity_sha256": "abababababababababababababababababababababababababababababababab",
+  "route": "assisted",
   "route_outcome": "rejected",
+  "schema_identities_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
   "schema_version": "nhc-phase9b-assisted-campaign-terminal-v1",
+  "source": {
+    "campaign_control_source_sha256": "acacacacacacacacacacacacacacacacacacacacacacacacacacacacacac",
+    "full_assisted_campaign_source_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc",
+    "shared_pyscf_core_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccd",
+    "shared_schema_source_sha256": "adadadadadadadadadadadadadadadadadadadadadadadadadadadadadad",
+    "stage_a1_source_sha256": "aeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeae",
+    "stage_a2_source_sha256": "afafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf"
+  },
   "stages": {
-    "a1": "not_started",
-    "a2": "not_started",
-    "handoff": "not_started"
+    "a1_terminal": "accepted",
+    "a2_terminal": "rejected_cation",
+    "handoff_terminal": "accepted"
   }
 }

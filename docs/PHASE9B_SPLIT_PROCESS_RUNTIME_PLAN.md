@@ -65,7 +65,7 @@ assisted attempt, one user-authorized one-shot permit, one campaign guardian,
 one long-lived campaign supervisor, two sequential stage processes, one overall
 hard deadline, and one terminal route outcome. It is not two attempts because
 A1 and A2 share one attempt ID, one consumed authority, one deadline, one
-evidence root, and one terminal state machine; neither stage is independently
+evidence root, and one immutable-receipt-derived attempt lifecycle; neither stage is independently
 launchable or retryable.
 
 There are no scheduler jobs, background shell launches, `nohup`, shell `&`,
@@ -100,14 +100,21 @@ endpoints are accepted and only from the frozen PySCF electronic-energy formula.
 
 ## Deadline and resource accounting
 
+The permit binds duration authority only: campaign wall limit 7200 seconds, A1
+local limit 900 seconds, and termination grace 10 seconds. It does not contain a
+future absolute monotonic timestamp. After validating the campaign capability,
+the supervisor binds `CLOCK_MONOTONIC`, Linux boot ID, host execution identity,
+its process-start identity and clock resolution, then derives:
+
 ```text
-campaign_absolute_deadline = supervisor_start_monotonic + 7200
-A1_deadline                = min(campaign_absolute_deadline,
-                                 A1_start_monotonic + 900)
-A2_deadline                = campaign_absolute_deadline
+campaign_absolute_deadline_ns =
+    campaign_monotonic_start_ns + 7200 * 1_000_000_000
+A1_deadline_ns = min(campaign_absolute_deadline_ns,
+                     A1_start_ns + 900 * 1_000_000_000)
+A2_deadline_ns = campaign_absolute_deadline_ns
 ```
 
-A2 receives the remaining campaign time, never a fresh 7200 seconds. A1 and A2
+A2 receives the remaining campaign time in the same boot/clock domain, never a fresh 7200 seconds. A1 and A2
 process windows must not overlap. The supervisor records campaign, A1, handoff,
 and A2 start/end observations, total wall time, overlap verdict, and remaining
 time at A2 admission.

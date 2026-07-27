@@ -5,7 +5,8 @@
 `AssistedCampaignPermitV3` is the only user-level assisted authority and is
 consumed once. It binds the candidate, route, overall attempt, remote root,
 composite source closure and subclosures, supervisor and stage sources, evidence
-schemas, 7200-second campaign deadline, fixed route schedule, and no
+schemas, duration limits (7200-second campaign, 900-second A1 and 10-second
+termination grace), fixed route schedule, and no
 retry/resume/fallback semantics.
 
 It also binds the frozen initial cation and neutral XYZ bytes and hashes, atom
@@ -23,8 +24,9 @@ loader decision A, `compile_model=false`, `validate_species=true`, and a
 900-second local ceiling. The A2 profile freezes Python 3.11.15, PySCF 2.13.1,
 geomeTRIC 1.1.1, pyscf-dispersion 1.5.0, and B3LYP-D3(BJ)/def2-SVP with the
 shared direct-route grid, SCF, geometry and resource protocol. Both profiles
-bind executable bytes and normalized absolute paths from an attempt registry;
-the request cannot override them.
+bind stable interpreter-profile IDs and digests. Host-local absolute prefixes,
+executables and inode identities live only in private bindings used by
+preflight; the request and public permit cannot carry or override them.
 
 The permit does not bind the not-yet-existing A1 output digest. It binds the
 only authorized procedure that may produce those bytes, the validation contract
@@ -43,13 +45,16 @@ the campaign supervisor as an independent session/process-group leader, passes
 a campaign capability through the audited handshake, waits for a bounded
 acknowledgement, writes its launch receipt, and returns.
 
-Guardian terminal states are:
+Guardian-owned `GuardianLaunchStateV1` values are:
 
 ```text
 not_started
-permit_consumed_supervisor_spawned
-permit_consumed_supervisor_spawn_failed
-permit_consumed_ack_failed
+permit_validated
+permit_consumed
+supervisor_spawned
+supervisor_spawn_failed
+acknowledged
+ack_failed
 indeterminate
 ```
 
@@ -59,7 +64,9 @@ campaign computation.
 
 ## Supervisor boundary
 
-`AssistedCampaignSupervisor` is the only long-lived controller. It is
+`AssistedCampaignSupervisor` is the only long-lived controller. Its state starts
+at `campaign_capability_validated`; it never claims permit validation,
+consumption, or its own spawn. It is
 standard-library plus project control-plane source only. It validates the
 campaign capability, fixes the absolute monotonic deadline, creates the evidence
 root, issues and supervises A1, proves the A1 process tree is reaped, validates
@@ -85,3 +92,18 @@ user AssistedCampaignPermitV3
 Request and CLI data cannot select adapters or interpreters. Exact interpreter
 profiles come from the source-frozen attempt registry, and every later identity
 must equal the permit-bound registry projection.
+
+## Stable and private interpreter identity
+
+`InterpreterProfileStableIdentityV1` is portable and may enter request,
+manifest, resources and permit. It contains logical profile ID, Python version,
+package-version projection, executable content identity, activation-script
+digest, runtime capabilities, sanitized environment identity, and canonical
+digest. Direct and A2 bind the same GPU-PySCF stable profile digest; A1 binds the
+MLFF stable profile digest.
+
+`InterpreterProfilePrivateBindingV1` is host-local and never enters public Git.
+It contains absolute prefix and executable, device/inode, private paths and
+host-local mappings. Future preflight proves that a private binding realizes the
+permit-bound stable identity. Request, CLI and environment variables can never
+supply an arbitrary interpreter path.

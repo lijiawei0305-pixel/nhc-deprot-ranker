@@ -25,6 +25,7 @@
       capability_digest.json
       process_registration.json
       acknowledgement.json
+      handoff_proposal.json
       logs/
       cache/
       cation/
@@ -32,17 +33,15 @@
         output.xyz
         trajectory.jsonl
         preoptimization_receipt.json
-        handoff_receipt.json
       neutral/
         input.xyz
         output.xyz
         trajectory.jsonl
         preoptimization_receipt.json
-        handoff_receipt.json
       terminal.json
     handoff/
-      verification.json
-      a2_admission.json
+      supervisor_verification.json
+      stage_a2_admission.json
     stage_a2/
       identity.json
       capability_digest.json

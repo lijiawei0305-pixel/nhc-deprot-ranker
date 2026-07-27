@@ -17,12 +17,12 @@ One implementation unit, in order:
    internal stage capabilities.
 4. Bind an assisted campaign guardian to the one user permit and composite
    source identity.
-5. Implement the standard-library campaign supervisor, absolute deadline,
-   state machine, process groups, reaping, and terminal logic.
+5. Implement the standard-library campaign supervisor, runtime-derived absolute
+   deadline, process-owned state receipts, process groups, reaping and terminal logic.
 6. Refactor the existing AIMNet2 runtime behind an A1-only entrypoint while
    preserving one model load and both endpoint algorithms.
-7. Implement exclusive durable XYZ, per-endpoint cross-process handoff receipts,
-   exact file-set checks, and independent supervisor verification.
+7. Implement exclusive durable XYZ, one immutable A1 proposal, one immutable
+   supervisor verification, exact file-set checks, and no receipt mutation.
 8. Implement `StageA2AdmissionReceiptV1` and an A2-only entrypoint that re-reads
    disk bytes before PySCF import.
 9. Extract one typed PySCF core used by direct and A2; preserve protocol and
@@ -54,7 +54,7 @@ Postflight is explicitly deferred to Item 11/12.
 
 The future Postflight must verify the campaign permit and consumption, guardian,
 campaign supervisor, A1 identity/process/descendants/terminal, both endpoint
-preoptimization receipts, handoff verifier, A2 admission, A2
+preoptimization receipts, immutable A1 proposal, supervisor verification, A2 admission, A2
 identity/process/descendants/terminal, A1/A2 non-overlap, absence of residual
 processes, both exact interpreter identities, every source subclosure and the
 composite, exact evidence tree, final PySCF/D3 evidence, label formula, and full

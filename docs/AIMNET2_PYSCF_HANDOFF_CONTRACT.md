@@ -191,10 +191,12 @@ reported convergence.
 ## D1 cross-process binding
 
 A1 writes one authoritative `output.xyz` per endpoint and hashes it in its
-preoptimization and `CrossProcessPySCFHandoffReceiptV1` receipts. After A1 and
+preoptimization receipt and immutable `A1HandoffProposalReceiptV1`. After A1 and
 all descendants are reaped, the campaign supervisor independently opens and
 hashes those files, validates the exact allowed tree and scientific identities,
-and writes `StageA2AdmissionReceiptV1`. A2 then independently opens the files
+and writes an immutable `SupervisorHandoffVerificationReceiptV1`. Only an
+accepted verification permits a separate immutable `StageA2AdmissionReceiptV1`.
+A2 then independently opens the files
 again before importing PySCF and proves that its parser receives those exact
 bytes.
 

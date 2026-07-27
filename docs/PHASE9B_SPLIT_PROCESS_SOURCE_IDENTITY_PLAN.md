@@ -20,7 +20,7 @@ full_assisted_campaign_source
 
 Each subclosure has a canonical ordered file list and per-file SHA256. The full
 composite hashes the schema versions, ordered subclosure names, subclosure
-digests, exact interpreter identity assigned to each executable closure, and
+digests, stable interpreter profile assigned to each executable closure, and
 deployment inventory. A permit binds all subclosure hashes and the composite,
 so replacing a single source file or mixing otherwise valid generations fails
 both the affected subclosure and composite check.
@@ -29,6 +29,30 @@ This provides independent stage verification, avoids source/interpreter cycles,
 keeps request and permit fields readable, lets deployment promote one complete
 inventory atomically, preserves direct/A2 shared-core parity, and lets
 Postflight attribute a source mismatch precisely.
+
+## Disjoint leaf ownership and acyclic dependencies
+
+Every source file belongs to exactly one leaf closure. Duplicate ownership is a
+schema error; dependencies are digest edges rather than duplicated files:
+
+| Leaf | Sole file ownership | Dependencies |
+| --- | --- | --- |
+| `shared_schema_source` | all schemas shared by campaign, A1, A2 and direct | none |
+| `shared_pyscf_core_source` | the only direct/A2 PySCF algorithm files | `shared_schema_source` |
+| `campaign_control_source` | campaign guardian, supervisor and control-only files | `shared_schema_source` |
+| `stage_a1_source` | A1 entrypoint and AIMNet2-only stage files | `shared_schema_source` |
+| `stage_a2_source` | A2 authority/input wrapper files, no chemistry algorithm copy | `shared_schema_source`, `shared_pyscf_core_source` |
+
+The graph is frozen as a directed acyclic graph. Validation rejects duplicate
+file ownership, cycles, unknown or missing dependency edges, a leaf whose source
+digest does not match its file-list digest, and any mixed-generation edge.
+Direct and A2 both bind the exact same `shared_pyscf_core_source_sha256`; neither
+may own a copy of that core.
+
+The composite canonical payload contains ordered leaf names; each leaf's ordered
+file-list digest and source digest; the ordered dependency-edge set; schema
+versions; stable interpreter-profile assignment for each executable leaf; and
+deployment inventory digest. Private interpreter paths are not source identity.
 
 ## Schema migration
 
