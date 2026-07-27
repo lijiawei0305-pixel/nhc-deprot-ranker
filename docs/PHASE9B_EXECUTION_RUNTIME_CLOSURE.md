@@ -1,7 +1,7 @@
 # Phase 9B Execution Runtime Closure
 
-Item 8/10. What the execution-reachability audit found unreachable, and what was
-built to close it, as one source-freeze unit.
+Item 8/12 (historically 8/10). What the execution-reachability audit found
+unreachable, and what was built to close it, as one source-freeze unit.
 
 > **Status: complete.** The production AIMNet2 loader and the production
 > ASE/LBFGS optimizer are implemented, the trajectory is real evidence, and the
@@ -406,3 +406,21 @@ produced. Eleven `EXECUTION_AUTHORIZED` gates, all false.
 
 `phase9b_postflight.py` was not created. It may begin only once every interface
 listed in the item-9 authorization is frozen.
+
+## D1 split-process closure plan
+
+No v8 source byte changes in D1. The current single worker imports AIMNet2 and
+then PySCF and carries an in-memory rebound request between them; this is the
+host-incompatible boundary being replaced, not a defect in the scientific
+kernels.
+
+Item 10/12 will create independently hashable campaign-control, A1, A2,
+shared-PySCF-core and shared-schema subclosures plus one composite
+`nhc-two-endpoint-runner-source-v9` identity. The permit binds every subclosure
+and the composite. A1 and A2 use exact registry-bound interpreters, share no
+site-packages or `PYTHONPATH`, and exchange only durable hash-closed XYZ bytes.
+Direct and A2 call one shared PySCF core.
+
+All implementation and tests must finish before the one v9 rebaseline. Until
+then v8 remains prepared, blocked and not superseded. Item 11/12 Postflight and
+Item 12/12 rehearsal remain outside this authorization.

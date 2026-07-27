@@ -1,0 +1,165 @@
+{
+  "execution_authorized": false,
+  "a1_handoff_proposal": {
+    "attempt_id": "example-assisted-attempt-v003",
+    "candidate": "example-candidate",
+    "endpoints": {
+      "cation": {
+        "a1_input_xyz_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "a1_output_xyz_byte_count": 2048,
+        "a1_output_xyz_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "atom_count": 26,
+        "calculator_invocation_count": 24,
+        "charge": 1,
+        "element_order_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "endpoint": "cation",
+        "final_max_force_ev_per_angstrom": 0.04,
+        "multiplicity": 1,
+        "optimizer_step_count": 12,
+        "ordered_elements": [
+          "C",
+          "N",
+          "C",
+          "N",
+          "C",
+          "H",
+          "H",
+          "H",
+          "H",
+          "C",
+          "C",
+          "H",
+          "H",
+          "C",
+          "C",
+          "H",
+          "H",
+          "F",
+          "F",
+          "F",
+          "F",
+          "F",
+          "F",
+          "H",
+          "H",
+          "H"
+        ],
+        "preoptimization_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "structural_gates_passed": true,
+        "trajectory_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "neutral": {
+        "a1_input_xyz_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "a1_output_xyz_byte_count": 1984,
+        "a1_output_xyz_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "atom_count": 25,
+        "calculator_invocation_count": 20,
+        "charge": 0,
+        "element_order_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "endpoint": "neutral",
+        "final_max_force_ev_per_angstrom": 0.045,
+        "multiplicity": 1,
+        "optimizer_step_count": 10,
+        "ordered_elements": [
+          "C",
+          "N",
+          "C",
+          "N",
+          "C",
+          "H",
+          "H",
+          "H",
+          "H",
+          "C",
+          "C",
+          "H",
+          "H",
+          "C",
+          "C",
+          "H",
+          "H",
+          "F",
+          "F",
+          "F",
+          "F",
+          "F",
+          "F",
+          "H",
+          "H"
+        ],
+        "preoptimization_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "structural_gates_passed": true,
+        "trajectory_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    },
+    "immutable": true,
+    "mlff_interpreter_profile_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "no_pyscf_assertion": true,
+    "optimizer_protocol_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "route": "assisted",
+    "schema_version": "nhc-phase9b-a1-handoff-proposal-v1",
+    "stage_a1_source_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "weight_sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28"
+  },
+  "stage_a2_admission": {
+    "admission_outcome": "accepted",
+    "admitted_endpoints": {
+      "cation": {
+        "xyz_byte_count": 2048,
+        "xyz_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "neutral": {
+        "xyz_byte_count": 1984,
+        "xyz_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    },
+    "campaign_absolute_deadline_ns": 12200000000000,
+    "clock_domain_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+    "gpu_pyscf_interpreter_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+    "immutable": true,
+    "proposal_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc",
+    "remaining_budget_ns": 6400000000000,
+    "schema_version": "nhc-phase9b-stage-a2-admission-v1",
+    "shared_pyscf_core_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccd",
+    "shared_schema_source_sha256": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddde",
+    "stage_a2_source_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeef",
+    "verification_receipt_sha256": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0"
+  },
+  "supervisor_handoff_verification": {
+    "a1_process_tree_absence_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "exact_file_set_accepted": true,
+    "file_observations": {
+      "cation.output.xyz": {
+        "byte_count": 2048,
+        "mode": "0400",
+        "no_follow": true,
+        "regular_single_link": true,
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "size_cap_accepted": true
+      },
+      "neutral.output.xyz": {
+        "byte_count": 1984,
+        "mode": "0400",
+        "no_follow": true,
+        "regular_single_link": true,
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "size_cap_accepted": true
+      }
+    },
+    "identity_checks": {
+      "atom_order_equal": true,
+      "candidate_attempt_equal": true,
+      "charge_multiplicity_equal": true,
+      "proposal_matches_disk": true,
+      "structural_gates_accepted": true
+    },
+    "immutable": true,
+    "proposal_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "receipt_sha256": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0",
+    "schema_version": "nhc-phase9b-supervisor-handoff-verification-v1",
+    "supervisor_verifier_source_sha256": "1010101010101010101010101010101010101010101010101010101010101010",
+    "verification_outcome": "accepted"
+  }
+}

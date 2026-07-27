@@ -82,3 +82,8 @@ manifest distinguishes `created=false` from an unobserved after-state.
 
 No optimizer, PySCF kernel/gradient, geomeTRIC optimization, D3 calculation,
 Postflight, closed-gate rehearsal, permit, launch, or label ran.
+
+Forward link only: U5's frozen successor is the D1 split-process design recorded
+in `PHASE9B_UNIFIED_ENVIRONMENT_STRATEGY_CLOSEOUT.md` and
+`PHASE9B_SPLIT_PROCESS_RUNTIME_PLAN.md`. U5 remains
+`failed_before_environment_creation` without repair or replay.

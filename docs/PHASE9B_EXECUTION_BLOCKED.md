@@ -192,8 +192,10 @@ U1 and U2 remain unusable retained attempts. U3 is separately authorized under
 `docs/PHASE9B_UNIFIED_ENVIRONMENT_V003_PLAN.md`, but it cannot create its new
 resources until a document-first PR has merged and the six-object read-only
 measurement qualification passes. Even a validated v003 would not authorize
-Phase 9B science: Unified Environment Identity Integration would remain the
-only next stage. Postflight and closed-gate rehearsal are still blocked.
+At that historical U3 decision point, Unified Environment Identity Integration
+would have been the successor to a validated environment. U3 did not validate,
+and the later D1 closeout supersedes that conditional route. Postflight and
+closed-gate rehearsal remain blocked.
 
 That U3 gate has now run once and failed before environment creation. All six
 A/B schema and stable-projection comparisons were internally equal, but the
@@ -229,3 +231,20 @@ U5 is retained as `failed_before_environment_creation` with incomplete snapshot
 evidence and cannot be repaired or retried. The unified-environment route is
 therefore closed; only a separately authorized dual-environment / split-process
 assisted design can be considered next.
+
+## D1 resolution of the architecture blocker
+
+The strategy is permanently closed after U5 because the published attempt
+policy forbids repair/replay and U5 froze split-process as its failure successor.
+This does not assert dependency incompatibility: U1/U2 observed technical
+coexistence, but no validated unified identity exists.
+
+The blocker is resolved at design level by one assisted campaign spanning two
+exact interpreters. A standard-library campaign supervisor starts an MLFF A1
+process, verifies both durable handoffs after full A1 reap, and starts a
+GPU-PySCF A2 process using only a supervisor-issued, non-replayable internal
+capability. One user permit, attempt, absolute deadline and terminal outcome
+cover the campaign. Direct-only execution remains forbidden as a paired result.
+
+The remaining blocker is now Item 10/12 implementation and v9 freeze. D1 makes
+no compute reachable; v8 and all eleven public execution gates remain unchanged.

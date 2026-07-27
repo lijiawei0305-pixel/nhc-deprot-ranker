@@ -234,3 +234,7 @@ invocations from requested energy/force properties and predefine whether each
 endpoint uses one combined `calculate(properties=["energy", "forces"])` call or
 two ASE property accesses. The existing `v001` prefix and wheelhouse are retained
 failure evidence and cannot be reused.
+
+Forward link only: the unified-environment strategy is now closed after U5; the
+successor design is `PHASE9B_UNIFIED_ENVIRONMENT_STRATEGY_CLOSEOUT.md`. This does
+not modify U1's terminal result or evidence.

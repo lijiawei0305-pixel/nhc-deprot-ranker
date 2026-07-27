@@ -1,0 +1,52 @@
+{
+  "attempt_id": "example-assisted-attempt-v003",
+  "authorization": {
+    "execution_authorized": false,
+    "one_shot": true,
+    "release_consumed": false
+  },
+  "campaign_id": "example-phase9b-assisted-campaign-v003",
+  "capability_id": "example-a1-capability-after-registration",
+  "candidate": "example-candidate",
+  "clock": {
+    "campaign_absolute_deadline_ns": 12200000000000,
+    "campaign_monotonic_start_ns": 5000000000000,
+    "clock_domain_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "clock_type": "CLOCK_MONOTONIC",
+    "host_execution_identity_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "linux_boot_id_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "monotonic_resolution_ns": 1,
+    "stage_deadline_ns": 5900000000000
+  },
+  "input_identity_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "interpreter": {
+    "private_binding_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "stable_profile_id": "phase9b-mlff-stable-v1",
+    "stable_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "output_root_identity_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "process_identity": {
+    "expected_parent_pid": 4100,
+    "stage_pid": 4200,
+    "stage_process_group_id": 4200,
+    "stage_session_id": 4200,
+    "stage_start_time": 5000000100,
+    "supervisor_pid": 4100,
+    "supervisor_process_group_id": 4100,
+    "supervisor_session_id": 4100,
+    "supervisor_start_time": 5000000000
+  },
+  "registration_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "release_token_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "remote_root_identity_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+  "resources_identity_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+  "route": "assisted",
+  "schema_identities_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+  "schema_version": "nhc-phase9b-internal-stage-capability-v1",
+  "source": {
+    "shared_schema_source_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "stage_source_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+  },
+  "stage": "aimnet2_preoptimization",
+  "stage_argv_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+}

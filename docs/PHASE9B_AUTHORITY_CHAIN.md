@@ -133,7 +133,8 @@ a second time; the re-baseline is recorded in
 re-executes itself in `supervisor` mode, and only that mode constructs the
 `Phase8BWorkerLaunch` handshake. Phase 9B has a supervisor CLI and a guarded
 executor adapter but no guardian, so the handshake arrives through an injected
-factory and the CLI refuses when none is wired. That module is item 8/10 and no
+factory and the CLI refuses when none is wired. That historical work became
+Item 8/12 under the D1 rebaseline and no
 Phase 9B run can start without it.
 
 Historical Phase 8B artifacts must not be edited to accommodate this. They are
@@ -218,8 +219,8 @@ that *neither* route could reach a backend:
   of the direct route with a different attempt id.
 - Route A had no AIMNet2 runtime at all, so the handoff contract had zero callers.
 
-All four are closed in item 8/10, and all four were closed as one source-freeze
-unit because each one moves the closure hash. The chain is now:
+All four were closed in the historical item 8/10 (now Item 8/12), as one
+source-freeze unit because each one moves the closure hash. The chain is now:
 
 ```text
 exact attempt -> WorkerAuthorityProfile -> ClaimIdentityView -> one comparison
@@ -230,7 +231,7 @@ Three profiles exist, each binding exactly one attempt. Phase 8B's behaviour,
 durable bytes, schemas, and refusal semantics are unchanged, and its own
 regressions prove it.
 
-## Item 8/10 closure — v8
+## Item 8/12 closure — v8 (historically 8/10)
 
 The production AIMNet2 loader and ASE/LBFGS optimizer are implemented, so the
 runner source closure moved again and both chains were regenerated:
@@ -254,3 +255,23 @@ the three points at which the deadline is checked.
 
 Every v7 identity is recorded as `superseded_before_execution` in
 `docs/PHASE9B_IDENTITY_REBASELINE.md`. None was deployed, launched, or consumed.
+
+## D1 campaign authority correction
+
+One `AssistedCampaignPermitV3` authorizes the whole assisted attempt and binds
+both exact interpreter profiles, all source subclosures, initial scientific
+inputs, the A1 procedure and validation contract, the only A2 consumer, the
+sequential schedule, and one 7200-second absolute deadline. It does not bind the
+future A1 output digest; it binds the hash-producing procedure and verifier,
+avoiding self-reference.
+
+After consumption, only the campaign supervisor may mint one-shot
+`InternalStageCapabilityV1` values via the audited anonymous-pipe,
+release-token, registration, acknowledgement, and compute-claim chain. These are
+not user permits and are not stored in replayable form. A2 capability cannot
+exist before both A1 endpoints are accepted, A1 descendants are reaped, and an
+independent durable admission receipt is written.
+
+The campaign guardian consumes and launches; the supervisor controls, verifies,
+supervises and terminates; A1 performs only AIMNet2; A2 performs only PySCF after
+its own disk read. D1 adds no implementation and opens no gate.

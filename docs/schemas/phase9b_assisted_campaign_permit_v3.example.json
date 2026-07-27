@@ -1,0 +1,126 @@
+{
+  "authorization": {
+    "execution_authorized": false,
+    "fallback_authorized": false,
+    "label_authorized": false,
+    "one_shot": true,
+    "permit_consumption_authorized": false,
+    "resume_authorized": false,
+    "retry_authorized": false
+  },
+  "campaign": {
+    "a1_local_limit_seconds": 900,
+    "attempt_id": "example-assisted-attempt-v003",
+    "campaign_id": "example-phase9b-assisted-campaign-v003",
+    "campaign_wall_limit_seconds": 7200,
+    "candidate": "example-candidate",
+    "endpoint_order": [
+      "cation",
+      "neutral"
+    ],
+    "remote_root_identity_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "route": "assisted",
+    "schedule": [
+      "aimnet2_preoptimization",
+      "handoff_verification",
+      "pyscf_residual_optimization"
+    ],
+    "termination_grace_seconds": 10,
+    "topology": "split_process_campaign"
+  },
+  "evidence": {
+    "evidence_schema_set_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "evidence_tree_identity_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "inputs": {
+    "atom_map_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "cation": {
+      "atom_count": 26,
+      "charge": 1,
+      "element_order_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "multiplicity": 1,
+      "xyz_byte_count": 2048,
+      "xyz_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "electron_count": 160,
+    "neutral": {
+      "atom_count": 25,
+      "charge": 0,
+      "element_order_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "multiplicity": 1,
+      "xyz_byte_count": 1984,
+      "xyz_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "interpreter_profiles": {
+    "a1": {
+      "activation_script_sha256": "abababababababababababababababababababababababababababababababab",
+      "executable_content_sha256": "acacacacacacacacacacacacacacacacacacacacacacacacacacacacacac",
+      "logical_profile_id": "phase9b-mlff-stable-v1",
+      "package_versions": {
+        "aimnet": "0.2.0",
+        "ase": "3.29.0",
+        "torch_runtime": "2.8.0+cu128"
+      },
+      "python_version": "3.11.15",
+      "runtime_capabilities": [
+        "cuda-12.8",
+        "sm_70"
+      ],
+      "sanitized_environment_identity_sha256": "adadadadadadadadadadadadadadadadadadadadadadadadadadadadadad",
+      "stable_identity_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "direct_and_a2": {
+      "activation_script_sha256": "aeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeae",
+      "executable_content_sha256": "afafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf",
+      "logical_profile_id": "phase9b-gpupyscf-stable-v1",
+      "package_versions": {
+        "geometric": "1.1.1",
+        "pyscf": "2.13.1",
+        "pyscf-dispersion": "1.5.0"
+      },
+      "python_version": "3.11.15",
+      "runtime_capabilities": [
+        "pyscf-residual-optimization",
+        "d3bj"
+      ],
+      "sanitized_environment_identity_sha256": "b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0",
+      "stable_identity_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+    }
+  },
+  "manifest_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+  "request_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+  "resources": {
+    "a1": {
+      "cache_isolation_required": true,
+      "gpu_count": 1,
+      "gpu_profile": "V100-sm_70"
+    },
+    "a2": {
+      "computational_threads": 4,
+      "cpu_affinity": "0-3",
+      "pyscf_max_memory_mb": 12000
+    },
+    "handoff": {
+      "compute_packages_allowed": false
+    }
+  },
+  "schema_identities": {
+    "admission": "nhc-phase9b-stage-a2-admission-v1",
+    "campaign_terminal": "nhc-phase9b-assisted-campaign-terminal-v1",
+    "handoff_proposal": "nhc-phase9b-a1-handoff-proposal-v1",
+    "handoff_verification": "nhc-phase9b-supervisor-handoff-verification-v1",
+    "internal_stage_capability": "nhc-phase9b-internal-stage-capability-v1"
+  },
+  "schema_version": "nhc-phase9b-assisted-campaign-permit-v3",
+  "source": {
+    "campaign_control_source_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "closure_dependency_edges_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "deployment_inventory_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+    "full_assisted_campaign_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+    "shared_pyscf_core_source_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc",
+    "shared_schema_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccd",
+    "stage_a1_source_sha256": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddde",
+    "stage_a2_source_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeef"
+  }
+}
