@@ -392,6 +392,11 @@ request, resources, manifest, or permit. Conditional v005 construction also
 stops before integration. Throughout U5 this closure remains schema v8 with
 SHA256 `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`.
 
+U5 ended in its single Q5 call during remote helper module initialization,
+before any protected snapshot or v005 resource creation. No environment,
+package, native, endpoint, cache, runner, request, resource, manifest, or permit
+identity was produced. The v8 closure remains byte-identical and blocked.
+
 ## 11. What this round did not do
 
 No SSH, no server, no deploy, no permit placed, no launch, no guardian or

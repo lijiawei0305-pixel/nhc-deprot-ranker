@@ -28,7 +28,7 @@ Updated: 2026-07-27
 | Phase 9B-U2 — unified environment v002 | Rejected environment; retained and unusable | 2026-07-27; capability counts/native/cache passed, but protected snapshot schema mismatch failed the canonical gate; no retry |
 | Phase 9B-U3 — qualified metrology / v003 | Failed before environment creation; retained | 2026-07-27; helper rejected normal Conda Python symlinks as invalid; v003 resources never created |
 | Phase 9B-U4 — symlink-aware metrology / v004 | Failed before environment creation; retained | Q4 reached conda evidence then returned `CONDA_EXPLICIT_FAILED` for all six; v004 resources never created |
-| Phase 9B-U5 — metadata-native metrology / v005 | Document-first contract in progress | No SSH before PR merge; Q5 must pass all six objects before any v005 resource can exist |
+| Phase 9B-U5 — metadata-native metrology / v005 | Failed before environment creation; retained | One Q5 SSH failed in remote helper bootstrap before all object captures; no v005 resource was created |
 
 ## Current completed work
 
@@ -323,6 +323,17 @@ identity is derived directly from stable launcher/Python, `conda-meta`, all
 Only one later no-write/no-CLI Q5 A/B qualification may unlock v005 creation.
 All six must be present and exactly stable; failure is terminal and no U6 may be
 created.
+
+PR #56 merged that document-first contract. The only Q5 SSH then failed while
+loading the exact helper bytes into the remote in-memory module: standard-library
+dataclass initialization could not resolve the unregistered dynamic module.
+This occurred before any protected snapshot, environment Python probe,
+package-manager CLI, metadata inventory, tree capture, or v005 creation. U5 is
+terminal `failed_before_environment_creation` with
+`PROTECTED_SNAPSHOT_EVIDENCE_INCOMPLETE`; no retry, helper repair, second SSH,
+or U6 is allowed. Per the frozen decision boundary, future design must use the
+dual-environment / split-process assisted route rather than another unified
+environment attempt.
 
 A one-shot execution authorization was granted and its section 11 pre-execution
 audit failed: at that time there was no single interpreter on the compute host

@@ -231,3 +231,9 @@ U5 introduces only a new protected-metrology helper outside
 v8 closure. Even a validated v005 would require a later Unified Environment
 Identity Integration to bind its interpreter and deliberately move the runner
 source identity; that integration is not authorized in U5.
+
+Q5 failed before the first protected-object capture, so no v005 environment was
+created and no `UnifiedExecutionEnvironmentIdentity v5` or environment
+canonical SHA256 exists. U5 changes no v8 identity and produces nothing eligible
+for Integration or supersession. Its frozen successor is a new split-process
+design, not another unified-environment attempt.

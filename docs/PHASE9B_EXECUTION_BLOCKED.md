@@ -221,3 +221,11 @@ protected metrology. Its document-first helper must merge before any SSH; then
 one read-only Q5 must prove all six on-disk prefix identities present and stable
 before v005 can be created. This does not open Identity Integration, Postflight,
 rehearsal, permit, launch, or science.
+
+PR #56 merged, but the one Q5 call failed before its first protected capture:
+the remote in-memory module loader did not register the dynamic helper module
+before dataclass initialization. No metadata inventory or v005 creation ran.
+U5 is retained as `failed_before_environment_creation` with incomplete snapshot
+evidence and cannot be repaired or retried. The unified-environment route is
+therefore closed; only a separately authorized dual-environment / split-process
+assisted design can be considered next.

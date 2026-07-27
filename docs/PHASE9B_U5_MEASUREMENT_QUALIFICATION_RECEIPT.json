@@ -1,0 +1,49 @@
+{
+  "schema_version": "nhc-phase9b-measurement-qualification-receipt-v3-terminal-public",
+  "phase": "Phase 9B-U5-Q",
+  "qualification_identity": "nhc-phase9b-u5-q-v001",
+  "attempt_id": "attempt-phase9b-unified-v005",
+  "status": "failed_before_environment_creation",
+  "document_first_pr": 56,
+  "document_first_merge_commit": "8ebd14d98324569c427fba230b130990b283425b",
+  "helper_source_sha256": "3319728d9687912ee0ca344a9d2f1e4506b6fa6b451e1be3dd771ff0e5f578f3",
+  "controlled_ssh_calls": 1,
+  "retry_performed": false,
+  "helper_edit_after_failure": false,
+  "protected_snapshot_started": false,
+  "object_results": [
+    {"object_id": "project_mlff", "state": "not_captured", "failure": "qualification_bootstrap_failed_before_object_capture"},
+    {"object_id": "project_aimnet2", "state": "not_captured", "failure": "qualification_bootstrap_failed_before_object_capture"},
+    {"object_id": "project_gpupyscf", "state": "not_captured", "failure": "qualification_bootstrap_failed_before_object_capture"},
+    {"object_id": "shared_molecular", "state": "not_captured", "failure": "qualification_bootstrap_failed_before_object_capture"},
+    {"object_id": "phase9b_unified_v001_env", "state": "not_captured", "failure": "qualification_bootstrap_failed_before_object_capture"},
+    {"object_id": "phase9b_unified_v002_env", "state": "not_captured", "failure": "qualification_bootstrap_failed_before_object_capture"}
+  ],
+  "all_passed": false,
+  "package_manager_cli_invocations": 0,
+  "pip_cli_invocations": 0,
+  "computational_package_imports": 0,
+  "target_environment_python_probes": 0,
+  "gpu_operations": 0,
+  "downloads": 0,
+  "server_write_performed": false,
+  "failure": {
+    "code": "PROTECTED_SNAPSHOT_EVIDENCE_INCOMPLETE",
+    "stage": "remote_helper_module_initialization",
+    "assertion": "exact merged U5 helper initializes as a registered module before any protected capture",
+    "object_ids": [],
+    "exception_class": "AttributeError",
+    "exception_message_sha256": "bb13a16bf986ce4aa679cc222f0feddf9d8c112f6c09956367225917d066344a",
+    "details_digest": "424d935e3e034594df9fd21ca8a1ca191c5122ad9edfd36994dba570301b13f1",
+    "cause_classification": "q5_remote_harness_bootstrap_defect",
+    "protected_content_drift_observed": false,
+    "protected_content_state": "not_observed"
+  },
+  "evidence_limit": "no protected-object capture began, so launcher, conda-meta, dist-info, tree, A/B projection, and post-call v005-path observations do not exist",
+  "privacy": {
+    "private_absolute_paths_included": false,
+    "host_or_account_included": false,
+    "credentials_included": false,
+    "raw_traceback_included": false
+  }
+}

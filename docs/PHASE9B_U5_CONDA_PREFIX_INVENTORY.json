@@ -1,0 +1,16 @@
+{
+  "schema_version": "nhc-phase9b-u5-conda-prefix-inventory-public-v1",
+  "status": "not_captured_q5_bootstrap_failure",
+  "authoritative_capture_method": "direct_conda_meta_read_without_package_manager_cli",
+  "package_manager_cli_invocations": 0,
+  "objects": [
+    {"object_id": "project_mlff", "record_count": null, "history_sha256": null, "raw_record_set_sha256": null, "normalized_record_set_sha256": null},
+    {"object_id": "project_aimnet2", "record_count": null, "history_sha256": null, "raw_record_set_sha256": null, "normalized_record_set_sha256": null},
+    {"object_id": "project_gpupyscf", "record_count": null, "history_sha256": null, "raw_record_set_sha256": null, "normalized_record_set_sha256": null},
+    {"object_id": "shared_molecular", "record_count": null, "history_sha256": null, "raw_record_set_sha256": null, "normalized_record_set_sha256": null},
+    {"object_id": "phase9b_unified_v001_env", "record_count": null, "history_sha256": null, "raw_record_set_sha256": null, "normalized_record_set_sha256": null},
+    {"object_id": "phase9b_unified_v002_env", "record_count": null, "history_sha256": null, "raw_record_set_sha256": null, "normalized_record_set_sha256": null}
+  ],
+  "reason": "remote_helper_module_initialization_failed_before_first_object_capture",
+  "old_receipts_used_to_fill_inventory": false
+}
