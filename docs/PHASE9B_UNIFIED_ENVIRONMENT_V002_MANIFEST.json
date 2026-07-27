@@ -1,0 +1,90 @@
+{
+  "schema_version": "nhc-phase9b-unified-v002-public-manifest-v1",
+  "logical_name": "nhc-phase9b-unified-v002",
+  "status": "rejected_environment",
+  "attempt_id": "attempt-phase9b-unified-v002",
+  "paths": {
+    "prefix": "<REMOTE_PROJECT_ROOT>/env/conda/phase9b_unified_v002",
+    "wheelhouse": "<REMOTE_PROJECT_ROOT>/private/wheelhouse/phase9b_unified_v002",
+    "attempt_cache": "<REMOTE_PROJECT_ROOT>/private/cache/phase9b_unified_v002"
+  },
+  "resource_state": {
+    "prefix_retained": true,
+    "wheelhouse_retained": true,
+    "attempt_cache_retained": true,
+    "retry_repair_delete_reuse_prohibited": true,
+    "v001_reused": false,
+    "v001_hardlinks": 0
+  },
+  "build": {
+    "clone_source": "<PROJECT_MLFF_ENV>",
+    "offline_clone": true,
+    "copy_mode": true,
+    "install_no_index": true,
+    "install_no_deps": true,
+    "pip_check": "passed",
+    "metadata_dependency_validation": "passed",
+    "protected_package_zero_drift": true
+  },
+  "package_versions": {
+    "python": "3.11.15",
+    "torch_metadata": "2.8.0",
+    "torch_runtime": "2.8.0+cu128",
+    "cuda": "12.8",
+    "gpu_architecture": "sm_70",
+    "aimnet": "0.2.0",
+    "ase": "3.29.0",
+    "pyscf": "2.13.1",
+    "geometric": "1.1.1",
+    "pyscf_dispersion": "1.5.0",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "h5py": "3.16.0"
+  },
+  "artifacts": {
+    "pyscf_official_wheel_sha256": "27b991d37ff16137d28b7210f678f8a027264cb66590afdd2002c5b69001f8b3",
+    "geometric_official_sdist_sha256": "c712c4102bb9db4afab4c7a482289a13d04989735cc1430c89ebb73d587d1d8b",
+    "pyscf_dispersion_official_wheel_sha256": "c65aa46f24005794bf8198205a0d83f3431a23333868fbafff43bd82efc2294d",
+    "geometric_v002_built_wheel_sha256": "9595f639e2ad7c6d1b6afed681b8a898196978319741a8a309b7ae405d904f42",
+    "all_official_bytes_newly_downloaded_for_v002": true,
+    "v001_wheelhouse_used": false
+  },
+  "formal_protected_snapshot_gate": {
+    "accepted": false,
+    "reason": "before snapshots omitted the top-level state key while after snapshots included state=present",
+    "all_six_canonical_snapshot_sha256_equal": false,
+    "all_six_tree_digests_counts_bytes_and_critical_metadata_equal": true,
+    "repair_or_reinterpretation_performed": false
+  },
+  "target_environment": {
+    "file_system_entries": 49435,
+    "regular_file_bytes": 8250263709,
+    "target_tree_canonical_digest": "2708981006f36f8a1b25916f4f887babcf9633ad1669f9f2af68266efab90618",
+    "unchanged_during_import_and_capability": true,
+    "unified_execution_environment_identity_v2_issued": false,
+    "environment_canonical_sha256": null
+  },
+  "receipts": {
+    "build_receipt_sha256": "2547781ce53c20200484e50cf4dc1a6d5e4062c8b47035d03852022225163033",
+    "terminal_receipt_sha256": "1598ff63c2567d59dad39cdc33a17b060f6436bae5b68b0e2e6002fcc85ad457",
+    "terminal_receipt_durable": true,
+    "finally_receipts_durable": true
+  },
+  "runner": {
+    "source_schema": "nhc-two-endpoint-runner-source-v8",
+    "source_sha256": "5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2",
+    "source_unchanged": true,
+    "unified_environment_identity_integrated": false
+  },
+  "execution": {
+    "public_execution_gates": 11,
+    "all_public_execution_gates_false": true,
+    "phase9b_scientific_execution_started": false,
+    "optimizer_steps": 0,
+    "pyscf_kernel_calls": 0,
+    "pyscf_gradient_calls": 0,
+    "d3_calculations": 0,
+    "labels_created": 0,
+    "production_high_fidelity_labels": 71
+  }
+}

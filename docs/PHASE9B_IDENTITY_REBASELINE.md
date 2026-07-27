@@ -192,3 +192,14 @@ No Phase 9B payload has been deployed, no permit placed or consumed, and no
 guardian, supervisor or worker launched. Every public execution gate is closed.
 The v8 source digest remains
 `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`.
+
+## U2 did not create a new execution identity
+
+Phase 9B-U2 left the v8 closure byte-identical and matched its frozen capability
+call semantics, but ended `rejected_environment`: its protected before/after
+snapshot payloads used different top-level key sets (`state` absent versus
+`state=present`). The target-tree digest and all physical protected evidence
+remain retained, but no `UnifiedExecutionEnvironmentIdentity v2` or
+`environment_canonical_sha256` was issued. Consequently no resources, request,
+permit, or preflight identity was regenerated, and every v8 identity remains
+blocked rather than superseded.

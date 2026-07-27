@@ -1,0 +1,77 @@
+{
+  "schema_version": "nhc-phase9b-unified-v002-public-native-maps-v1",
+  "raw_proc_maps_paths_published": false,
+  "import_orders": {
+    "ml_first": {
+      "return_code": 0,
+      "stderr_empty": true,
+      "classification": "compatible",
+      "normalized_entry_count": 29,
+      "receipt_sha256": "549ce2eb5da67adcdca6e402c6408c3ac84a95d85ba7cc2c398a1cd093e34449"
+    },
+    "pyscf_first": {
+      "return_code": 0,
+      "stderr_empty": true,
+      "classification": "compatible",
+      "normalized_entry_count": 29,
+      "receipt_sha256": "87aafdd1705ef8e8e5af72153b2cbe2e1c909853e315c0a859ba611479d12980"
+    }
+  },
+  "cross_order_manifest_equal": true,
+  "category_counts_per_order": {
+    "openmp": 2,
+    "blas": 5,
+    "cuda": 5,
+    "torch": 8,
+    "pyscf": 8,
+    "dispersion": 1
+  },
+  "library_filenames": {
+    "openmp": [
+      "libgomp-a34b3233.so.1.0.0",
+      "libgomp.so.1"
+    ],
+    "blas": [
+      "libcublas.so.12",
+      "libcublasLt.so.12",
+      "libopenblas-r0-f650aae0.3.3.so",
+      "libscipy_openblas-6cdc3b4a.so",
+      "libscipy_openblas64_-32a4b2a6.so"
+    ],
+    "cuda": [
+      "libcuda.so.570.211.01",
+      "libcudart.so.12",
+      "libcudnn.so.9",
+      "libnvJitLink.so.12",
+      "libnvrtc.so.12"
+    ],
+    "torch": [
+      "libc10.so",
+      "libc10_cuda.so",
+      "libshm.so",
+      "libtorch.so",
+      "libtorch_cpu.so",
+      "libtorch_cuda.so",
+      "libtorch_global_deps.so",
+      "libtorch_python.so"
+    ],
+    "pyscf": [
+      "libao2mo.so",
+      "libcgto.so",
+      "libcint.so",
+      "libcvhf.so",
+      "libgfortran-91cc3cb1.so.3.0.0",
+      "libnp_helper.so",
+      "libquadmath-96973f99.so.0.0.0",
+      "libs-dftd3.so"
+    ],
+    "dispersion": [
+      "libgfortran-040039e1.so.5.0.0"
+    ]
+  },
+  "duplicate_runtime_interpretation": "deterministic package-scoped mappings were identical in both successful import orders; no symbol error or crash occurred",
+  "v001_path_observed": false,
+  "source_or_other_environment_site_packages_observed": false,
+  "unregistered_ld_library_path_injection": false,
+  "external_internet_connect_send_calls": 0
+}

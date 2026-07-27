@@ -25,7 +25,7 @@ Updated: 2026-07-27
 | Phase 9B item 8/10 — production execution runtime | Complete; loader, ASE/LBFGS optimizer, trajectory evidence, v8 rebaseline | 2026-07-27; local only; no model, no GPU, no server; eleven gates still false |
 | Phase 9B — paired direct / assisted smoke | Framework 8 of 10 complete; execution stopped before any irreversible action | 2026-07-27; no single interpreter carries both the MLFF and PySCF stacks; nothing deployed, placed, consumed, or launched |
 | Phase 9B-U1 — dedicated unified environment build and audit | Failed closed; incomplete v001 retained and unusable | 2026-07-27; exact stack installed, but capability harness observed 4 calculator invocations vs 2 expected; no retry; old environments unchanged |
-| Phase 9B-U2 — unified environment v002 | Document-first contract in progress; server write gate closed | 2026-07-27; new authorization and identities; U1 immutable; no scientific execution |
+| Phase 9B-U2 — unified environment v002 | Rejected environment; retained and unusable | 2026-07-27; capability counts/native/cache passed, but protected snapshot schema mismatch failed the canonical gate; no retry |
 
 ## Current completed work
 
@@ -117,6 +117,10 @@ Updated: 2026-07-27
 - Failed the unified capability harness closed after both endpoint property reads because the counting adapter observed four calculator invocations while the harness preregistered two. No retry or reinterpretation occurred; native-map, endpoint-payload and global-cache after evidence remained incomplete, so the v001 environment is `failed_incomplete_environment` and unusable.
 - Recomputed all four protected-environment snapshots after the failure and proved every before/after SHA identical. Retained the failed prefix, wheelhouse, cache and evidence; ran no optimizer, PySCF kernel/gradient, geomeTRIC, D3 energy or label calculation, and kept all eleven public execution gates false.
 - Closed the public U1 evidence with 1282 tests passing three consecutive times, targeted identity tests, Ruff lint/format, strict mypy for 88 source files, compileall, package-wheel build, privacy/diff/gate scans, independent v8 source digest recomputation, frozen Phase 8B artifact verification and a killed/restored document mutation. `pre-commit --all-files` reproduced only the recorded untouched-file Ruff 0.12.4 `UP038` baseline at `tests/test_phase8b_runtime.py:770`.
+- Completed the U2 document-first contract as PR #50 before the first server write, froze property-read versus `AIMNet2ASE.calculate()` terminology, and mutation-tested the append-only receipt harness.
+- Built the new v002 prefix from a copy-mode offline MLFF clone, newly downloaded all three exact official artifacts, rebuilt geomeTRIC, passed `pip check`, metadata validation, exact package checks, protected-package zero drift and zero v001 hardlinks.
+- Persisted both compatible import-order native receipts and acknowledgements, then observed exactly one model load, two wrappers, four property reads and four `AIMNet2ASE.calculate()` entries with finite endpoint results, unchanged coordinates, zero external Internet calls, and no global-cache or target-environment drift.
+- Rejected v002 because the before protected snapshot schema omitted `state` while the after schema added `state=present`; all physical tree and critical package evidence matched, but the canonical snapshot SHA contract did not. Retained all v002 resources and evidence without retry, repair, deletion, reuse, v003 creation, scientific execution, or label generation.
 
 ## Current boundary
 
@@ -263,13 +267,20 @@ capability harness observed four calculator invocations against a preregistered
 expectation of two; portable native-map, endpoint and global-cache-after
 evidence was therefore incomplete and the environment was not validated.
 
-The user has now explicitly authorized Phase 9B-U2 as a new, independent v002
-environment-build and validation attempt. Its document-first contract is
-`docs/PHASE9B_UNIFIED_ENVIRONMENT_V002_PLAN.md`; calculator terminology is
-frozen in `docs/PHASE9B_CALCULATOR_INVOCATION_SEMANTICS.md`. No server write may
-occur until that contract, its remote harness, and local tests are merged to
-`main`. U2 may not reuse or alter v001 and does not authorize scientific
-execution, postflight, or a closed-gate rehearsal.
+Phase 9B-U2 is complete with terminal status `rejected_environment`. Its
+calculator-count, native, cache, weight, target, and endpoint evidence is
+complete, but the formal protected snapshot comparison failed because Stage 0
+omitted a top-level `state` field which Stage 4 added. The physical tree and
+critical-package evidence matched; the preregistered canonical snapshot SHA did
+not, and was not repaired or reinterpreted. The full outcome is
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_V002_BUILD_REPORT.md`.
+
+The v002 prefix, wheelhouse, cache, logs, traces and receipts are retained and
+may not be deleted, repaired, retried or reused. No validated unified
+environment identity exists, so Unified Environment Identity Integration,
+Postflight, and the closed-gate rehearsal may not begin. The only safe next
+action under this authorization is to publish the retained U2 failure evidence
+and stop; no v003 attempt is authorized.
 
 A one-shot execution authorization was granted and its section 11 pre-execution
 audit failed: at that time there was no single interpreter on the compute host

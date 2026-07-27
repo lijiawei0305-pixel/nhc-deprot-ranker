@@ -10,10 +10,18 @@ as `failed_incomplete_environment`. It is not an accepted interpreter and may
 not be used. All environments that existed before U1 remain unchanged. See
 `docs/PHASE9B_UNIFIED_ENVIRONMENT_BUILD_REPORT.md`.
 
-A separately authorized, new-identity U2 environment attempt is now at its
-document-first gate. Its plan is
+A separately authorized, new-identity U2 environment attempt passed its
+document-first gate before any server write. Its plan is
 `docs/PHASE9B_UNIFIED_ENVIRONMENT_V002_PLAN.md`. Environment validation alone
-does not open the scientific-execution blocker or any public execution gate.
+did not open the scientific-execution blocker or any public execution gate.
+
+U2 has now completed as `rejected_environment`. Its exact stack, native imports,
+frozen four-call capability sequence, cache, weight, and target-after evidence
+passed, but the formal protected snapshot gate did not: Stage 0 omitted the
+top-level `state` key that Stage 4 emitted. The unchanged physical tree evidence
+does not permit a post-hoc canonical-SHA reinterpretation. See
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_V002_BUILD_REPORT.md`. No validated single
+interpreter therefore exists.
 
 The one-shot execution authorization requires, in its section 11, a single exact
 interpreter able to run the whole assisted route. That interpreter does not

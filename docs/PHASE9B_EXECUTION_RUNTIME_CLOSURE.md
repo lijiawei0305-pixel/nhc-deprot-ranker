@@ -353,6 +353,14 @@ source gap, are registered in
 closure, so schema v8 and its SHA256 remain unchanged during environment
 validation.
 
+U2 subsequently matched the frozen runtime-access observation exactly: one base
+model load, two endpoint wrappers, and two `AIMNet2ASE.calculate()` entries per
+endpoint for energy then forces. Its imports and native maps were compatible,
+but the environment was rejected at the protected canonical snapshot gate
+because before and after helpers emitted different top-level key sets. No
+`UnifiedExecutionEnvironmentIdentity v2` was issued, so the v8 control plane
+still has no accepted interpreter to integrate.
+
 ## 11. What this round did not do
 
 No SSH, no server, no deploy, no permit placed, no launch, no guardian or
