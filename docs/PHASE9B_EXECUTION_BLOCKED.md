@@ -201,3 +201,9 @@ qualified helper returned `state=invalid` instead of `present` for every
 protected object. The v003 resources remained absent and no build or capability
 operation began. U3 is retained as `failed_before_environment_creation` and
 cannot enter Identity Integration. No validated unified environment exists.
+
+U4 is now authorized only through the staged contract in
+`PHASE9B_UNIFIED_ENVIRONMENT_V004_PLAN.md`. Its document-first symlink-aware
+helper must merge before any SSH; then one read-only Q4 qualification must pass
+all six objects before v004 can exist. This authorization does not unblock
+Identity Integration, Postflight, rehearsal, permit, or science.
