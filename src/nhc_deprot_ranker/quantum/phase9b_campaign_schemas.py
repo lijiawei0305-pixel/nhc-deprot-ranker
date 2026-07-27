@@ -371,6 +371,148 @@ class AssistedCampaignPermitV3(StrictCampaignRecord):
             raise CampaignSchemaError("A1 local limit must be 900 seconds")
         if campaign.get("termination_grace_seconds") != 10:
             raise CampaignSchemaError("termination grace must be 10 seconds")
+        require_exact_keys(
+            campaign,
+            frozenset(
+                {
+                    "campaign_id",
+                    "candidate",
+                    "route",
+                    "attempt_id",
+                    "remote_root_identity_sha256",
+                    "topology",
+                    "endpoint_order",
+                    "schedule",
+                    "campaign_wall_limit_seconds",
+                    "a1_local_limit_seconds",
+                    "termination_grace_seconds",
+                }
+            ),
+            "permit.campaign",
+        )
+        for field in ("campaign_id", "candidate", "attempt_id"):
+            require_id(campaign[field], f"campaign.{field}")
+        if (
+            campaign["route"] != "assisted"
+            or campaign["topology"] != "split_process_campaign"
+            or campaign["endpoint_order"] != ["cation", "neutral"]
+            or campaign["schedule"]
+            != [
+                "aimnet2_preoptimization",
+                "handoff_verification",
+                "pyscf_residual_optimization",
+            ]
+        ):
+            raise CampaignSchemaError("campaign topology/schedule drifted")
+        require_sha256(campaign["remote_root_identity_sha256"], "remote root identity")
+        inputs = payload["inputs"]
+        if not isinstance(inputs, Mapping):
+            raise CampaignSchemaError("permit inputs must be an object")
+        require_exact_keys(
+            inputs,
+            frozenset({"cation", "neutral", "electron_count", "atom_map_sha256"}),
+            "permit.inputs",
+        )
+        if inputs["electron_count"] != 160:
+            raise CampaignSchemaError("permit electron count drifted")
+        require_sha256(inputs["atom_map_sha256"], "atom_map_sha256")
+        for endpoint, charge, atom_count in (("cation", 1, 26), ("neutral", 0, 25)):
+            endpoint_payload = inputs[endpoint]
+            if not isinstance(endpoint_payload, Mapping):
+                raise CampaignSchemaError(f"permit {endpoint} input must be an object")
+            require_exact_keys(
+                endpoint_payload,
+                frozenset(
+                    {
+                        "xyz_sha256",
+                        "xyz_byte_count",
+                        "atom_count",
+                        "element_order_sha256",
+                        "charge",
+                        "multiplicity",
+                    }
+                ),
+                f"permit.inputs.{endpoint}",
+            )
+            if (
+                endpoint_payload["charge"] != charge
+                or endpoint_payload["multiplicity"] != 1
+                or endpoint_payload["atom_count"] != atom_count
+            ):
+                raise CampaignSchemaError(f"permit {endpoint} state/atom count drifted")
+            require_int(endpoint_payload["xyz_byte_count"], f"{endpoint} XYZ bytes", minimum=1)
+            require_sha256(endpoint_payload["xyz_sha256"], f"{endpoint} XYZ SHA256")
+            require_sha256(
+                endpoint_payload["element_order_sha256"], f"{endpoint} element-order SHA256"
+            )
+        source = payload["source"]
+        expected_source = {
+            "campaign_control_source_sha256",
+            "shared_pyscf_core_source_sha256",
+            "shared_schema_source_sha256",
+            "stage_a1_source_sha256",
+            "stage_a2_source_sha256",
+            "full_assisted_campaign_source_sha256",
+            "closure_dependency_edges_sha256",
+            "deployment_inventory_sha256",
+        }
+        if not isinstance(source, Mapping):
+            raise CampaignSchemaError("permit source must be an object")
+        require_exact_keys(source, frozenset(expected_source), "permit.source")
+        for field in expected_source:
+            require_sha256(source[field], field)
+        profiles = payload["interpreter_profiles"]
+        if not isinstance(profiles, Mapping) or set(profiles) != {"a1", "direct_and_a2"}:
+            raise CampaignSchemaError("permit interpreter profile set drifted")
+        for role, profile in profiles.items():
+            if not isinstance(profile, Mapping):
+                raise CampaignSchemaError(f"permit interpreter profile is invalid: {role}")
+            required_profile = {
+                "logical_profile_id",
+                "python_version",
+                "package_versions",
+                "executable_content_sha256",
+                "activation_script_sha256",
+                "runtime_capabilities",
+                "sanitized_environment_identity_sha256",
+                "stable_identity_sha256",
+            }
+            require_exact_keys(profile, frozenset(required_profile), f"permit.profile.{role}")
+            require_id(profile["logical_profile_id"], f"profile.{role}.id")
+            if profile["python_version"] != "3.11.15":
+                raise CampaignSchemaError("permit interpreter Python drifted")
+            for field in required_profile & {
+                "executable_content_sha256",
+                "activation_script_sha256",
+                "sanitized_environment_identity_sha256",
+                "stable_identity_sha256",
+            }:
+                require_sha256(profile[field], f"profile.{role}.{field}")
+            if not isinstance(profile["package_versions"], Mapping) or not isinstance(
+                profile["runtime_capabilities"], list
+            ):
+                raise CampaignSchemaError("permit interpreter profile projection drifted")
+        schema_identities = payload["schema_identities"]
+        if not isinstance(schema_identities, Mapping) or set(schema_identities) != {
+            "admission",
+            "campaign_terminal",
+            "handoff_proposal",
+            "handoff_verification",
+            "internal_stage_capability",
+        }:
+            raise CampaignSchemaError("permit schema identity set drifted")
+        if any(not isinstance(value, str) or not value for value in schema_identities.values()):
+            raise CampaignSchemaError("permit schema identity is invalid")
+        evidence = payload["evidence"]
+        if not isinstance(evidence, Mapping) or set(evidence) != {
+            "evidence_schema_set_sha256",
+            "evidence_tree_identity_sha256",
+        }:
+            raise CampaignSchemaError("permit evidence identity set drifted")
+        for field, value in evidence.items():
+            require_sha256(value, f"evidence.{field}")
+        if not isinstance(payload["resources"], Mapping) or not payload["resources"]:
+            raise CampaignSchemaError("permit resources must be a non-empty object")
         for field in ("request_sha256", "manifest_sha256"):
             require_sha256(payload[field], field)
 

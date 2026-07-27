@@ -292,12 +292,25 @@ def main(argv: list[str] | None = None) -> int:
     from nhc_deprot_ranker.quantum import two_endpoint
 
     request = two_endpoint.load_two_endpoint_request(values.request_path)
-    proposal = A1HandoffProposalReceiptV1.from_bytes(values.proposal_path.read_bytes())
-    verification = SupervisorHandoffVerificationReceiptV1.from_bytes(
-        values.verification_path.read_bytes()
-    )
-    admission = StageA2AdmissionReceiptV1.from_bytes(values.admission_path.read_bytes())
     store = CampaignEvidenceStore(values.evidence_root.resolve(strict=True))
+    expected_paths = {
+        "proposal": store.root / "runtime/stage_a1/handoff_proposal.json",
+        "verification": store.root / "runtime/handoff/verification.json",
+        "admission": store.root / "runtime/handoff/a2_admission.json",
+    }
+    supplied = {
+        "proposal": values.proposal_path,
+        "verification": values.verification_path,
+        "admission": values.admission_path,
+    }
+    if supplied != expected_paths:
+        raise StageA2Error("A2 evidence paths differ from the frozen evidence tree")
+    proposal_raw, _ = store.read("runtime/stage_a1/handoff_proposal.json")
+    verification_raw, _ = store.read("runtime/handoff/verification.json")
+    admission_raw, _ = store.read("runtime/handoff/a2_admission.json")
+    proposal = A1HandoffProposalReceiptV1.from_bytes(proposal_raw)
+    verification = SupervisorHandoffVerificationReceiptV1.from_bytes(verification_raw)
+    admission = StageA2AdmissionReceiptV1.from_bytes(admission_raw)
     _, terminal = run_stage_a2(
         capability=capability,
         request=request,

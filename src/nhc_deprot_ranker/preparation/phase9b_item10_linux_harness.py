@@ -9,21 +9,30 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import select
+import subprocess
 import sys
 import tempfile
+from contextlib import suppress
 from pathlib import Path
 
 from nhc_deprot_ranker.quantum.phase9b_campaign_evidence import CampaignEvidenceStore
-from nhc_deprot_ranker.quantum.phase9b_campaign_schemas import AssistedCampaignIdentityV1
+from nhc_deprot_ranker.quantum.phase9b_campaign_schemas import (
+    AssistedCampaignIdentityV1,
+    AssistedCampaignTerminalReceiptV1,
+    canonical_json_bytes,
+    strict_json_object,
+)
 from nhc_deprot_ranker.quantum.phase9b_campaign_supervisor import (
     CampaignExecutionPlan,
     CampaignRuntimeInputs,
     StageSubprocessSpec,
-    run_assisted_campaign,
 )
 from nhc_deprot_ranker.quantum.phase9b_internal_stage_capability import (
     PHASE9B_A1_STAGE_PROFILE,
     PHASE9B_A2_STAGE_PROFILE,
+    read_pipe_frame,
+    write_pipe_frame,
 )
 from nhc_deprot_ranker.quantum.phase9b_interpreter_profiles import (
     GPUPYSCF_STABLE_PROFILE,
@@ -211,11 +220,112 @@ def _scenario(
     return inputs, plan, CampaignEvidenceStore(evidence_root)
 
 
+def _stage_spec_payload(spec: StageSubprocessSpec) -> dict[str, object]:
+    return {
+        "stage": spec.profile.stage.value,
+        "argv_template": list(spec.argv_template),
+        "cwd": spec.cwd.as_posix(),
+        "environment": dict(spec.environment),
+        "stage_source_sha256": spec.stage_source_sha256,
+        "executable_sha256": spec.executable_sha256,
+        "registration_nonce_sha256": spec.registration_nonce_sha256,
+    }
+
+
+def _supervisor_bootstrap_payload(
+    inputs: CampaignRuntimeInputs,
+    plan: CampaignExecutionPlan,
+    store: CampaignEvidenceStore,
+) -> dict[str, object]:
+    runtime = {
+        field: getattr(inputs, field)
+        for field in inputs.__dataclass_fields__
+        if field not in {"campaign_identity", "campaign_capability_sha256"}
+    }
+    runtime["campaign_identity"] = inputs.campaign_identity.to_payload()
+    return {
+        "schema_version": "nhc-phase9b-campaign-supervisor-bootstrap-v1",
+        "runtime_inputs": runtime,
+        "execution_plan": {
+            "a1": _stage_spec_payload(plan.a1_spec),
+            "a2": _stage_spec_payload(plan.a2_spec),
+        },
+        "evidence_root": store.root.as_posix(),
+    }
+
+
+def _run_supervisor_process(
+    inputs: CampaignRuntimeInputs,
+    plan: CampaignExecutionPlan,
+    store: CampaignEvidenceStore,
+) -> AssistedCampaignTerminalReceiptV1:
+    capability_read, capability_write = os.pipe()
+    ack_read, ack_write = os.pipe()
+    os.set_inheritable(capability_read, True)
+    os.set_inheritable(ack_write, True)
+    process = subprocess.Popen(
+        (
+            os.path.realpath(sys.executable),
+            "-m",
+            "nhc_deprot_ranker.quantum.phase9b_campaign_supervisor",
+            "--campaign-capability-fd",
+            str(capability_read),
+            "--campaign-ack-fd",
+            str(ack_write),
+        ),
+        shell=False,
+        start_new_session=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        close_fds=True,
+        pass_fds=(capability_read, ack_write),
+        cwd=Path(__file__).resolve().parents[2],
+        env={key: value for key, value in os.environ.items() if key != ("PYTHON" + "PATH")},
+    )
+    os.close(capability_read)
+    os.close(ack_write)
+    try:
+        write_pipe_frame(
+            capability_write,
+            canonical_json_bytes(_supervisor_bootstrap_payload(inputs, plan, store)),
+        )
+        os.close(capability_write)
+        ready, _, _ = select.select([ack_read], [], [], 10.0)
+        if not ready:
+            raise AssertionError("campaign supervisor did not acknowledge")
+        acknowledgement = strict_json_object(
+            read_pipe_frame(ack_read), label="campaign supervisor acknowledgement"
+        )
+        identity = inputs.campaign_identity.to_payload()
+        if acknowledgement != {
+            "schema_version": "nhc-phase9b-campaign-supervisor-ack-v1",
+            "campaign_id": identity["campaign_id"],
+            "attempt_id": identity["attempt_id"],
+            "acknowledged": True,
+        }:
+            raise AssertionError("campaign supervisor acknowledgement drifted")
+        stdout, stderr = process.communicate(timeout=30.0)
+        if process.returncode != 0 or stdout or stderr:
+            raise AssertionError(
+                f"campaign supervisor failed: rc={process.returncode}, stderr={stderr!r}"
+            )
+    finally:
+        for descriptor in (capability_read, capability_write, ack_read, ack_write):
+            with suppress(OSError):
+                os.close(descriptor)
+        if process.poll() is None:
+            os.killpg(process.pid, 15)
+            process.wait(timeout=5.0)
+    raw = (store.root / "runtime/campaign/campaign_terminal.json").read_bytes()
+    return AssistedCampaignTerminalReceiptV1.from_bytes(raw)
+
+
 def run_authoritative_checks(root: Path) -> dict[str, object]:
     if sys.platform != "linux" or not hasattr(os, "waitid") or not hasattr(os, "WNOWAIT"):
         raise RuntimeError("Linux waitid(WNOWAIT) is required")
     inputs, plan, store = _scenario(root)
-    terminal = run_assisted_campaign(inputs=inputs, plan=plan, store=store)
+    terminal = _run_supervisor_process(inputs, plan, store)
     payload = terminal.to_payload()
     if (
         payload["route_outcome"] != "accepted"
@@ -226,7 +336,14 @@ def run_authoritative_checks(root: Path) -> dict[str, object]:
     label = payload["label"]
     if not isinstance(label, dict) or label.get("synthetic_test_only") is not True:
         raise AssertionError("fake campaign label was not clearly synthetic")
-    store.assert_no_extra_files()
+    manifest = strict_json_object(
+        (store.root / "runtime/evidence/evidence_manifest.json").read_bytes(),
+        label="campaign evidence manifest",
+    )
+    actual = {
+        path.relative_to(store.root).as_posix() for path in store.root.rglob("*") if path.is_file()
+    }
+    assert set(manifest["files"]) | {"runtime/evidence/evidence_manifest.json"} == actual
     timeout = run_supervised(
         (
             sys.executable,

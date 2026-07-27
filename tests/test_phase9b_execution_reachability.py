@@ -414,7 +414,8 @@ def test_only_an_exact_attempt_selects_an_adapter() -> None:
 
 def test_no_attempt_matches_two_adapters() -> None:
     seen = [adapter.attempt_id for adapter in ex.registered_execution_adapters()]
-    assert len(seen) == len(set(seen)) == 3
+    assert len(seen) == len(set(seen)) == 4
+    assert "attempt-phase9b-lbnp-direct-v003" in seen
 
 
 def test_an_adapter_refuses_another_attempt() -> None:

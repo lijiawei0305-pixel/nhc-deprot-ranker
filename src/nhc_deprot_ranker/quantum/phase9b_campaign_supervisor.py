@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import os
 import select
@@ -35,6 +36,8 @@ from nhc_deprot_ranker.quantum.phase9b_cross_process_handoff import (
     verify_a1_handoff,
 )
 from nhc_deprot_ranker.quantum.phase9b_internal_stage_capability import (
+    PHASE9B_A1_STAGE_PROFILE,
+    PHASE9B_A2_STAGE_PROFILE,
     CampaignSupervisorCapabilityIssuer,
     CapabilityIssueInputs,
     InternalStageCapabilityV1,
@@ -200,6 +203,8 @@ class StageLaunchResult:
     capability: InternalStageCapabilityV1 | None
     registration: StageRegistrationReceiptV1 | None
     acknowledgement: StageAcknowledgementReceiptV1 | None
+    started_monotonic_ns: int
+    ended_monotonic_ns: int
     label: Mapping[str, object] | None = None
 
     @property
@@ -210,6 +215,7 @@ class StageLaunchResult:
             and self.capability is not None
             and self.registration is not None
             and self.acknowledgement is not None
+            and 0 < self.started_monotonic_ns <= self.ended_monotonic_ns
         )
 
 
@@ -349,6 +355,7 @@ def launch_registered_stage_subprocess(request: StageLaunchRequest) -> StageLaun
                 with suppress(OSError):
                     os.close(descriptor)
 
+    started_monotonic_ns = time.monotonic_ns()
     try:
         result = run_supervised(
             argv,
@@ -367,6 +374,7 @@ def launch_registered_stage_subprocess(request: StageLaunchRequest) -> StageLaun
             on_process_started=on_started,
         )
     finally:
+        ended_monotonic_ns = time.monotonic_ns()
         for descriptor in (registration_write, release_read, registration_read, release_write):
             with suppress(OSError):
                 os.close(descriptor)
@@ -408,6 +416,8 @@ def launch_registered_stage_subprocess(request: StageLaunchRequest) -> StageLaun
         capability=capability,
         registration=registration,
         acknowledgement=acknowledgement,
+        started_monotonic_ns=started_monotonic_ns,
+        ended_monotonic_ns=ended_monotonic_ns,
         label=label,
     )
 
@@ -445,6 +455,125 @@ class CampaignRuntimeInputs:
 class CampaignExecutionPlan:
     a1_spec: StageSubprocessSpec
     a2_spec: StageSubprocessSpec
+
+
+_RUNTIME_INPUT_KEYS: Final = frozenset(
+    {
+        "campaign_identity",
+        "candidate",
+        "request_id",
+        "attempt_id",
+        "request_sha256",
+        "manifest_sha256",
+        "resources_sha256",
+        "full_source_sha256",
+        "shared_schema_source_sha256",
+        "shared_pyscf_core_source_sha256",
+        "campaign_control_source_sha256",
+        "stage_a1_source_sha256",
+        "stage_a2_source_sha256",
+        "mlff_stable_profile_id",
+        "mlff_stable_profile_sha256",
+        "mlff_private_binding_sha256",
+        "gpupyscf_stable_profile_id",
+        "gpupyscf_stable_profile_sha256",
+        "gpupyscf_private_binding_sha256",
+        "input_identity_sha256",
+        "output_root_identity_sha256",
+        "schema_identities_sha256",
+        "weight_sha256",
+        "optimizer_protocol_sha256",
+    }
+)
+
+
+def _parse_stage_spec(payload: object, *, expected: StageName) -> StageSubprocessSpec:
+    if not isinstance(payload, dict) or set(payload) != {
+        "stage",
+        "argv_template",
+        "cwd",
+        "environment",
+        "stage_source_sha256",
+        "executable_sha256",
+        "registration_nonce_sha256",
+    }:
+        raise CampaignSupervisorError("private stage specification fields drifted")
+    if payload["stage"] != expected.value:
+        raise CampaignSupervisorError("private stage specification selected another stage")
+    argv = payload["argv_template"]
+    environment = payload["environment"]
+    if (
+        not isinstance(argv, list)
+        or not argv
+        or any(not isinstance(item, str) or not item for item in argv)
+        or not isinstance(environment, dict)
+        or any(
+            not isinstance(key, str)
+            or not isinstance(value, str)
+            or "\x00" in key
+            or "\x00" in value
+            for key, value in environment.items()
+        )
+        or ("PYTHON" + "PATH") in environment
+    ):
+        raise CampaignSupervisorError("private stage argv/environment is invalid")
+    cwd = Path(cast(str, payload["cwd"]))
+    executable = Path(cast(list[str], argv)[0])
+    if not executable.is_absolute():
+        raise CampaignSupervisorError("stage interpreter must be an exact absolute executable")
+    profile = PHASE9B_A1_STAGE_PROFILE if expected is StageName.A1 else PHASE9B_A2_STAGE_PROFILE
+    return StageSubprocessSpec(
+        profile=profile,
+        argv_template=tuple(cast(list[str], argv)),
+        cwd=cwd,
+        environment=cast(dict[str, str], environment),
+        stage_source_sha256=cast(str, payload["stage_source_sha256"]),
+        executable_sha256=cast(str, payload["executable_sha256"]),
+        registration_nonce_sha256=cast(str, payload["registration_nonce_sha256"]),
+    )
+
+
+def parse_campaign_supervisor_bootstrap(
+    raw: bytes,
+) -> tuple[CampaignRuntimeInputs, CampaignExecutionPlan, CampaignEvidenceStore]:
+    """Strictly parse one private, pipe-delivered campaign capability.
+
+    The capability is never read from argv, the request, or a durable reusable
+    token.  Its raw canonical bytes are the issuer identity used by both stage
+    capabilities.
+    """
+
+    payload = strict_json_object(raw, label="campaign supervisor bootstrap")
+    if set(payload) != {"schema_version", "runtime_inputs", "execution_plan", "evidence_root"}:
+        raise CampaignSupervisorError("campaign supervisor bootstrap fields drifted")
+    if payload["schema_version"] != "nhc-phase9b-campaign-supervisor-bootstrap-v1":
+        raise CampaignSupervisorError("campaign supervisor bootstrap schema drifted")
+    runtime = payload["runtime_inputs"]
+    execution = payload["execution_plan"]
+    if not isinstance(runtime, dict) or set(runtime) != _RUNTIME_INPUT_KEYS:
+        raise CampaignSupervisorError("campaign runtime input fields drifted")
+    if not isinstance(execution, dict) or set(execution) != {"a1", "a2"}:
+        raise CampaignSupervisorError("campaign execution plan fields drifted")
+    identity_payload = runtime["campaign_identity"]
+    if not isinstance(identity_payload, dict):
+        raise CampaignSupervisorError("campaign identity payload is invalid")
+    identity = AssistedCampaignIdentityV1(identity_payload)
+    evidence_root = Path(cast(str, payload["evidence_root"]))
+    if not evidence_root.is_absolute():
+        raise CampaignSupervisorError("campaign evidence root must be absolute")
+    scalars = {key: value for key, value in runtime.items() if key != "campaign_identity"}
+    if any(not isinstance(value, str) or not value for value in scalars.values()):
+        raise CampaignSupervisorError("campaign runtime scalar identity is invalid")
+    inputs = CampaignRuntimeInputs(
+        campaign_identity=identity,
+        campaign_capability_sha256=hashlib.sha256(raw).hexdigest(),
+        **cast(dict[str, str], scalars),
+    )
+    plan = CampaignExecutionPlan(
+        a1_spec=_parse_stage_spec(execution["a1"], expected=StageName.A1),
+        a2_spec=_parse_stage_spec(execution["a2"], expected=StageName.A2),
+    )
+    return inputs, plan, CampaignEvidenceStore(evidence_root)
 
 
 def _process_absence_digest(result: SupervisionResult) -> str:
@@ -562,7 +691,7 @@ def run_assisted_campaign(
             admission_sha256=None,
             a2_terminal_sha256=None,
         )
-    a1_end_ns = clock_ns()
+    a1_end_ns = a1_launch.ended_monotonic_ns
     absence_digest = _process_absence_digest(a1_launch.supervision)
     a1_terminal = _terminal_from_store(
         store, "runtime/stage_a1/terminal.json", StageA1TerminalReceiptV1
@@ -608,7 +737,10 @@ def run_assisted_campaign(
             admission_sha256=None,
             a2_terminal_sha256=None,
         )
-    admission_time = clock_ns()
+    handoff_end_ns = clock_ns()
+    if handoff_end_ns < handoff_start_ns:
+        raise CampaignSupervisorError("handoff verification clock moved backwards")
+    admission_time = handoff_end_ns
     admission = admit_stage_a2(
         proposal,
         verification,
@@ -662,9 +794,16 @@ def run_assisted_campaign(
             admission_sha256=admission.sha256(),
             a2_terminal_sha256=None,
         )
-    a2_start_ns = admission_time
-    if a2_start_ns < handoff_start_ns or a2_start_ns < a1_end_ns:
+    a2_start_ns = a2_launch.started_monotonic_ns
+    if (
+        a1_launch.started_monotonic_ns > a1_end_ns
+        or a1_end_ns > handoff_start_ns
+        or handoff_start_ns > handoff_end_ns
+        or handoff_end_ns > a2_start_ns
+    ):
         raise CampaignSupervisorError("A1 and A2 process windows overlap")
+    if a2_launch.ended_monotonic_ns > campaign_deadline:
+        raise CampaignSupervisorError("A2 exceeded the campaign absolute deadline")
     _process_absence_digest(a2_launch.supervision)
     a2_terminal = _terminal_from_store(
         store, "runtime/stage_a2/terminal.json", StageA2TerminalReceiptV1
@@ -694,6 +833,34 @@ def run_assisted_campaign(
             admission_sha256=admission.sha256(),
             a2_terminal_sha256=a2_terminal.sha256(),
         )
+    store.write_json(
+        "runtime/evidence/process_tree.json",
+        {
+            "schema_version": "nhc-phase9b-campaign-process-tree-v1",
+            "a1": {
+                "pid": a1_launch.supervision.pid,
+                "pgid": a1_launch.supervision.pgid,
+                "start_monotonic_ns": a1_launch.started_monotonic_ns,
+                "end_monotonic_ns": a1_launch.ended_monotonic_ns,
+                "direct_child_reaped": a1_launch.supervision.direct_child_reaped,
+                "group_cleanup_confirmed": a1_launch.supervision.group_cleanup_confirmed,
+            },
+            "handoff": {
+                "start_monotonic_ns": handoff_start_ns,
+                "end_monotonic_ns": handoff_end_ns,
+            },
+            "a2": {
+                "pid": a2_launch.supervision.pid,
+                "pgid": a2_launch.supervision.pgid,
+                "start_monotonic_ns": a2_launch.started_monotonic_ns,
+                "end_monotonic_ns": a2_launch.ended_monotonic_ns,
+                "direct_child_reaped": a2_launch.supervision.direct_child_reaped,
+                "group_cleanup_confirmed": a2_launch.supervision.group_cleanup_confirmed,
+            },
+            "campaign_absolute_deadline_ns": campaign_deadline,
+            "stage_overlap": False,
+        },
+    )
     return _write_campaign_terminal(
         inputs=inputs,
         store=store,
@@ -794,6 +961,35 @@ def _write_campaign_terminal(
     return terminal
 
 
+def main(argv: list[str] | None = None) -> int:
+    """Private campaign-supervisor entry; only inherited pipe FDs are accepted."""
+
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--campaign-capability-fd", required=True, type=int)
+    parser.add_argument("--campaign-ack-fd", required=True, type=int)
+    arguments = parser.parse_args(argv)
+    if (
+        arguments.campaign_capability_fd < 0
+        or arguments.campaign_ack_fd < 0
+        or arguments.campaign_capability_fd == arguments.campaign_ack_fd
+    ):
+        raise CampaignSupervisorError("campaign inherited pipe descriptors are invalid")
+    raw = read_pipe_frame(arguments.campaign_capability_fd)
+    inputs, plan, store = parse_campaign_supervisor_bootstrap(raw)
+    identity = inputs.campaign_identity.to_payload()
+    acknowledgement = {
+        "schema_version": "nhc-phase9b-campaign-supervisor-ack-v1",
+        "campaign_id": identity["campaign_id"],
+        "attempt_id": identity["attempt_id"],
+        "acknowledged": True,
+    }
+    write_pipe_frame(arguments.campaign_ack_fd, canonical_json_bytes(acknowledgement))
+    os.close(arguments.campaign_capability_fd)
+    os.close(arguments.campaign_ack_fd)
+    terminal = run_assisted_campaign(inputs=inputs, plan=plan, store=store)
+    return 0 if terminal.to_payload()["route_outcome"] == "accepted" else 1
+
+
 __all__ = [
     "A1_LOCAL_NS",
     "CAMPAIGN_SUPERVISOR_SCHEMA_VERSION",
@@ -809,5 +1005,11 @@ __all__ = [
     "StageSubprocessSpec",
     "derive_campaign_schedule",
     "launch_registered_stage_subprocess",
+    "main",
+    "parse_campaign_supervisor_bootstrap",
     "run_assisted_campaign",
 ]
+
+
+if __name__ == "__main__":  # pragma: no cover - exercised through Linux process tests
+    raise SystemExit(main())

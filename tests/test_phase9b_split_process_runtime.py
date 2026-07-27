@@ -29,7 +29,14 @@ from nhc_deprot_ranker.quantum.phase9b_campaign_evidence import (
     CampaignEvidenceError,
     CampaignEvidenceStore,
 )
+from nhc_deprot_ranker.quantum.phase9b_campaign_guardian import (
+    CampaignGuardianLaunchPlan,
+    CampaignGuardianNotAuthorizedError,
+    _assert_permit_matches_plan,
+    launch_assisted_campaign_guardian,
+)
 from nhc_deprot_ranker.quantum.phase9b_campaign_schemas import (
+    AssistedCampaignIdentityV1,
     AssistedCampaignPermitV3,
     CampaignScheduleV1,
     CampaignSchemaError,
@@ -37,6 +44,7 @@ from nhc_deprot_ranker.quantum.phase9b_campaign_schemas import (
     StageName,
     StageRegistrationReceiptV1,
     canonical_json_bytes,
+    canonical_sha256,
     render_non_authorizing_permit,
     strict_json_object,
 )
@@ -63,6 +71,7 @@ from nhc_deprot_ranker.quantum.phase9b_internal_stage_capability import (
     make_release_frame,
 )
 from nhc_deprot_ranker.quantum.phase9b_interpreter_profiles import (
+    CONTROL_PLANE_STABLE_PROFILE_SHA256,
     GPUPYSCF_STABLE_PROFILE,
     MLFF_STABLE_PROFILE,
 )
@@ -79,6 +88,7 @@ from nhc_deprot_ranker.quantum.phase9b_source_identity import (
     compute_composite_source_identity,
     validate_source_closure_definitions,
 )
+from nhc_deprot_ranker.quantum.phase9b_stage_a1 import A1EndpointOutcome, run_stage_a1
 from nhc_deprot_ranker.quantum.phase9b_stage_a2 import run_stage_a2
 
 _SHA = "a" * 64
@@ -86,7 +96,7 @@ _SHA = "a" * 64
 
 def _profile_assignments() -> dict[str, str]:
     return {
-        "control_plane_standard_library": hashlib.sha256(b"stdlib-control-v1").hexdigest(),
+        "control_plane_standard_library": CONTROL_PLANE_STABLE_PROFILE_SHA256,
         "a1_mlff": MLFF_STABLE_PROFILE.sha256(),
         "direct_and_a2_gpupyscf": GPUPYSCF_STABLE_PROFILE.sha256(),
     }
@@ -156,6 +166,14 @@ def test_v8_direct_characterization_and_shared_core_are_byte_identical(tmp_path:
         ]
     )
     assert _tree_bytes(direct_output) == _tree_bytes(core_output)
+
+
+def test_v3_direct_attempt_resolves_only_to_the_shared_core_adapter() -> None:
+    adapter = phase9b_execution.resolve_execution_adapter("attempt-phase9b-lbnp-direct-v003")
+    assert adapter is phase9b_execution.DIRECT_V3_ADAPTER
+    assert adapter.route == "direct"
+    assert adapter.uses_preoptimization is False
+    assert adapter.imports_machine_learning_stack is False
 
 
 def test_shared_core_rejects_parent_memory_or_parser_digest_drift() -> None:
@@ -272,6 +290,62 @@ def test_permit_binds_durations_not_absolute_timestamp_and_renderer_stays_false(
     payload["campaign"]["campaign_absolute_deadline_ns"] = 7_200_000_000_000
     with pytest.raises(CampaignSchemaError, match="absolute deadline"):
         AssistedCampaignPermitV3(payload)
+
+
+def _guardian_plan_from_example(
+    tmp_path: Path,
+) -> tuple[AssistedCampaignPermitV3, CampaignGuardianLaunchPlan]:
+    payload = json.loads(
+        Path("docs/schemas/phase9b_assisted_campaign_permit_v3.example.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    permit = AssistedCampaignPermitV3(payload)
+    campaign = payload["campaign"]
+    profiles = payload["interpreter_profiles"]
+    identity = AssistedCampaignIdentityV1(
+        {
+            "schema_version": AssistedCampaignIdentityV1.SCHEMA_VERSION,
+            "campaign_id": campaign["campaign_id"],
+            "attempt_id": campaign["attempt_id"],
+            "candidate": campaign["candidate"],
+            "route": "assisted",
+            "request_sha256": payload["request_sha256"],
+            "manifest_sha256": payload["manifest_sha256"],
+            "resources_sha256": canonical_sha256(payload["resources"]),
+            "full_source_sha256": payload["source"]["full_assisted_campaign_source_sha256"],
+            "mlff_profile_sha256": profiles["a1"]["stable_identity_sha256"],
+            "gpupyscf_profile_sha256": profiles["direct_and_a2"]["stable_identity_sha256"],
+        }
+    )
+    plan = CampaignGuardianLaunchPlan(
+        campaign_id=campaign["campaign_id"],
+        attempt_id=campaign["attempt_id"],
+        candidate=campaign["candidate"],
+        ready_permit_path=(tmp_path / "private/permit.ready.json").resolve(),
+        supervisor_argv_template=("/verified/python", "-m", "supervisor"),
+        cwd=tmp_path.resolve(),
+        environment={},
+        campaign_capability_payload={"synthetic": True},
+        campaign_identity=identity,
+    )
+    return permit, plan
+
+
+def test_guardian_binds_permit_to_plan_and_closed_gate_has_zero_side_effect(
+    tmp_path: Path,
+) -> None:
+    permit, plan = _guardian_plan_from_example(tmp_path)
+    _assert_permit_matches_plan(permit, plan)
+    drifted = permit.to_payload()
+    drifted["request_sha256"] = "f" * 64
+    with pytest.raises(Exception, match="frozen guardian plan"):
+        _assert_permit_matches_plan(AssistedCampaignPermitV3(drifted), plan)
+    root = (tmp_path / "evidence").resolve()
+    with pytest.raises(CampaignGuardianNotAuthorizedError, match="closed"):
+        launch_assisted_campaign_guardian(plan, store=CampaignEvidenceStore(root))
+    assert not root.exists()
+    assert not plan.ready_permit_path.exists()
 
 
 def test_runtime_schedule_binds_boot_clock_and_exact_7200_seconds() -> None:
@@ -592,6 +666,80 @@ def _write_phase9b_request(root: Path) -> Path:
     path = root / "request.json"
     path.write_bytes(canonical_json_bytes(payload))
     return path
+
+
+def test_a1_fake_runtime_loads_once_runs_both_and_cation_failure_skips_neutral(
+    tmp_path: Path,
+) -> None:
+    request = two_endpoint.load_two_endpoint_request(_write_phase9b_request(tmp_path / "request"))
+    capability, _, _ = _issue(StageName.A1)
+
+    class FakeA1Runtime:
+        def __init__(self, *, fail_cation: bool = False) -> None:
+            self.loads = 0
+            self.calls: list[str] = []
+            self.fail_cation = fail_cation
+
+        @property
+        def model_load_count(self) -> int:
+            return self.loads
+
+        def load_base_model_once(self) -> None:
+            self.loads += 1
+
+        def run_endpoint(self, endpoint: object, *, deadline_monotonic: float) -> A1EndpointOutcome:
+            del deadline_monotonic
+            name = endpoint.name
+            self.calls.append(name)
+            if name == "cation" and self.fail_cation:
+                raise RuntimeError("synthetic cation rejection")
+            raw = endpoint.xyz_path.read_bytes()
+            return A1EndpointOutcome(
+                endpoint=name,
+                input_xyz_bytes=raw,
+                output_xyz_bytes=raw,
+                trajectory_bytes=b'{"synthetic_test_only":true}\n',
+                structural_gates_passed=True,
+                final_max_force_ev_per_angstrom=0.01,
+                optimizer_step_count=1,
+                calculator_invocation_count=2,
+            )
+
+    accepted_runtime = FakeA1Runtime()
+    proposal, terminal = run_stage_a1(
+        capability=capability,
+        request=request,
+        store=CampaignEvidenceStore((tmp_path / "accepted").resolve()),
+        runtime=accepted_runtime,
+        campaign_id="campaign-v1",
+        candidate="candidate-v1",
+        stage_a1_source_sha256="1" * 64,
+        mlff_interpreter_profile_sha256="2" * 64,
+        weight_sha256="3" * 64,
+        optimizer_protocol_sha256="4" * 64,
+    )
+    assert proposal is not None
+    assert terminal.to_payload()["terminal_state"] == "accepted"
+    assert accepted_runtime.loads == 1
+    assert accepted_runtime.calls == ["cation", "neutral"]
+
+    failed_runtime = FakeA1Runtime(fail_cation=True)
+    proposal, terminal = run_stage_a1(
+        capability=capability,
+        request=request,
+        store=CampaignEvidenceStore((tmp_path / "rejected").resolve()),
+        runtime=failed_runtime,
+        campaign_id="campaign-v1",
+        candidate="candidate-v1",
+        stage_a1_source_sha256="1" * 64,
+        mlff_interpreter_profile_sha256="2" * 64,
+        weight_sha256="3" * 64,
+        optimizer_protocol_sha256="4" * 64,
+    )
+    assert proposal is None
+    assert terminal.to_payload()["terminal_state"] == "rejected_cation"
+    assert failed_runtime.loads == 1
+    assert failed_runtime.calls == ["cation"]
 
 
 def test_evidence_store_refuses_overwrite_symlink_extra_and_unregistered_path(

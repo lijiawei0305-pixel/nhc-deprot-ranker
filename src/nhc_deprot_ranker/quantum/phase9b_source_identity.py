@@ -9,6 +9,11 @@ from pathlib import Path
 from typing import Final
 
 from nhc_deprot_ranker.quantum.phase9b_campaign_schemas import canonical_json_bytes, require_sha256
+from nhc_deprot_ranker.quantum.phase9b_interpreter_profiles import (
+    CONTROL_PLANE_STABLE_PROFILE_SHA256,
+    GPUPYSCF_STABLE_PROFILE,
+    MLFF_STABLE_PROFILE,
+)
 
 RUNNER_SOURCE_SCHEMA_VERSION_V9: Final = "nhc-two-endpoint-runner-source-v9"
 LEAF_ORDER: Final = (
@@ -238,6 +243,28 @@ def compute_composite_source_identity(
 ) -> CompositeSourceIdentityV9:
     """Hash every owned source file, dependency edge, profile, and deployment item."""
 
+    sources: dict[str, bytes] = {}
+    for definition in leaves:
+        for relative in definition.files:
+            path = source_root / relative
+            if path.is_symlink() or not path.is_file():
+                raise SourceClosureError(f"source closure file is absent/non-regular: {relative}")
+            sources[relative] = path.read_bytes()
+    return compute_composite_source_identity_from_bytes(
+        sources,
+        interpreter_profile_assignments=interpreter_profile_assignments,
+        leaves=leaves,
+    )
+
+
+def compute_composite_source_identity_from_bytes(
+    sources: Mapping[str, bytes],
+    *,
+    interpreter_profile_assignments: Mapping[str, str],
+    leaves: tuple[SourceLeafDefinition, ...] = SOURCE_LEAVES,
+) -> CompositeSourceIdentityV9:
+    """Independently recompute v9 from an exact in-memory deployment inventory."""
+
     validate_source_closure_definitions(leaves)
     if set(interpreter_profile_assignments) != {
         "control_plane_standard_library",
@@ -247,6 +274,9 @@ def compute_composite_source_identity(
         raise SourceClosureError("interpreter profile assignment set drifted")
     for role, digest in interpreter_profile_assignments.items():
         require_sha256(digest, f"{role} interpreter profile")
+    expected_files = {relative for leaf in leaves for relative in leaf.files}
+    if set(sources) != expected_files:
+        raise SourceClosureError("source byte inventory differs from the disjoint leaf ownership")
 
     identities: list[SourceLeafIdentity] = []
     digests: dict[str, str] = {}
@@ -254,10 +284,7 @@ def compute_composite_source_identity(
     for definition in leaves:
         files: list[tuple[str, str]] = []
         for relative in definition.files:
-            path = source_root / relative
-            if path.is_symlink() or not path.is_file():
-                raise SourceClosureError(f"source closure file is absent/non-regular: {relative}")
-            content = path.read_bytes()
+            content = sources[relative]
             if not content:
                 raise SourceClosureError(f"source closure file is empty: {relative}")
             digest = hashlib.sha256(content).hexdigest()
@@ -317,6 +344,14 @@ def assert_direct_a2_core_parity(identity: CompositeSourceIdentityV9) -> None:
         raise SourceClosureError("direct/shared-core and A2 interpreter profiles differ")
 
 
+def frozen_interpreter_profile_assignments() -> dict[str, str]:
+    return {
+        "control_plane_standard_library": CONTROL_PLANE_STABLE_PROFILE_SHA256,
+        "a1_mlff": MLFF_STABLE_PROFILE.sha256(),
+        "direct_and_a2_gpupyscf": GPUPYSCF_STABLE_PROFILE.sha256(),
+    }
+
+
 __all__ = [
     "LEAF_ORDER",
     "RUNNER_SOURCE_SCHEMA_VERSION_V9",
@@ -327,5 +362,7 @@ __all__ = [
     "SourceLeafIdentity",
     "assert_direct_a2_core_parity",
     "compute_composite_source_identity",
+    "compute_composite_source_identity_from_bytes",
+    "frozen_interpreter_profile_assignments",
     "validate_source_closure_definitions",
 ]

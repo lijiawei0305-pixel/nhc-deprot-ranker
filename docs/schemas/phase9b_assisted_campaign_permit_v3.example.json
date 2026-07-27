@@ -54,8 +54,8 @@
   },
   "interpreter_profiles": {
     "a1": {
-      "activation_script_sha256": "abababababababababababababababababababababababababababababababab",
-      "executable_content_sha256": "acacacacacacacacacacacacacacacacacacacacacacacacacacacacacac",
+      "activation_script_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "executable_content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "logical_profile_id": "phase9b-mlff-stable-v1",
       "package_versions": {
         "aimnet": "0.2.0",
@@ -67,12 +67,12 @@
         "cuda-12.8",
         "sm_70"
       ],
-      "sanitized_environment_identity_sha256": "adadadadadadadadadadadadadadadadadadadadadadadadadadadadadad",
+      "sanitized_environment_identity_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "stable_identity_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
     },
     "direct_and_a2": {
-      "activation_script_sha256": "aeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeae",
-      "executable_content_sha256": "afafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf",
+      "activation_script_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "executable_content_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "logical_profile_id": "phase9b-gpupyscf-stable-v1",
       "package_versions": {
         "geometric": "1.1.1",
@@ -84,7 +84,7 @@
         "pyscf-residual-optimization",
         "d3bj"
       ],
-      "sanitized_environment_identity_sha256": "b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0",
+      "sanitized_environment_identity_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "stable_identity_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
     }
   },

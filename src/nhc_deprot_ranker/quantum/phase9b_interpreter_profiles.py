@@ -17,6 +17,9 @@ from nhc_deprot_ranker.quantum.phase9b_campaign_schemas import (
 
 INTERPRETER_STABLE_SCHEMA_VERSION: Final = "nhc-phase9b-interpreter-stable-identity-v1"
 INTERPRETER_PRIVATE_SCHEMA_VERSION: Final = "nhc-phase9b-interpreter-private-binding-v1"
+CONTROL_PLANE_STABLE_PROFILE_SHA256: Final = hashlib.sha256(
+    b"phase9b-standard-library-control-plane-v1"
+).hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
@@ -204,6 +207,7 @@ def ensure_role_compatibility(
 
 
 __all__ = [
+    "CONTROL_PLANE_STABLE_PROFILE_SHA256",
     "GPUPYSCF_STABLE_PROFILE",
     "INTERPRETER_PRIVATE_SCHEMA_VERSION",
     "INTERPRETER_STABLE_SCHEMA_VERSION",

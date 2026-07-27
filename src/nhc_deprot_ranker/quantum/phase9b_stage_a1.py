@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
+import stat
 import sys
 import time
 from dataclasses import dataclass
@@ -386,6 +388,20 @@ def main(argv: list[str] | None = None) -> int:
 
     request = two_endpoint.load_two_endpoint_request(values.request_path)
     store = CampaignEvidenceStore(values.evidence_root.resolve(strict=True))
+    if not values.weight_path.is_absolute() or values.weight_path.is_symlink():
+        raise StageA1Error("A1 weight path must be an absolute regular file")
+    weight_fd = os.open(values.weight_path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        weight_info = os.fstat(weight_fd)
+        if not stat.S_ISREG(weight_info.st_mode):
+            raise StageA1Error("A1 weight is not a regular file")
+        weight_digest = hashlib.sha256()
+        while chunk := os.read(weight_fd, 1024 * 1024):
+            weight_digest.update(chunk)
+    finally:
+        os.close(weight_fd)
+    if weight_digest.hexdigest() != values.weight_sha256:
+        raise StageA1Error("A1 weight bytes differ from the capability-bound argv")
     runtime = ProductionA1StageRuntime(
         weight_path=values.weight_path,
         gpu_index=values.gpu_index,

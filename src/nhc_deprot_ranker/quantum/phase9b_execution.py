@@ -319,6 +319,19 @@ DIRECT_ADAPTER: Final = ExecutionAdapter(
     _execute=_execute_direct,
 )
 
+# Item 10's paired generation has a fresh exact attempt.  It uses the same
+# shared PySCF core as the retained v8 direct adapter; the distinct registry
+# entry prevents a v8 attempt or request from being silently reinterpreted.
+DIRECT_V3_ADAPTER: Final = ExecutionAdapter(
+    schema_version=EXECUTION_ADAPTER_SCHEMA_VERSION,
+    adapter_id="phase9b-direct-pyscf-v3",
+    route=ROUTE_DIRECT,
+    attempt_id="attempt-phase9b-lbnp-direct-v003",
+    uses_preoptimization=False,
+    imports_machine_learning_stack=False,
+    _execute=_execute_direct,
+)
+
 ASSISTED_ADAPTER: Final = ExecutionAdapter(
     schema_version=EXECUTION_ADAPTER_SCHEMA_VERSION,
     adapter_id="phase9b-assisted-aimnet2-pyscf",
@@ -332,6 +345,7 @@ ASSISTED_ADAPTER: Final = ExecutionAdapter(
 _EXECUTION_ADAPTERS: Final[Mapping[str, ExecutionAdapter]] = {
     PHASE8B_ADAPTER.attempt_id: PHASE8B_ADAPTER,
     DIRECT_ADAPTER.attempt_id: DIRECT_ADAPTER,
+    DIRECT_V3_ADAPTER.attempt_id: DIRECT_V3_ADAPTER,
     ASSISTED_ADAPTER.attempt_id: ASSISTED_ADAPTER,
 }
 
@@ -358,6 +372,7 @@ __all__ = [
     "AIMNET2_TREE_RELATIVE",
     "ASSISTED_ADAPTER",
     "DIRECT_ADAPTER",
+    "DIRECT_V3_ADAPTER",
     "ENDPOINT_ORDER",
     "EVIDENCE_TREE_RELATIVE",
     "EXECUTION_ADAPTER_SCHEMA_VERSION",
