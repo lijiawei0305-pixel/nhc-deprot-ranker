@@ -10,6 +10,7 @@ from typing import cast
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_ROOT = ROOT / "docs" / "schemas"
 V8_SHA256 = "5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2"
+V9_SHA256 = "13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5"
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 
 DESIGN_DOCS = (
@@ -496,14 +497,16 @@ def test_campaign_terminal_uses_derived_lifecycle_and_clock_domain() -> None:
     assert terminal["label"] is None
 
 
-def test_item_numbering_v8_gates_and_label_boundary_are_consistent() -> None:
+def test_item_numbering_v9_gates_and_label_boundary_are_consistent() -> None:
     status = (ROOT / "PHASE_STATUS.md").read_text(encoding="utf-8")
     identity = _read("PHASE9B_SPLIT_PROCESS_SOURCE_IDENTITY_PLAN.md")
     for marker in ("9/12", "10/12", "11/12", "12/12"):
         assert marker in status
     assert V8_SHA256 in status and V8_SHA256 in identity
-    assert "no v9 hash" in identity
-    assert "production high-fidelity label count is 71" in status
+    assert V9_SHA256 in status and V9_SHA256 in identity
+    assert "full composite v9" in identity
+    assert "10/12 split-process runtime implementation + v9 freeze complete" in status
+    assert "high-fidelity label count remains 71" in status
     assert "生产标签持续 71" in (ROOT / "AGENT.md").read_text(encoding="utf-8")
 
     assignments: list[tuple[Path, bool]] = []

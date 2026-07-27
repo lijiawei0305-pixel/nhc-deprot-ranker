@@ -1,5 +1,12 @@
 # Phase 9B Execution Runtime Closure
 
+> Item 10/12 closure update: the split-process production source, campaign
+> authority, A1/handoff/A2 chain and direct/A2 shared PySCF core are frozen as
+> runner source v9 at
+> `13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5`.
+> Validation was local/mock plus Linux fake subprocess only. Postflight remains
+> unimplemented, no real permit exists, and eleven execution gates remain false.
+
 Item 8/12 (historically 8/10). What the execution-reachability audit found
 unreachable, and what was built to close it, as one source-freeze unit.
 

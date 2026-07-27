@@ -30,6 +30,7 @@ from types import MappingProxyType
 from typing import Final
 
 from nhc_deprot_ranker.quantum.phase8b_permit import FROZEN_RESOURCES as _PHASE8B_RESOURCES
+from nhc_deprot_ranker.quantum.phase9b_campaign_schemas import CampaignResourcesV2
 
 PHASE9B_CAPABILITY_IDENTITY_KEY: Final = "phase9b-lbnp-paired-smoke"
 
@@ -83,6 +84,37 @@ PHASE9B_RESOURCES: Final[Mapping[str, object]] = MappingProxyType(
     }
 )
 
+CAMPAIGN_RESOURCES_V2: Final = CampaignResourcesV2(
+    {
+        "schema_version": CampaignResourcesV2.SCHEMA_VERSION,
+        "campaign": {
+            "wall_limit_seconds": 7200,
+            "termination_grace_seconds": 10,
+            "one_campaign_supervisor": True,
+            "stage_overlap_allowed": False,
+        },
+        "stage_a1": {
+            "gpu_count": 1,
+            "gpu_selection_rule": "permit_bound_exact_v100_or_fail_closed",
+            "gpu_architecture": "sm_70",
+            "local_limit_seconds": 900,
+            "cache_isolation_required": True,
+            "base_model_load_count": 1,
+        },
+        "handoff": {
+            "compute_packages_allowed": False,
+            "cpu_accounting_required": True,
+        },
+        "stage_a2": {
+            "computational_threads": 4,
+            "cpu_affinity": "0-3",
+            "max_memory_mb": 12000,
+            "new_wall_limit_seconds": None,
+            "uses_campaign_remaining_deadline": True,
+        },
+    }
+)
+
 
 def _normalize(value: object) -> object:
     """Recursively convert read-only views and tuples into plain JSON types.
@@ -119,10 +151,23 @@ def phase9b_resources_sha256() -> str:
     return hashlib.sha256(_canonical_json_bytes(phase9b_resources_payload())).hexdigest()
 
 
+def phase9b_campaign_resources_payload() -> dict[str, object]:
+    """The v9 campaign-aware resource generation."""
+
+    return CAMPAIGN_RESOURCES_V2.to_payload()
+
+
+def phase9b_campaign_resources_sha256() -> str:
+    return CAMPAIGN_RESOURCES_V2.sha256()
+
+
 __all__ = [
     "AIMNET2_STAGE_BUDGET",
+    "CAMPAIGN_RESOURCES_V2",
     "PHASE9B_CAPABILITY_IDENTITY_KEY",
     "PHASE9B_RESOURCES",
+    "phase9b_campaign_resources_payload",
+    "phase9b_campaign_resources_sha256",
     "phase9b_resources_payload",
     "phase9b_resources_sha256",
 ]

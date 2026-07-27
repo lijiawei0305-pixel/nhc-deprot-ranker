@@ -46,6 +46,12 @@ from nhc_deprot_ranker.quantum.phase8b_permit import (
     FROZEN_RESOURCES,
     ConsumedPhase8BPermit,
 )
+from nhc_deprot_ranker.quantum.phase9b_source_identity import (
+    SOURCE_LEAVES,
+    SourceClosureError,
+    compute_composite_source_identity_from_bytes,
+    frozen_interpreter_profile_assignments,
+)
 
 EndpointName = Literal["cation", "neutral"]
 SCFStrategy = Literal["standard", "soscf"]
@@ -56,21 +62,20 @@ REQUEST_SCHEMA_VERSION: Final = "nhc-two-endpoint-request-v1"
 # AIMNet2 stage and Route D declares the absence of one.  An optional section
 # would make a dropped stage indistinguishable from "direct".
 REQUEST_SCHEMA_VERSION_V2: Final = "nhc-two-endpoint-request-v2"
+REQUEST_SCHEMA_VERSION_V3: Final = "nhc-two-endpoint-request-v3"
 _REQUEST_SCHEMA_VERSIONS: Final[frozenset[str]] = frozenset(
-    {REQUEST_SCHEMA_VERSION, REQUEST_SCHEMA_VERSION_V2}
+    {REQUEST_SCHEMA_VERSION, REQUEST_SCHEMA_VERSION_V2, REQUEST_SCHEMA_VERSION_V3}
 )
 RESULT_SCHEMA_VERSION: Final = "nhc-two-endpoint-result-v2"
 ATTEMPT_SCHEMA_VERSION: Final = "nhc-two-endpoint-attempt-v2"
 SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-success-v2"
 SUPERVISOR_SUCCESS_SCHEMA_VERSION: Final = "nhc-two-endpoint-supervisor-success-v1"
 FAILURE_SCHEMA_VERSION: Final = "nhc-two-endpoint-failure-v1"
-# v7: the execution runtime closure.  The closure gained the route-aware
-# execution adapters and the AIMNet2 production runtime; compute-claim validation
-# and the shared transaction registry were parameterized so both Phase 9B routes
-# can obtain a capability; and the worker CLI became a closed parser.  Every
-# Phase 9B asset built against v4, v5, or v6 is superseded before execution; see
-# docs/PHASE9B_IDENTITY_REBASELINE.md.
-RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v8"
+# v9 is the one-time split-process freeze.  Its identity is the composite of
+# five disjoint source leaves, their dependency DAG, exact deployment inventory,
+# and stable interpreter-profile assignments.  Retained v8 assets are not
+# overwritten; docs/PHASE9B_IDENTITY_REBASELINE.md records their supersession.
+RUNNER_SOURCE_SCHEMA_VERSION: Final = "nhc-two-endpoint-runner-source-v9"
 
 # This is a source-level gate, not a caller-provided option.  A later phase must
 # review and deliberately change it before any backend can load PySCF.
@@ -114,36 +119,8 @@ _SUPERVISOR_TERMINATE_GRACE_SECONDS: Final = 10.0
 _SUPERVISOR_STREAM_CAPTURE_LIMIT_BYTES: Final = 64 * 1024
 _SUPERVISOR_HARD_WALL_SECONDS: Final = 7200.0
 _PRIVATE_FILE_MODE: Final = 0o600
-_RUNNER_SOURCE_RELATIVE_PATHS: Final[tuple[str, ...]] = (
-    "nhc_deprot_ranker/__init__.py",
-    "nhc_deprot_ranker/constants.py",
-    "nhc_deprot_ranker/data/__init__.py",
-    "nhc_deprot_ranker/data/provenance.py",
-    "nhc_deprot_ranker/quantum/__init__.py",
-    "nhc_deprot_ranker/quantum/linux_guardian.py",
-    # The one-shot consumption transaction both chains share.  Closure-internal
-    # code imports it, so leaving it out would let the race-critical code be
-    # edited without moving runner_source_sha256.
-    "nhc_deprot_ranker/quantum/one_shot_permit.py",
-    "nhc_deprot_ranker/quantum/phase8b_authority.py",
-    "nhc_deprot_ranker/quantum/phase8b_execution.py",
-    "nhc_deprot_ranker/quantum/phase8b_permit.py",
-    "nhc_deprot_ranker/quantum/phase8b_runtime.py",
-    # Phase 9B modules: the capability expectation builder below imports these at
-    # call time, so their content already determines closure-internal behaviour
-    # and must be hash-bound like the rest.
-    "nhc_deprot_ranker/quantum/phase9b_aimnet2_runtime.py",
-    "nhc_deprot_ranker/quantum/phase9b_authority.py",
-    "nhc_deprot_ranker/quantum/phase9b_execution.py",
-    "nhc_deprot_ranker/quantum/phase9b_guardian.py",
-    "nhc_deprot_ranker/quantum/phase9b_handoff.py",
-    "nhc_deprot_ranker/quantum/phase9b_permit.py",
-    "nhc_deprot_ranker/quantum/phase9b_resources.py",
-    "nhc_deprot_ranker/quantum/phase9b_supervisor.py",
-    "nhc_deprot_ranker/quantum/two_endpoint.py",
-    "nhc_deprot_ranker/quantum/worker.py",
-    "nhc_deprot_ranker/quantum/worker_bootstrap.py",
-    "nhc_deprot_ranker/quantum/process_supervisor.py",
+_RUNNER_SOURCE_RELATIVE_PATHS: Final[tuple[str, ...]] = tuple(
+    relative for leaf in SOURCE_LEAVES for relative in leaf.files
 )
 _WORKER_BOOTSTRAP: Final = (
     "import runpy,sys;"
@@ -708,27 +685,22 @@ class Phase8BWorkerLaunch:
 
 
 def _canonical_runner_source_sha256(sources: Mapping[str, bytes]) -> str:
-    """Hash the complete exact pre-gate executable source closure."""
+    """Recompute the v9 composite from exact in-memory closure bytes."""
 
     if set(sources) != set(_RUNNER_SOURCE_RELATIVE_PATHS):
         raise ValueError("runner source bundle must contain the exact canonical file set")
-    digest = hashlib.sha256()
-    digest.update(RUNNER_SOURCE_SCHEMA_VERSION.encode("ascii"))
-    digest.update(b"\x00")
-    for name in _RUNNER_SOURCE_RELATIVE_PATHS:
-        content = sources[name]
-        if not isinstance(content, bytes) or not content:
-            raise ValueError(f"runner source is empty or not bytes: {name}")
-        encoded_name = name.encode("ascii")
-        digest.update(len(encoded_name).to_bytes(2, "big"))
-        digest.update(encoded_name)
-        digest.update(len(content).to_bytes(8, "big"))
-        digest.update(content)
-    return digest.hexdigest()
+    try:
+        identity = compute_composite_source_identity_from_bytes(
+            sources,
+            interpreter_profile_assignments=frozen_interpreter_profile_assignments(),
+        )
+    except SourceClosureError as exc:
+        raise ValueError("runner source bundle failed v9 composite validation") from exc
+    return identity.full_assisted_campaign_source_sha256
 
 
 def current_runner_source_sha256() -> str:
-    """Return the canonical hash of the parent, worker and supervisor sources."""
+    """Return the frozen v9 composite hash for every campaign source leaf."""
 
     source_root = Path(__file__).resolve().parents[2]
     sources: dict[str, bytes] = {}
@@ -1007,10 +979,21 @@ def load_two_endpoint_request(request_path: Path) -> TwoEndpointRequest:
         "protocol",
         "endpoints",
     }
-    if schema_version == REQUEST_SCHEMA_VERSION_V2:
+    if schema_version in {REQUEST_SCHEMA_VERSION_V2, REQUEST_SCHEMA_VERSION_V3}:
         fields.add("preoptimization")
+    if schema_version == REQUEST_SCHEMA_VERSION_V3:
+        fields.update(
+            {
+                "generation",
+                "topology",
+                "interpreter_profiles",
+                "source_closures",
+                "resources_sha256",
+                "execution_state",
+            }
+        )
     _require_exact_keys(payload, fields, "two-endpoint request")
-    if schema_version == REQUEST_SCHEMA_VERSION_V2:
+    if schema_version in {REQUEST_SCHEMA_VERSION_V2, REQUEST_SCHEMA_VERSION_V3}:
         preoptimization = payload["preoptimization"]
         if not isinstance(preoptimization, dict) or not preoptimization:
             raise RequestValidationError("preoptimization section must be a non-empty object")
@@ -1024,6 +1007,46 @@ def load_two_endpoint_request(request_path: Path) -> TwoEndpointRequest:
                 raise RequestValidationError(
                     "external preoptimization preparation is never authorized"
                 )
+    if schema_version == REQUEST_SCHEMA_VERSION_V3:
+        if payload["generation"] != "phase9b-split-process-v003":
+            raise RequestValidationError("request v3 generation drifted")
+        topology = payload["topology"]
+        stage = cast(dict[str, object], payload["preoptimization"])["stage"]
+        expected_topology = "split_process_campaign" if stage == "aimnet2" else "single_stage_pyscf"
+        if topology != expected_topology:
+            raise RequestValidationError("request v3 topology differs from its frozen route")
+        profiles = payload["interpreter_profiles"]
+        if not isinstance(profiles, dict) or set(profiles) != {"a1_mlff", "direct_and_a2_gpupyscf"}:
+            raise RequestValidationError("request v3 interpreter profile set drifted")
+        for role, profile in profiles.items():
+            if not isinstance(profile, dict) or set(profile) != {"logical_profile_id", "sha256"}:
+                raise RequestValidationError(
+                    f"request v3 interpreter profile fields drifted: {role}"
+                )
+            identifier = profile["logical_profile_id"]
+            if not isinstance(identifier, str) or _REQUEST_ID_RE.fullmatch(identifier) is None:
+                raise RequestValidationError("request v3 profile ID is invalid")
+            _require_sha256(profile["sha256"], label=f"interpreter_profiles.{role}.sha256")
+        closures = payload["source_closures"]
+        expected_closures = {
+            "shared_schema_source",
+            "shared_pyscf_core_source",
+            "campaign_control_source",
+            "stage_a1_source",
+            "stage_a2_source",
+            "full_assisted_campaign_source",
+        }
+        if not isinstance(closures, dict) or set(closures) != expected_closures:
+            raise RequestValidationError("request v3 source closure set drifted")
+        for name, digest in closures.items():
+            _require_sha256(digest, label=f"source_closures.{name}")
+        _require_sha256(payload["resources_sha256"], label="resources_sha256")
+        if payload["execution_state"] != "prepared_not_authorized":
+            raise RequestValidationError(
+                "request v3 execution state must be prepared_not_authorized"
+            )
+        if payload["execution_authorized"] is not False:
+            raise RequestValidationError("prepared request v3 cannot authorize execution")
     request_id = payload["request_id"]
     if not isinstance(request_id, str) or _REQUEST_ID_RE.fullmatch(request_id) is None:
         raise RequestValidationError("request_id must be a safe lowercase identifier")
@@ -1056,7 +1079,11 @@ def load_two_endpoint_request(request_path: Path) -> TwoEndpointRequest:
         raise RequestValidationError("cation and neutral XYZ paths must differ")
     _validate_endpoint_pair_electrons(cation, neutral)
     return TwoEndpointRequest(
-        schema_version=REQUEST_SCHEMA_VERSION,
+        schema_version=(
+            REQUEST_SCHEMA_VERSION_V3
+            if schema_version == REQUEST_SCHEMA_VERSION_V3
+            else REQUEST_SCHEMA_VERSION
+        ),
         request_id=request_id,
         inchikey=inchikey,
         execution_authorized=execution_authorized,

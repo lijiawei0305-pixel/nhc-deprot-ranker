@@ -1,5 +1,11 @@
 # AIMNet2 to PySCF Handoff Contract
 
+> Item 10/12 implementation note: the authoritative cross-process handoff is
+> now the immutable A1 proposal → supervisor verification → A2 admission chain.
+> Durable XYZ bytes, never an in-memory coordinate object, are the sole carrier.
+> A2 rereads the same bytes before the shared PySCF parser. Item 11/12 must add
+> Postflight verification; no scientific execution occurred here.
+
 ## The boundary
 
 Only a structure that passed every gate in

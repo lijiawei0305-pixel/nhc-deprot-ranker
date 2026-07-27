@@ -37,6 +37,11 @@ from nhc_deprot_ranker.quantum.phase9b_handoff import (
     handoff_contract_sha256,
     preoptimization_stage_sha256,
 )
+from nhc_deprot_ranker.quantum.phase9b_interpreter_profiles import (
+    GPUPYSCF_STABLE_PROFILE,
+    MLFF_STABLE_PROFILE,
+    InterpreterProfileStableIdentityV1,
+)
 from nhc_deprot_ranker.quantum.phase9b_permit import (
     REQUEST_ID,
     ROUTE_ASSISTED,
@@ -45,9 +50,15 @@ from nhc_deprot_ranker.quantum.phase9b_permit import (
 )
 from nhc_deprot_ranker.quantum.phase9b_resources import (
     PHASE9B_RESOURCES,
+    phase9b_campaign_resources_payload,
+    phase9b_campaign_resources_sha256,
     phase9b_resources_sha256,
 )
-from nhc_deprot_ranker.quantum.two_endpoint import REQUEST_SCHEMA_VERSION_V2
+from nhc_deprot_ranker.quantum.phase9b_source_identity import CompositeSourceIdentityV9
+from nhc_deprot_ranker.quantum.two_endpoint import (
+    REQUEST_SCHEMA_VERSION_V2,
+    REQUEST_SCHEMA_VERSION_V3,
+)
 
 # Real bundle materialization is a separate authorization.  Source-level gate.
 EXECUTION_AUTHORIZED: Final[bool] = False
@@ -56,6 +67,12 @@ EXECUTION_AUTHORIZED: Final[bool] = False
 # initial geometry; the assisted route additionally registers its in-route
 # AIMNet2 stage identity.
 PAYLOAD_SCHEMA_VERSION: Final = "phase9b.payload_manifest.v2"
+PAYLOAD_SCHEMA_VERSION_V3: Final = "phase9b.payload_manifest.v3"
+REQUEST_ID_V3: Final = "phase9b-lbnp-paired-split-process-v003"
+ROUTE_ATTEMPT_IDS_V3: Final = {
+    ROUTE_DIRECT: "attempt-phase9b-lbnp-direct-v003",
+    ROUTE_ASSISTED: "attempt-phase9b-lbnp-assisted-v003",
+}
 
 CATION_XYZ_RELATIVE: Final = "xyz/cation.xyz"
 NEUTRAL_XYZ_RELATIVE: Final = "xyz/neutral.xyz"
@@ -268,6 +285,170 @@ def build_route_payload(
     )
 
 
+def _source_closure_payload(identity: CompositeSourceIdentityV9) -> dict[str, str]:
+    leaves = {leaf.name: leaf.source_sha256 for leaf in identity.leaves}
+    return {
+        **leaves,
+        "full_assisted_campaign_source": identity.full_assisted_campaign_source_sha256,
+    }
+
+
+def build_route_request_v3(
+    *,
+    route: str,
+    source_identity: CompositeSourceIdentityV9,
+    protocol: Mapping[str, object],
+    cation_xyz_sha256: str,
+    neutral_xyz_sha256: str,
+    profile: CandidateProfile = PHASE9B_CANDIDATE,
+    mlff_profile: InterpreterProfileStableIdentityV1 = MLFF_STABLE_PROFILE,
+    gpupyscf_profile: InterpreterProfileStableIdentityV1 = GPUPYSCF_STABLE_PROFILE,
+) -> RouteRequest:
+    """Build one non-authorizing v9 request from the frozen composite identity."""
+
+    try:
+        validate_profile_self_consistency(profile)
+    except Phase9BAuthorityError as exc:
+        raise Phase9BBundleError(f"candidate profile is invalid: {exc}") from exc
+    chosen = _require_route(route)
+    cation_hash = _require_sha256(cation_xyz_sha256, label="cation_xyz_sha256")
+    neutral_hash = _require_sha256(neutral_xyz_sha256, label="neutral_xyz_sha256")
+    if (cation_hash, neutral_hash) != (
+        profile.cation_xyz_sha256,
+        profile.neutral_xyz_sha256,
+    ):
+        raise Phase9BBundleError("both v3 routes must start from frozen initial geometry")
+    if not protocol:
+        raise Phase9BBundleError("request protocol must not be empty")
+    topology = "single_stage_pyscf" if chosen == ROUTE_DIRECT else "split_process_campaign"
+    closures = _source_closure_payload(source_identity)
+    if set(closures) != {
+        "shared_schema_source",
+        "shared_pyscf_core_source",
+        "campaign_control_source",
+        "stage_a1_source",
+        "stage_a2_source",
+        "full_assisted_campaign_source",
+    }:
+        raise Phase9BBundleError("v9 source closure set drifted")
+    payload: dict[str, object] = {
+        "schema_version": REQUEST_SCHEMA_VERSION_V3,
+        "generation": "phase9b-split-process-v003",
+        "request_id": REQUEST_ID_V3,
+        "inchikey": profile.inchikey,
+        "execution_authorized": False,
+        "execution_state": "prepared_not_authorized",
+        "timeout_seconds": 7200,
+        "runner_source_sha256": source_identity.full_assisted_campaign_source_sha256,
+        "resources_sha256": phase9b_campaign_resources_sha256(),
+        "protocol": dict(protocol),
+        "topology": topology,
+        "preoptimization": _preoptimization_stage(chosen),
+        "interpreter_profiles": {
+            "a1_mlff": {
+                "logical_profile_id": mlff_profile.logical_profile_id,
+                "sha256": mlff_profile.sha256(),
+            },
+            "direct_and_a2_gpupyscf": {
+                "logical_profile_id": gpupyscf_profile.logical_profile_id,
+                "sha256": gpupyscf_profile.sha256(),
+            },
+        },
+        "source_closures": closures,
+        "endpoints": {
+            "cation": {
+                "xyz_path": CATION_XYZ_RELATIVE,
+                "xyz_sha256": cation_hash,
+                "charge": 1,
+                "multiplicity": 1,
+            },
+            "neutral": {
+                "xyz_path": NEUTRAL_XYZ_RELATIVE,
+                "xyz_sha256": neutral_hash,
+                "charge": 0,
+                "multiplicity": 1,
+            },
+        },
+    }
+    raw = _canonical_json_bytes(payload)
+    return RouteRequest(
+        route=chosen,
+        attempt_id=ROUTE_ATTEMPT_IDS_V3[chosen],
+        request_bytes=raw,
+        request_sha256=hashlib.sha256(raw).hexdigest(),
+        cation_xyz_sha256=cation_hash,
+        neutral_xyz_sha256=neutral_hash,
+    )
+
+
+def build_route_payload_v3(
+    request: RouteRequest,
+    *,
+    source_identity: CompositeSourceIdentityV9,
+    profile: CandidateProfile = PHASE9B_CANDIDATE,
+) -> RoutePayload:
+    """Build the paired-generation v3 payload manifest; it contains no permit."""
+
+    request_payload = json.loads(request.request_bytes)
+    if request_payload.get("schema_version") != REQUEST_SCHEMA_VERSION_V3:
+        raise Phase9BBundleError("v3 manifest requires a v3 route request")
+    manifest = {
+        "schema_version": PAYLOAD_SCHEMA_VERSION_V3,
+        "generation": "phase9b-split-process-v003",
+        "status": "prepared_not_authorized",
+        "execution_authorized": False,
+        "route": request.route,
+        "request_id": REQUEST_ID_V3,
+        "attempt_id": request.attempt_id,
+        "inchikey": profile.inchikey,
+        "electron_count": profile.electron_count,
+        "endpoint_order": ["cation", "neutral"],
+        "topology": request_payload["topology"],
+        "files": {
+            REQUEST_RELATIVE: request.request_sha256,
+            CATION_XYZ_RELATIVE: request.cation_xyz_sha256,
+            NEUTRAL_XYZ_RELATIVE: request.neutral_xyz_sha256,
+        },
+        "source_closures": _source_closure_payload(source_identity),
+        "interpreter_profiles": request_payload["interpreter_profiles"],
+        "resources": phase9b_campaign_resources_payload(),
+        "resources_sha256": phase9b_campaign_resources_sha256(),
+        "provenance": {
+            "initial_cation_xyz_sha256": profile.cation_xyz_sha256,
+            "initial_neutral_xyz_sha256": profile.neutral_xyz_sha256,
+            "legacy_atom_map_sha256": profile.legacy_atom_map_sha256,
+            "endpoint_atom_map_sha256": profile.endpoint_atom_map_sha256,
+            "geometry_validation_sha256": profile.geometry_validation_sha256,
+        },
+        "excludes_permit": True,
+        "real_permit_generated": False,
+        "label_produced": False,
+    }
+    raw = _canonical_json_bytes(manifest)
+    return RoutePayload(
+        request=request,
+        manifest_bytes=raw,
+        manifest_sha256=hashlib.sha256(raw).hexdigest(),
+    )
+
+
+def validate_route_parity_v3(direct: RoutePayload, assisted: RoutePayload) -> None:
+    if direct.request.route != ROUTE_DIRECT or assisted.request.route != ROUTE_ASSISTED:
+        raise Phase9BBundleError("v3 parity requires direct then assisted")
+    left = json.loads(direct.request.request_bytes)
+    right = json.loads(assisted.request.request_bytes)
+    allowed = {"preoptimization", "topology"}
+    for key in sorted(set(left) | set(right)):
+        if key in allowed:
+            continue
+        if left.get(key) != right.get(key):
+            raise Phase9BBundleError(f"v3 route requests differ outside topology/stage: {key}")
+    if left["topology"] != "single_stage_pyscf" or right["topology"] != "split_process_campaign":
+        raise Phase9BBundleError("v3 topology pair drifted")
+    if left["execution_authorized"] is not False or right["execution_authorized"] is not False:
+        raise Phase9BBundleError("v3 paired generation must remain non-authorizing")
+
+
 def validate_route_parity(direct: RoutePayload, assisted: RoutePayload) -> None:
     """Both routes must differ only by the preoptimization stage and attempt.
 
@@ -330,13 +511,19 @@ __all__ = [
     "NEUTRAL_XYZ_RELATIVE",
     "PAYLOAD_MANIFEST_RELATIVE",
     "PAYLOAD_SCHEMA_VERSION",
+    "PAYLOAD_SCHEMA_VERSION_V3",
+    "REQUEST_ID_V3",
     "REQUEST_RELATIVE",
+    "ROUTE_ATTEMPT_IDS_V3",
     "Phase9BBundleError",
     "Phase9BBundleNotAuthorizedError",
     "RoutePayload",
     "RouteRequest",
     "build_route_payload",
+    "build_route_payload_v3",
     "build_route_request",
+    "build_route_request_v3",
     "materialize_bundle",
     "validate_route_parity",
+    "validate_route_parity_v3",
 ]

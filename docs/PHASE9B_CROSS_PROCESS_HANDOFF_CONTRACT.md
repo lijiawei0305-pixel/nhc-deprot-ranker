@@ -1,5 +1,11 @@
 # Phase 9B Cross-Process Handoff Contract
 
+> Item 10/12 implementation closure: `A1HandoffProposalReceiptV1`,
+> `SupervisorHandoffVerificationReceiptV1`, and `StageA2AdmissionReceiptV1`
+> are separate exclusive/no-follow immutable files. A2 independently rereads
+> the admitted disk bytes and proves disk SHA256 equals parser-input SHA256.
+> This contract is implemented in v9; Postflight validation remains Item 11/12.
+
 ## Authority carrier
 
 The only authoritative carrier from A1 to A2 is each endpoint's durable

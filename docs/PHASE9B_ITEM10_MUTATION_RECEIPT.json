@@ -1,0 +1,173 @@
+{
+  "all_killed": true,
+  "cases": [
+    {
+      "guard_test": "test_handoff_three_receipts_are_immutable_and_exact_byte_closed",
+      "killed": true,
+      "mutation": "01_supervisor_modifies_a1_proposal"
+    },
+    {
+      "guard_test": "test_handoff_three_receipts_are_immutable_and_exact_byte_closed",
+      "killed": true,
+      "mutation": "02_same_handoff_receipt_written_twice"
+    },
+    {
+      "guard_test": "test_state_ownership_is_source_separated",
+      "killed": true,
+      "mutation": "03_supervisor_claims_permit_consumption"
+    },
+    {
+      "guard_test": "test_capability_is_post_registration_one_shot_stage_and_boot_bound",
+      "killed": true,
+      "mutation": "04_capability_before_registration"
+    },
+    {
+      "guard_test": "test_process_identity_rejects_shared_process_group",
+      "killed": true,
+      "mutation": "05_supervisor_stage_pgid_mixed"
+    },
+    {
+      "guard_test": "test_permit_binds_durations_not_absolute_timestamp_and_renderer_stays_false",
+      "killed": true,
+      "mutation": "06_permit_binds_fake_absolute_deadline"
+    },
+    {
+      "guard_test": "test_capability_is_post_registration_one_shot_stage_and_boot_bound",
+      "killed": true,
+      "mutation": "07_boot_identity_not_checked"
+    },
+    {
+      "guard_test": "test_a2_cannot_receive_a_fresh_campaign_budget",
+      "killed": true,
+      "mutation": "08_a2_gets_new_7200_seconds"
+    },
+    {
+      "guard_test": "test_source_closure_rejects_duplicate_cycle_and_missing_dependency",
+      "killed": true,
+      "mutation": "09_duplicate_closure_ownership"
+    },
+    {
+      "guard_test": "test_source_closure_rejects_duplicate_cycle_and_missing_dependency",
+      "killed": true,
+      "mutation": "10_closure_dependency_cycle"
+    },
+    {
+      "guard_test": "test_v3_paired_generation_is_non_authorizing_and_mixed_generation_closed",
+      "killed": true,
+      "mutation": "11_mixed_generation_leaf"
+    },
+    {
+      "guard_test": "test_public_profiles_contain_no_private_paths_and_direct_a2_digest_is_one",
+      "killed": true,
+      "mutation": "12_request_supplies_interpreter_path"
+    },
+    {
+      "guard_test": "test_external_launch_surface_has_guardians_only",
+      "killed": true,
+      "mutation": "13_external_launch_a1_or_a2"
+    },
+    {
+      "guard_test": "test_assisted_authority_is_one_campaign_permit",
+      "killed": true,
+      "mutation": "14_two_ordinary_assisted_permits"
+    },
+    {
+      "guard_test": "test_capability_is_post_registration_one_shot_stage_and_boot_bound",
+      "killed": true,
+      "mutation": "15_internal_capability_replay"
+    },
+    {
+      "guard_test": "test_linux_real_subprocess_campaign_is_sequential_reaped_and_hash_closed",
+      "killed": true,
+      "mutation": "16_a2_before_a1_reap"
+    },
+    {
+      "guard_test": "test_linux_real_subprocess_campaign_is_sequential_reaped_and_hash_closed",
+      "killed": true,
+      "mutation": "17_residual_a1_still_starts_a2"
+    },
+    {
+      "guard_test": "test_a2_rereads_disk_and_passes_same_bytes_to_shared_parser",
+      "killed": true,
+      "mutation": "18_parent_memory_coordinates"
+    },
+    {
+      "guard_test": "test_a2_rereads_disk_and_passes_same_bytes_to_shared_parser",
+      "killed": true,
+      "mutation": "19_a2_does_not_reread_disk"
+    },
+    {
+      "guard_test": "test_handoff_rejects_modified_reformatted_reordered_and_identity_drift",
+      "killed": true,
+      "mutation": "20_output_hash_not_verified"
+    },
+    {
+      "guard_test": "test_handoff_rejects_modified_reformatted_reordered_and_identity_drift",
+      "killed": true,
+      "mutation": "21_atom_order_charge_mult_not_verified"
+    },
+    {
+      "guard_test": "test_a1_source_has_single_model_load_guard",
+      "killed": true,
+      "mutation": "22_a1_loads_model_twice"
+    },
+    {
+      "guard_test": "test_v8_direct_characterization_and_shared_core_are_byte_identical",
+      "killed": true,
+      "mutation": "23_soscf_reruns_a1"
+    },
+    {
+      "guard_test": "test_stage_import_boundaries_are_source_closed",
+      "killed": true,
+      "mutation": "24_a1_imports_pyscf"
+    },
+    {
+      "guard_test": "test_stage_import_boundaries_are_source_closed",
+      "killed": true,
+      "mutation": "25_a2_imports_aimnet"
+    },
+    {
+      "guard_test": "test_no_runtime_source_uses_pypath_or_exposes_stage_launch_commands",
+      "killed": true,
+      "mutation": "26_pythonpath_stitching"
+    },
+    {
+      "guard_test": "test_source_closure_is_disjoint_acyclic_and_direct_a2_share_core",
+      "killed": true,
+      "mutation": "27_direct_a2_different_core"
+    },
+    {
+      "guard_test": "test_shared_core_is_only_label_owner",
+      "killed": true,
+      "mutation": "28_aimnet_energy_enters_label"
+    },
+    {
+      "guard_test": "test_campaign_terminal_rejects_label_on_failure",
+      "killed": true,
+      "mutation": "29_failure_produces_label"
+    },
+    {
+      "guard_test": "test_evidence_store_refuses_overwrite_symlink_extra_and_unregistered_path",
+      "killed": true,
+      "mutation": "30_extra_evidence_file_accepted"
+    },
+    {
+      "guard_test": "test_v8_supersession_is_append_only_documented",
+      "killed": true,
+      "mutation": "31_v8_overwritten_not_superseded"
+    },
+    {
+      "guard_test": "test_permit_binds_durations_not_absolute_timestamp_and_renderer_stays_false",
+      "killed": true,
+      "mutation": "32_real_permit_generated"
+    }
+  ],
+  "chemistry_executed": false,
+  "method": "preregistered counterfactual mutation guards with targeted pytest assertions",
+  "mutation_count": 32,
+  "real_permit_generated": false,
+  "schema_version": "nhc-phase9b-item10-mutation-receipt-v1",
+  "source_restoration_byte_equal": true,
+  "source_restored_after_each_case": true,
+  "status": "passed"
+}

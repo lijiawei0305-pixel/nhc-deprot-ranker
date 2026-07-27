@@ -1,0 +1,356 @@
+{
+  "campaign_resources": {
+    "campaign": {
+      "one_campaign_supervisor": true,
+      "stage_overlap_allowed": false,
+      "termination_grace_seconds": 10,
+      "wall_limit_seconds": 7200
+    },
+    "handoff": {
+      "compute_packages_allowed": false,
+      "cpu_accounting_required": true
+    },
+    "schema_version": "nhc-phase9b-campaign-resources-v2",
+    "stage_a1": {
+      "base_model_load_count": 1,
+      "cache_isolation_required": true,
+      "gpu_architecture": "sm_70",
+      "gpu_count": 1,
+      "gpu_selection_rule": "permit_bound_exact_v100_or_fail_closed",
+      "local_limit_seconds": 900
+    },
+    "stage_a2": {
+      "computational_threads": 4,
+      "cpu_affinity": "0-3",
+      "max_memory_mb": 12000,
+      "new_wall_limit_seconds": null,
+      "uses_campaign_remaining_deadline": true
+    }
+  },
+  "campaign_resources_sha256": "39d1be30f30c85a21452a30548b5ba97414cb106461e8d0104beb6c34618c0ab",
+  "generation": "phase9b-split-process-v003",
+  "labels_produced": 0,
+  "production_label_count": 71,
+  "public_execution_gates_open": 0,
+  "real_permit_generated": false,
+  "routes": {
+    "assisted": {
+      "attempt_id": "attempt-phase9b-lbnp-assisted-v003",
+      "payload_manifest": {
+        "attempt_id": "attempt-phase9b-lbnp-assisted-v003",
+        "electron_count": 160,
+        "endpoint_order": [
+          "cation",
+          "neutral"
+        ],
+        "excludes_permit": true,
+        "execution_authorized": false,
+        "files": {
+          "input/request.json": "24a1caf75b9cdbd061e366eab3202e7d1511d46ed2ca70245b4390fc04681933",
+          "xyz/cation.xyz": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286",
+          "xyz/neutral.xyz": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8"
+        },
+        "generation": "phase9b-split-process-v003",
+        "inchikey": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+        "interpreter_profiles": {
+          "a1_mlff": {
+            "logical_profile_id": "phase9b-mlff-stable-v1",
+            "sha256": "68c597fe932db8f03c7ce83c33bbff85c8d397ea3fac2197acf9e0ed704be776"
+          },
+          "direct_and_a2_gpupyscf": {
+            "logical_profile_id": "phase9b-gpupyscf-stable-v1",
+            "sha256": "2fbc6a7eb6a69224c2fc395fe24be59d985301e69bbb83aa30c138ceab51bfb2"
+          }
+        },
+        "label_produced": false,
+        "provenance": {
+          "endpoint_atom_map_sha256": "f614486a6ae18afed109cd0bcf52efb27b290558e758f5c2e85c8f192b70d9ab",
+          "geometry_validation_sha256": "35e99683a32e416752014c6e1ecb8121e2bc06d5407911435e5c1250fd639f90",
+          "initial_cation_xyz_sha256": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286",
+          "initial_neutral_xyz_sha256": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8",
+          "legacy_atom_map_sha256": "ce0e2fc05b44e7e18a8be445ff23e398b0f6302dcfb0fe48da8f9522a1b48ab1"
+        },
+        "real_permit_generated": false,
+        "request_id": "phase9b-lbnp-paired-split-process-v003",
+        "resources": {
+          "campaign": {
+            "one_campaign_supervisor": true,
+            "stage_overlap_allowed": false,
+            "termination_grace_seconds": 10,
+            "wall_limit_seconds": 7200
+          },
+          "handoff": {
+            "compute_packages_allowed": false,
+            "cpu_accounting_required": true
+          },
+          "schema_version": "nhc-phase9b-campaign-resources-v2",
+          "stage_a1": {
+            "base_model_load_count": 1,
+            "cache_isolation_required": true,
+            "gpu_architecture": "sm_70",
+            "gpu_count": 1,
+            "gpu_selection_rule": "permit_bound_exact_v100_or_fail_closed",
+            "local_limit_seconds": 900
+          },
+          "stage_a2": {
+            "computational_threads": 4,
+            "cpu_affinity": "0-3",
+            "max_memory_mb": 12000,
+            "new_wall_limit_seconds": null,
+            "uses_campaign_remaining_deadline": true
+          }
+        },
+        "resources_sha256": "39d1be30f30c85a21452a30548b5ba97414cb106461e8d0104beb6c34618c0ab",
+        "route": "assisted",
+        "schema_version": "phase9b.payload_manifest.v3",
+        "source_closures": {
+          "campaign_control_source": "e24c5b7d6a9a4b299d60753239f6088bddbbc341625bc1152e7b0d9ab2fca38e",
+          "full_assisted_campaign_source": "13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5",
+          "shared_pyscf_core_source": "40ebf95cc709bb18720e9da19bc022d51d285b11cbfcac54620aac1024c57f9e",
+          "shared_schema_source": "3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b",
+          "stage_a1_source": "8aab997e67fcadab4f98dc2cb7aaaedece7a83a7c4d58e65b117d9b1ebc9279c",
+          "stage_a2_source": "fb1a3f62486d6cb354483f8458d8a70ffc63ea35386e5f3fc25f28887b04687c"
+        },
+        "status": "prepared_not_authorized",
+        "topology": "split_process_campaign"
+      },
+      "payload_manifest_sha256": "ed91373bf0ced4a1d100f51966a8010812b41c9e55dbdf0ce56f68f5d06b1904",
+      "request": {
+        "endpoints": {
+          "cation": {
+            "charge": 1,
+            "multiplicity": 1,
+            "xyz_path": "xyz/cation.xyz",
+            "xyz_sha256": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286"
+          },
+          "neutral": {
+            "charge": 0,
+            "multiplicity": 1,
+            "xyz_path": "xyz/neutral.xyz",
+            "xyz_sha256": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8"
+          }
+        },
+        "execution_authorized": false,
+        "execution_state": "prepared_not_authorized",
+        "generation": "phase9b-split-process-v003",
+        "inchikey": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+        "interpreter_profiles": {
+          "a1_mlff": {
+            "logical_profile_id": "phase9b-mlff-stable-v1",
+            "sha256": "68c597fe932db8f03c7ce83c33bbff85c8d397ea3fac2197acf9e0ed704be776"
+          },
+          "direct_and_a2_gpupyscf": {
+            "logical_profile_id": "phase9b-gpupyscf-stable-v1",
+            "sha256": "2fbc6a7eb6a69224c2fc395fe24be59d985301e69bbb83aa30c138ceab51bfb2"
+          }
+        },
+        "preoptimization": {
+          "aimnet2_authorized": true,
+          "external_preparation_authorized": false,
+          "handoff_contract_sha256": "8a2acad53db472ae0c70b8c944cf1820ee022cf376974bd830eb7922db2d3e85",
+          "optimizer_protocol_sha256": "e3f5581271181d7f76d14ba51a97f8e06e831b6bc3a82b7b565a0d3317915da0",
+          "runs_inside_route": true,
+          "stage": "aimnet2",
+          "stage_sha256": "233ec773d3f5fb24851c3a764fcc31747e3fb37373c46832e25a84b41742b770",
+          "structural_gates_sha256": "92cf1219ee7fe25129bc26a69243428390ff763d6df4842f01fe33ac49ee85ae",
+          "weight_bytes": 8836941,
+          "weight_filename": "aimnet2_wb97m_d3_0.pt",
+          "weight_sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28"
+        },
+        "protocol": {
+          "basis": "def2-SVP",
+          "cation_charge": 1,
+          "cation_multiplicity": 1,
+          "dispersion": "D3(BJ)",
+          "geometry_maxsteps": 100,
+          "geometry_optimizer": "geomeTRIC",
+          "grid_level": 3,
+          "hartree_to_kcal_mol": 627.509474,
+          "hessian_computed": false,
+          "label_protocol_id": "2d03e2dc62c94cbf2bb6aaa1a40b842bb1369427c9df10b742441ef7227850fd",
+          "label_quality": "electronic_energy_only",
+          "lower_is_better": true,
+          "method": "B3LYP",
+          "neutral_charge": 0,
+          "neutral_multiplicity": 1,
+          "phase": "gas",
+          "proton_constant_kcal": -6.28,
+          "reaction": "NHC-H+ -> NHC + H+",
+          "scf_conv_tol": 1e-09,
+          "target_definition": "electronic_deprotonation_energy"
+        },
+        "request_id": "phase9b-lbnp-paired-split-process-v003",
+        "resources_sha256": "39d1be30f30c85a21452a30548b5ba97414cb106461e8d0104beb6c34618c0ab",
+        "runner_source_sha256": "13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5",
+        "schema_version": "nhc-two-endpoint-request-v3",
+        "source_closures": {
+          "campaign_control_source": "e24c5b7d6a9a4b299d60753239f6088bddbbc341625bc1152e7b0d9ab2fca38e",
+          "full_assisted_campaign_source": "13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5",
+          "shared_pyscf_core_source": "40ebf95cc709bb18720e9da19bc022d51d285b11cbfcac54620aac1024c57f9e",
+          "shared_schema_source": "3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b",
+          "stage_a1_source": "8aab997e67fcadab4f98dc2cb7aaaedece7a83a7c4d58e65b117d9b1ebc9279c",
+          "stage_a2_source": "fb1a3f62486d6cb354483f8458d8a70ffc63ea35386e5f3fc25f28887b04687c"
+        },
+        "timeout_seconds": 7200,
+        "topology": "split_process_campaign"
+      },
+      "request_sha256": "24a1caf75b9cdbd061e366eab3202e7d1511d46ed2ca70245b4390fc04681933"
+    },
+    "direct": {
+      "attempt_id": "attempt-phase9b-lbnp-direct-v003",
+      "payload_manifest": {
+        "attempt_id": "attempt-phase9b-lbnp-direct-v003",
+        "electron_count": 160,
+        "endpoint_order": [
+          "cation",
+          "neutral"
+        ],
+        "excludes_permit": true,
+        "execution_authorized": false,
+        "files": {
+          "input/request.json": "84046351c5ba6e1a8087acc6e3070f46ff3429f4781a1bf689a1fa473218c4d3",
+          "xyz/cation.xyz": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286",
+          "xyz/neutral.xyz": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8"
+        },
+        "generation": "phase9b-split-process-v003",
+        "inchikey": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+        "interpreter_profiles": {
+          "a1_mlff": {
+            "logical_profile_id": "phase9b-mlff-stable-v1",
+            "sha256": "68c597fe932db8f03c7ce83c33bbff85c8d397ea3fac2197acf9e0ed704be776"
+          },
+          "direct_and_a2_gpupyscf": {
+            "logical_profile_id": "phase9b-gpupyscf-stable-v1",
+            "sha256": "2fbc6a7eb6a69224c2fc395fe24be59d985301e69bbb83aa30c138ceab51bfb2"
+          }
+        },
+        "label_produced": false,
+        "provenance": {
+          "endpoint_atom_map_sha256": "f614486a6ae18afed109cd0bcf52efb27b290558e758f5c2e85c8f192b70d9ab",
+          "geometry_validation_sha256": "35e99683a32e416752014c6e1ecb8121e2bc06d5407911435e5c1250fd639f90",
+          "initial_cation_xyz_sha256": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286",
+          "initial_neutral_xyz_sha256": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8",
+          "legacy_atom_map_sha256": "ce0e2fc05b44e7e18a8be445ff23e398b0f6302dcfb0fe48da8f9522a1b48ab1"
+        },
+        "real_permit_generated": false,
+        "request_id": "phase9b-lbnp-paired-split-process-v003",
+        "resources": {
+          "campaign": {
+            "one_campaign_supervisor": true,
+            "stage_overlap_allowed": false,
+            "termination_grace_seconds": 10,
+            "wall_limit_seconds": 7200
+          },
+          "handoff": {
+            "compute_packages_allowed": false,
+            "cpu_accounting_required": true
+          },
+          "schema_version": "nhc-phase9b-campaign-resources-v2",
+          "stage_a1": {
+            "base_model_load_count": 1,
+            "cache_isolation_required": true,
+            "gpu_architecture": "sm_70",
+            "gpu_count": 1,
+            "gpu_selection_rule": "permit_bound_exact_v100_or_fail_closed",
+            "local_limit_seconds": 900
+          },
+          "stage_a2": {
+            "computational_threads": 4,
+            "cpu_affinity": "0-3",
+            "max_memory_mb": 12000,
+            "new_wall_limit_seconds": null,
+            "uses_campaign_remaining_deadline": true
+          }
+        },
+        "resources_sha256": "39d1be30f30c85a21452a30548b5ba97414cb106461e8d0104beb6c34618c0ab",
+        "route": "direct",
+        "schema_version": "phase9b.payload_manifest.v3",
+        "source_closures": {
+          "campaign_control_source": "e24c5b7d6a9a4b299d60753239f6088bddbbc341625bc1152e7b0d9ab2fca38e",
+          "full_assisted_campaign_source": "13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5",
+          "shared_pyscf_core_source": "40ebf95cc709bb18720e9da19bc022d51d285b11cbfcac54620aac1024c57f9e",
+          "shared_schema_source": "3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b",
+          "stage_a1_source": "8aab997e67fcadab4f98dc2cb7aaaedece7a83a7c4d58e65b117d9b1ebc9279c",
+          "stage_a2_source": "fb1a3f62486d6cb354483f8458d8a70ffc63ea35386e5f3fc25f28887b04687c"
+        },
+        "status": "prepared_not_authorized",
+        "topology": "single_stage_pyscf"
+      },
+      "payload_manifest_sha256": "f6e193706006fc1f6bc937ba636145e1c1617fe9245ea60db9703605f7707d9a",
+      "request": {
+        "endpoints": {
+          "cation": {
+            "charge": 1,
+            "multiplicity": 1,
+            "xyz_path": "xyz/cation.xyz",
+            "xyz_sha256": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286"
+          },
+          "neutral": {
+            "charge": 0,
+            "multiplicity": 1,
+            "xyz_path": "xyz/neutral.xyz",
+            "xyz_sha256": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8"
+          }
+        },
+        "execution_authorized": false,
+        "execution_state": "prepared_not_authorized",
+        "generation": "phase9b-split-process-v003",
+        "inchikey": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+        "interpreter_profiles": {
+          "a1_mlff": {
+            "logical_profile_id": "phase9b-mlff-stable-v1",
+            "sha256": "68c597fe932db8f03c7ce83c33bbff85c8d397ea3fac2197acf9e0ed704be776"
+          },
+          "direct_and_a2_gpupyscf": {
+            "logical_profile_id": "phase9b-gpupyscf-stable-v1",
+            "sha256": "2fbc6a7eb6a69224c2fc395fe24be59d985301e69bbb83aa30c138ceab51bfb2"
+          }
+        },
+        "preoptimization": {
+          "aimnet2_authorized": false,
+          "stage": "none"
+        },
+        "protocol": {
+          "basis": "def2-SVP",
+          "cation_charge": 1,
+          "cation_multiplicity": 1,
+          "dispersion": "D3(BJ)",
+          "geometry_maxsteps": 100,
+          "geometry_optimizer": "geomeTRIC",
+          "grid_level": 3,
+          "hartree_to_kcal_mol": 627.509474,
+          "hessian_computed": false,
+          "label_protocol_id": "2d03e2dc62c94cbf2bb6aaa1a40b842bb1369427c9df10b742441ef7227850fd",
+          "label_quality": "electronic_energy_only",
+          "lower_is_better": true,
+          "method": "B3LYP",
+          "neutral_charge": 0,
+          "neutral_multiplicity": 1,
+          "phase": "gas",
+          "proton_constant_kcal": -6.28,
+          "reaction": "NHC-H+ -> NHC + H+",
+          "scf_conv_tol": 1e-09,
+          "target_definition": "electronic_deprotonation_energy"
+        },
+        "request_id": "phase9b-lbnp-paired-split-process-v003",
+        "resources_sha256": "39d1be30f30c85a21452a30548b5ba97414cb106461e8d0104beb6c34618c0ab",
+        "runner_source_sha256": "13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5",
+        "schema_version": "nhc-two-endpoint-request-v3",
+        "source_closures": {
+          "campaign_control_source": "e24c5b7d6a9a4b299d60753239f6088bddbbc341625bc1152e7b0d9ab2fca38e",
+          "full_assisted_campaign_source": "13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5",
+          "shared_pyscf_core_source": "40ebf95cc709bb18720e9da19bc022d51d285b11cbfcac54620aac1024c57f9e",
+          "shared_schema_source": "3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b",
+          "stage_a1_source": "8aab997e67fcadab4f98dc2cb7aaaedece7a83a7c4d58e65b117d9b1ebc9279c",
+          "stage_a2_source": "fb1a3f62486d6cb354483f8458d8a70ffc63ea35386e5f3fc25f28887b04687c"
+        },
+        "timeout_seconds": 7200,
+        "topology": "single_stage_pyscf"
+      },
+      "request_sha256": "84046351c5ba6e1a8087acc6e3070f46ff3429f4781a1bf689a1fa473218c4d3"
+    }
+  },
+  "runner_source_sha256": "13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5",
+  "schema_version": "nhc-phase9b-paired-generation-v3-public-v1",
+  "status": "prepared_not_authorized"
+}

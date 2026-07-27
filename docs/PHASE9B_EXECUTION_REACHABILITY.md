@@ -1,5 +1,12 @@
 # Phase 9B Execution Reachability Audit
 
+> Item 10/12 update: the historical audit below remains evidence for v8. The
+> current v9 split-process reachability implementation is documented in
+> `PHASE9B_SPLIT_PROCESS_REACHABILITY_AUDIT.md` and frozen at composite SHA256
+> `13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5`.
+> It remains unreachable from public execution because all gates are false and
+> no real permit exists.
+
 Line-by-line audit of the execution path on `main` at merge commit `96abc52`,
 performed before any item 8/10 code was written. Read rather than inferred from
 the previous round's summary.

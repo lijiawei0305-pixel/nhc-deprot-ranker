@@ -199,28 +199,26 @@ def _run_two_endpoint_pyscf(
     absolute_deadline_monotonic: float,
     backend_factory: BackendFactory | None = None,
 ) -> int:
-    """The shared PySCF execution primitive.  No route-specific state lives here."""
+    """Direct provenance adapter into the shared direct/A2 PySCF core."""
 
-    from nhc_deprot_ranker.quantum import two_endpoint as runner
+    from nhc_deprot_ranker.quantum.phase9b_shared_pyscf_core import (
+        SHARED_TWO_ENDPOINT_PYSCF_CORE,
+        FrozenDirectInputProvenance,
+    )
 
-    if backend_factory is not None:
-        backend = backend_factory(capability)
-    else:
-        # Lazy: constructing the backend is what pulls PySCF in, and it must not
-        # happen until a capability exists.
-        backend = runner.PySCFBackend(capability)
-
-    try:
-        runner._execute_validated_request(  # pyright: ignore[reportPrivateUsage]
-            request,
-            output_root,
-            backend=backend,  # type: ignore[arg-type]
-            attempt_id=attempt_id,
-            absolute_deadline_monotonic=absolute_deadline_monotonic,
-        )
-    except runner.TwoEndpointRunError as error:
-        return int(error.exit_code)
-    return 0
+    return SHARED_TWO_ENDPOINT_PYSCF_CORE.execute(
+        request,
+        output_root,
+        capability=capability,
+        attempt_id=attempt_id,
+        absolute_deadline_monotonic=absolute_deadline_monotonic,
+        input_provenance=FrozenDirectInputProvenance(
+            route="direct",
+            cation_xyz_sha256=request.cation.xyz_sha256,
+            neutral_xyz_sha256=request.neutral.xyz_sha256,
+        ),
+        backend_factory=backend_factory,
+    )
 
 
 def _execute_direct(
@@ -321,6 +319,19 @@ DIRECT_ADAPTER: Final = ExecutionAdapter(
     _execute=_execute_direct,
 )
 
+# Item 10's paired generation has a fresh exact attempt.  It uses the same
+# shared PySCF core as the retained v8 direct adapter; the distinct registry
+# entry prevents a v8 attempt or request from being silently reinterpreted.
+DIRECT_V3_ADAPTER: Final = ExecutionAdapter(
+    schema_version=EXECUTION_ADAPTER_SCHEMA_VERSION,
+    adapter_id="phase9b-direct-pyscf-v3",
+    route=ROUTE_DIRECT,
+    attempt_id="attempt-phase9b-lbnp-direct-v003",
+    uses_preoptimization=False,
+    imports_machine_learning_stack=False,
+    _execute=_execute_direct,
+)
+
 ASSISTED_ADAPTER: Final = ExecutionAdapter(
     schema_version=EXECUTION_ADAPTER_SCHEMA_VERSION,
     adapter_id="phase9b-assisted-aimnet2-pyscf",
@@ -334,6 +345,7 @@ ASSISTED_ADAPTER: Final = ExecutionAdapter(
 _EXECUTION_ADAPTERS: Final[Mapping[str, ExecutionAdapter]] = {
     PHASE8B_ADAPTER.attempt_id: PHASE8B_ADAPTER,
     DIRECT_ADAPTER.attempt_id: DIRECT_ADAPTER,
+    DIRECT_V3_ADAPTER.attempt_id: DIRECT_V3_ADAPTER,
     ASSISTED_ADAPTER.attempt_id: ASSISTED_ADAPTER,
 }
 
@@ -360,6 +372,7 @@ __all__ = [
     "AIMNET2_TREE_RELATIVE",
     "ASSISTED_ADAPTER",
     "DIRECT_ADAPTER",
+    "DIRECT_V3_ADAPTER",
     "ENDPOINT_ORDER",
     "EVIDENCE_TREE_RELATIVE",
     "EXECUTION_ADAPTER_SCHEMA_VERSION",

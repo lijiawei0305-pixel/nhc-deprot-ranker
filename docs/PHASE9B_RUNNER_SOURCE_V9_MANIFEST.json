@@ -1,0 +1,232 @@
+{
+  "dependency_edges_sha256": "2b3fe4a8da98078ed4d4a87a114852bab2c7f0a5c057aac1702f76de2cf095ac",
+  "deployment_inventory_sha256": "6b51e853dfdad8a0c8e8648dd7bc45007a611b6340496ad370cbc08121d6b6f4",
+  "full_assisted_campaign_source_sha256": "13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5",
+  "independent_recomputation_equal": true,
+  "leaves": [
+    {
+      "dependencies": [],
+      "file_list_sha256": "3ba02df1f9a5a1ed545f81391d5a3af48a196cd07e465270b53e9ca1420ded6d",
+      "files": [
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_campaign_evidence.py",
+          "sha256": "b570428f58ec0aebb9eb02ed76409cdcdaa0a54e446c5889a0effa1ac23e50c2"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_campaign_schemas.py",
+          "sha256": "18d16b0df42b49904883a6ea6b0aaed43849d52f590f06cc26b15ccbd09137ab"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_cross_process_handoff.py",
+          "sha256": "64bcfd4d267af416a8def55611b89cb3983e434a9ac51bd31a97c140921b7bd1"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_internal_stage_capability.py",
+          "sha256": "a94f30edc261759a8dbc46c82327eb47f10cccfb511f6ce1c83cee3342f7bfa9"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_interpreter_profiles.py",
+          "sha256": "dfd1a435de13c8d0b594c7f75cf3899612ed77cd0e0c6b7c5f8085d405b67225"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_source_identity.py",
+          "sha256": "e827baca924e208b5d03cac0ac1add67f8760c6cd8e75da6c57c8cf421e5eac6"
+        }
+      ],
+      "interpreter_profile_role": "control_plane_standard_library",
+      "interpreter_profile_sha256": "d8490975ef4b5dee7cfa0aba1010148652fe99cb904050febd4b3626cade941b",
+      "name": "shared_schema_source",
+      "source_sha256": "3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b"
+    },
+    {
+      "dependencies": [
+        {
+          "leaf": "shared_schema_source",
+          "source_sha256": "3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b"
+        }
+      ],
+      "file_list_sha256": "28d7277a36a323a520f783b3f05511a1216f1755ec924d2b843584dc1ead0c57",
+      "files": [
+        {
+          "path": "nhc_deprot_ranker/__init__.py",
+          "sha256": "e4d52310da94c9f95cc50bb3c609dd857b8c2d66467dda0d5ff594c1a94027ea"
+        },
+        {
+          "path": "nhc_deprot_ranker/constants.py",
+          "sha256": "8c32b481df2eab515ff382d3253ffb5e64e804dd24965fb9270c3a5843a8d9b3"
+        },
+        {
+          "path": "nhc_deprot_ranker/data/__init__.py",
+          "sha256": "5681a617c17d93d167523711130ded820482ee2a5188afa54ccc39813d18ed89"
+        },
+        {
+          "path": "nhc_deprot_ranker/data/provenance.py",
+          "sha256": "9fb600e8f5aa2911b96d72ff348212f1d1933c664920ed258e5aebfff5f6bbf1"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/__init__.py",
+          "sha256": "c15a19a6a0161b78f64759d76dbe91c64cb645888e426599a0ff988d78967f6a"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_execution.py",
+          "sha256": "727d767c80a64738f85d8c17c66bdc94322f36abc0090305d1d88253188ec316"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_shared_pyscf_core.py",
+          "sha256": "70d5c929a85c1b57401c194e72f05a3077573fb16f5f3b04d4da09c83878613d"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/two_endpoint.py",
+          "sha256": "44e16576ae37e52ff7b0d399a1b11d3932a9baa19b6a4aae8c603c8e29f9d977"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/worker.py",
+          "sha256": "1dee9a35559468e9d9a6dc6eebaf6925f0bc76c29bedd363964423035ef6ce7e"
+        }
+      ],
+      "interpreter_profile_role": "direct_and_a2_gpupyscf",
+      "interpreter_profile_sha256": "2fbc6a7eb6a69224c2fc395fe24be59d985301e69bbb83aa30c138ceab51bfb2",
+      "name": "shared_pyscf_core_source",
+      "source_sha256": "40ebf95cc709bb18720e9da19bc022d51d285b11cbfcac54620aac1024c57f9e"
+    },
+    {
+      "dependencies": [
+        {
+          "leaf": "shared_schema_source",
+          "source_sha256": "3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b"
+        }
+      ],
+      "file_list_sha256": "a10ce9db15b1a40d9c21297f4c3c87c8ec80e56b1a02d2e729c5e9052ea39bd0",
+      "files": [
+        {
+          "path": "nhc_deprot_ranker/quantum/linux_guardian.py",
+          "sha256": "f29648d26af43742f531ac9fc69fe5f4833c252249f4eabc3c8cd26b9449488b"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/one_shot_permit.py",
+          "sha256": "216ebba8246c71e419c924ed4ab9f215397b937a4cb330a8f8b93b82e9ee073e"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase8b_authority.py",
+          "sha256": "7a71ea105605703623b60a40546b41a8cbb92b852ab0b8d08514edf04eb3c4ed"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase8b_execution.py",
+          "sha256": "beb8a4312fd83782af27b802504ed96952bcaef8d64010f36cbcc9ae81dfdfd0"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase8b_permit.py",
+          "sha256": "9d0dcd024bee14ef49da02f9be897158181217cabd6c3fc4b54e4d5b543810a0"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase8b_runtime.py",
+          "sha256": "5a2602c2641efde6023ead6e958ac014e9fe9f27415f4807f83e2e0bb3ebc2cf"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_authority.py",
+          "sha256": "8945a210c7fe33f715e74dd21aba6c8f579cafccb06da096dcdf7af50838f984"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_campaign_guardian.py",
+          "sha256": "393409f37a8853feb96c3d204c084af6706c9726b25527d902a858f8cbbc62e8"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_campaign_supervisor.py",
+          "sha256": "4a870f566f166b31e0bc5e7c81c20703adb51276dfb27442dc5347ec50584136"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_guardian.py",
+          "sha256": "43eb2a79f81ff53d8cbafdfafab219806d28e137d8be331d9b961fc1802ee516"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_permit.py",
+          "sha256": "cd884acb3c02a5016c1e5718a55b2d031b0a9138678ca9126611fc6f752235f7"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_resources.py",
+          "sha256": "f46a0351aa6e018bf1e7e0e2a4cb982239777dba7ffdf17451236ef1a91061d7"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_supervisor.py",
+          "sha256": "5005c2e6fdb359e32979630fb56aaa2d5c9c2c11fe7098a9fc66018fc5bc0e2d"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/process_supervisor.py",
+          "sha256": "f6708c4051fffbedf0fbc8dd9173ae7dd6b92cf3f29e67f038936106e584ff34"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/worker_bootstrap.py",
+          "sha256": "62248cc680f156651e1992cb56fd3a0e3719d45bf0b73169080edb2f427fd368"
+        }
+      ],
+      "interpreter_profile_role": "control_plane_standard_library",
+      "interpreter_profile_sha256": "d8490975ef4b5dee7cfa0aba1010148652fe99cb904050febd4b3626cade941b",
+      "name": "campaign_control_source",
+      "source_sha256": "e24c5b7d6a9a4b299d60753239f6088bddbbc341625bc1152e7b0d9ab2fca38e"
+    },
+    {
+      "dependencies": [
+        {
+          "leaf": "shared_schema_source",
+          "source_sha256": "3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b"
+        }
+      ],
+      "file_list_sha256": "e472aec7053f8afa4dfb461a941a988b28d8e05fae16c4f8fa94fd7d22082c39",
+      "files": [
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_aimnet2_runtime.py",
+          "sha256": "8feec6499f449dc84ba4b2d6adcb1a80e397d0837080d82b75b884e390743f34"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_handoff.py",
+          "sha256": "32c93f5cf317ada2ec6c30d879ef576c837029561949f2b2f76d2053ed543740"
+        },
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_stage_a1.py",
+          "sha256": "c9edb05d7f1e0d5dca2016221304775ae8bdc6b7e54fd460b4729a740868b27d"
+        }
+      ],
+      "interpreter_profile_role": "a1_mlff",
+      "interpreter_profile_sha256": "68c597fe932db8f03c7ce83c33bbff85c8d397ea3fac2197acf9e0ed704be776",
+      "name": "stage_a1_source",
+      "source_sha256": "8aab997e67fcadab4f98dc2cb7aaaedece7a83a7c4d58e65b117d9b1ebc9279c"
+    },
+    {
+      "dependencies": [
+        {
+          "leaf": "shared_pyscf_core_source",
+          "source_sha256": "40ebf95cc709bb18720e9da19bc022d51d285b11cbfcac54620aac1024c57f9e"
+        },
+        {
+          "leaf": "shared_schema_source",
+          "source_sha256": "3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b"
+        }
+      ],
+      "file_list_sha256": "65997bd28e2b6cd8604b1b9351619031354dd91c4c818de71113d13a83fb279c",
+      "files": [
+        {
+          "path": "nhc_deprot_ranker/quantum/phase9b_stage_a2.py",
+          "sha256": "71a3354f5c8e3af2cff9f03c722683c6f5b46602d1976b4deaeee7387ca061e9"
+        }
+      ],
+      "interpreter_profile_role": "direct_and_a2_gpupyscf",
+      "interpreter_profile_sha256": "2fbc6a7eb6a69224c2fc395fe24be59d985301e69bbb83aa30c138ceab51bfb2",
+      "name": "stage_a2_source",
+      "source_sha256": "fb1a3f62486d6cb354483f8458d8a70ffc63ea35386e5f3fc25f28887b04687c"
+    }
+  ],
+  "previous_v8": {
+    "deployed": false,
+    "launched": false,
+    "permit_consumed": false,
+    "permit_placed": false,
+    "sha256": "5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2",
+    "state": "superseded_before_execution"
+  },
+  "public_execution_gates_open": 0,
+  "real_permit_generated": false,
+  "runner_source_schema": "nhc-two-endpoint-runner-source-v9",
+  "schema_version": "nhc-two-endpoint-runner-source-v9",
+  "scientific_computation_performed": false,
+  "status": "prepared_not_authorized"
+}

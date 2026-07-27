@@ -24,10 +24,20 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Final, Protocol, cast
 
+from nhc_deprot_ranker.quantum.phase9b_interpreter_profiles import (
+    InterpreterProfilePrivateBindingV1,
+    InterpreterProfileStableIdentityV1,
+    ensure_role_compatibility,
+    validate_private_binding,
+)
 from nhc_deprot_ranker.quantum.phase9b_permit import REMOTE_ROOT_RELATIVE
 from nhc_deprot_ranker.quantum.phase9b_resources import (
     AIMNET2_STAGE_BUDGET,
     PHASE9B_RESOURCES,
+)
+from nhc_deprot_ranker.quantum.phase9b_source_identity import (
+    CompositeSourceIdentityV9,
+    assert_direct_a2_core_parity,
 )
 
 # Running a real preflight is a separate read-only authorization.
@@ -340,6 +350,58 @@ def run_preflight(
     return evaluate_preflight(_strict_json_object(stdout))
 
 
+@dataclass(frozen=True, slots=True)
+class SplitProcessPreflightResultV2:
+    mlff_stable_profile_sha256: str
+    gpupyscf_stable_profile_sha256: str
+    full_source_sha256: str
+    selected_gpu_index: int
+    selected_gpu_model: str
+    selected_gpu_architecture: str
+    direct_root_absent: bool
+    assisted_root_absent: bool
+    wrote_nothing: bool
+
+
+def evaluate_split_process_preflight_v2(
+    *,
+    mlff_stable: InterpreterProfileStableIdentityV1,
+    mlff_private: InterpreterProfilePrivateBindingV1,
+    gpupyscf_stable: InterpreterProfileStableIdentityV1,
+    gpupyscf_private: InterpreterProfilePrivateBindingV1,
+    source_identity: CompositeSourceIdentityV9,
+    selected_gpu_index: int,
+    selected_gpu_model: str,
+    selected_gpu_architecture: str,
+    direct_root_absent: bool,
+    assisted_root_absent: bool,
+) -> SplitProcessPreflightResultV2:
+    """Local/mock evaluator for two exact interpreters; it performs no SSH."""
+
+    ensure_role_compatibility("a1_mlff", mlff_stable)
+    ensure_role_compatibility("direct_and_a2_gpupyscf", gpupyscf_stable)
+    validate_private_binding(mlff_stable, mlff_private)
+    validate_private_binding(gpupyscf_stable, gpupyscf_private)
+    assert_direct_a2_core_parity(source_identity)
+    if isinstance(selected_gpu_index, bool) or selected_gpu_index < 0:
+        raise Phase9BPreflightError("selected GPU index is invalid")
+    if selected_gpu_model != "V100" or selected_gpu_architecture != "sm_70":
+        raise Phase9BPreflightError("selected GPU does not match exact V100/sm_70")
+    if not direct_root_absent or not assisted_root_absent:
+        raise Phase9BPreflightError("both v3 destination roots must be absent")
+    return SplitProcessPreflightResultV2(
+        mlff_stable_profile_sha256=mlff_stable.sha256(),
+        gpupyscf_stable_profile_sha256=gpupyscf_stable.sha256(),
+        full_source_sha256=source_identity.full_assisted_campaign_source_sha256,
+        selected_gpu_index=selected_gpu_index,
+        selected_gpu_model=selected_gpu_model,
+        selected_gpu_architecture=selected_gpu_architecture,
+        direct_root_absent=True,
+        assisted_root_absent=True,
+        wrote_nothing=True,
+    )
+
+
 __all__ = [
     "EXECUTION_AUTHORIZED",
     "EXPECTED_AIMNET_VERSION",
@@ -353,8 +415,10 @@ __all__ = [
     "Phase9BPreflightError",
     "Phase9BPreflightNotAuthorizedError",
     "PreflightResult",
+    "SplitProcessPreflightResultV2",
     "build_preflight_command",
     "evaluate_preflight",
+    "evaluate_split_process_preflight_v2",
     "run_preflight",
 ]
 
