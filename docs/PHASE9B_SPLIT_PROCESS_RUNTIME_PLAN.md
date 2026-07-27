@@ -1,5 +1,12 @@
 # Phase 9B Split-Process Runtime Plan
 
+> Item 10/12 implementation status (2026-07-27): complete and gate-closed.
+> Production modules, strict schemas, fake subprocess harness, three-stage
+> immutable handoff, shared PySCF core and v9 identity are frozen at composite
+> SHA256 `13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5`.
+> No server, real permit or scientific computation was used. The only next item
+> is Item 11/12 Postflight.
+
 ## Scope and status
 
 This document completes Item 9/12: architecture only. It authorizes no SSH,

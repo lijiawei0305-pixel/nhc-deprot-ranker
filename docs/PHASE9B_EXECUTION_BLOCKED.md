@@ -1,8 +1,10 @@
 # Phase 9B execution — stopped before any irreversible action
 
-**Current status: `hard_stop_no_validated_single_interpreter`. Nothing was
-deployed, no permit was placed or consumed, and no Phase 9B route process was
-started.**
+**Current status: `prepared_not_authorized_split_process_v9`. The former
+single-interpreter blocker is retained as v8 history, not repaired. Item 10/12
+implemented the dual-interpreter campaign, but Postflight and rehearsal do not
+exist yet. Nothing was deployed, no real permit was generated/placed/consumed,
+and no Phase 9B route process was started. All eleven public gates are false.**
 
 Phase 9B-U1 subsequently created one new, isolated prefix carrying both package
 stacks, but its capability validation failed closed and the prefix is retained

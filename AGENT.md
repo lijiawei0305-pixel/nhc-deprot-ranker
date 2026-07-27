@@ -489,3 +489,26 @@ dig +trace domain
   `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`；
   11 个 public gates 持续 false，生产标签持续 71。唯一允许的下一工作是另行授权的
   Item 10/12 local/mock-only split-process 实现，不得在 D1 授权内开始。
+
+## 28. Phase 9B Item 10/12 — split-process runtime 与 v9 freeze
+
+- Item 10 已完成 production source、strict schemas、campaign guardian、长期 campaign
+  supervisor、post-registration internal capability、MLFF A1、三份不可变 handoff
+  receipt、GPU-PySCF A2、direct/A2 shared PySCF core 和 exact evidence tree。
+- 所有验证均为 local/mock/fake subprocess；GitHub Linux run `30268978451` 连续三次
+  完成 no-chemistry campaign，并证明 A1/A2 顺序、process-group 清理和 terminal
+  evidence。没有 SSH、服务器动作、真实模型、GPU、PySCF、D3 或标签计算。
+- runner source 已唯一一次冻结为
+  `nhc-two-endpoint-runner-source-v9`，composite SHA256 为
+  `13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5`。
+  五个 leaf ownership 不重叠，dependency DAG 无环；direct 与 A2 绑定同一
+  shared-PySCF-core digest。
+- v8 SHA256
+  `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`
+  保留并标记 `superseded_before_execution`；它从未 deploy、place、consume 或
+  launch，不得删除、覆盖或改判。
+- 新 paired v3 request/manifest/resources generation 为
+  `prepared_not_authorized`。没有生成真实 permit。全部 11 个 public execution
+  gates 仍为 false，生产标签仍为 71。
+- Item 11/12 Postflight 源码尚不存在，Item 12/12 rehearsal 尚未开始。下一项唯一
+  允许工作是另行授权的 Item 11/12 split-process-aware Postflight。

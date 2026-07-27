@@ -2,9 +2,15 @@
 
 ## Status
 
-Plan only. Phase 9B is **not authorized** by this document. Execution requires a
-successful Phase 9A-R read-only preflight, a new authority chain, and separate
-explicit user authorization.
+Plan only. Phase 9B is **not authorized** by this document.
+
+> Item 10/12 update: the plan now has a gate-closed split-process v9 runtime and
+> paired v3 request/manifest/resources generation. The assisted route is one
+> campaign with MLFF A1 then GPU-PySCF A2; the direct route uses the same shared
+> PySCF core. No real permit exists. Item 11/12 Postflight and Item 12/12
+> rehearsal remain mandatory before any execution authorization. A later launch
+> also requires a successful current preflight, complete authority chain, and
+> separate explicit user authorization.
 
 ## Purpose
 

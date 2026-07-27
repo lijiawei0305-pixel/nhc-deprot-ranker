@@ -1,5 +1,12 @@
 # Phase 9B Split-Process Authority Chain
 
+> Item 10/12 implementation closure: the guardian-to-supervisor capability is
+> pipe-delivered; A1/A2 capabilities are constructed only after exact child
+> registration and are one-shot/boot-domain bound. The production source is in
+> runner v9 composite
+> `13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5`.
+> All public gates remain false and no authority bytes were generated.
+
 ## One user authority, two internal stages
 
 `AssistedCampaignPermitV3` is the only user-level assisted authority and is

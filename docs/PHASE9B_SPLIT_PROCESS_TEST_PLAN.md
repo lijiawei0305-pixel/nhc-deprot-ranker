@@ -1,5 +1,10 @@
 # Phase 9B Split-Process Test and Mutation Plan
 
+> Item 10 completion note: portable coverage, 32 preregistered mutation guards,
+> and three fresh GitHub Linux campaign-process runs are complete. Run
+> `30268978451` reported `synthetic_test_only=true` and `no_chemistry=true` for
+> each campaign. Final publication reruns the same Linux gate against v9.
+
 All Item 10 tests are local or mock-backed. Production gates remain false.
 
 ## Authority and isolation

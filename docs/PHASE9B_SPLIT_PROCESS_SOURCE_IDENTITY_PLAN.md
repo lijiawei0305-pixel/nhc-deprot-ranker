@@ -75,8 +75,9 @@ launch                          current -> campaign-aware v3
 terminal                        current -> campaign-aware v1
 ```
 
-The future source schema name is `nhc-two-endpoint-runner-source-v9`, represented
-by the composite identity above. This document deliberately records no v9 hash.
+The design-stage source schema name was `nhc-two-endpoint-runner-source-v9`,
+represented by the composite identity above. Item 10/12 has now completed the
+single authorized freeze; its final digest is recorded below.
 
 ## Freeze ordering
 
@@ -92,9 +93,27 @@ geometry, requests, manifests, and resources as one verified inventory before
 anything can run. External launch exposes only direct guardian and assisted
 campaign guardian; no A1/A2 launcher is public.
 
-## Current identity
+## Item 10/12 one-time v9 freeze
 
-Throughout Item 9/12, runner schema v8 and SHA256
-`5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`
-remain current, prepared but unauthorized and blocked. No current request,
-manifest, resource, or permit identity is regenerated.
+The freeze occurred after portable tests, the 32-case mutation guard set, and
+GitHub Linux process authority run `30268978451` completed successfully. The
+five leaf owners remain disjoint and their dependency graph remains acyclic.
+The retained v8 identity was never deployed, placed, consumed, or launched and
+is now `superseded_before_execution`; its preserved SHA256 is
+`5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`.
+
+```text
+shared_schema_source       3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b
+shared_pyscf_core_source   40ebf95cc709bb18720e9da19bc022d51d285b11cbfcac54620aac1024c57f9e
+campaign_control_source    e24c5b7d6a9a4b299d60753239f6088bddbbc341625bc1152e7b0d9ab2fca38e
+stage_a1_source            8aab997e67fcadab4f98dc2cb7aaaedece7a83a7c4d58e65b117d9b1ebc9279c
+stage_a2_source            fb1a3f62486d6cb354483f8458d8a70ffc63ea35386e5f3fc25f28887b04687c
+dependency edges          2b3fe4a8da98078ed4d4a87a114852bab2c7f0a5c057aac1702f76de2cf095ac
+deployment inventory      6b51e853dfdad8a0c8e8648dd7bc45007a611b6340496ad370cbc08121d6b6f4
+full composite v9         13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5
+```
+
+No provisional identity and no real permit were published. The v3 paired
+request/manifest/resource generation is `prepared_not_authorized`; all eleven
+execution gates remain false. The next allowed item is split-process-aware
+Postflight.

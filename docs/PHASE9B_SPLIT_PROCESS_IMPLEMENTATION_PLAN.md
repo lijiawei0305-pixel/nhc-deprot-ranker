@@ -1,5 +1,10 @@
 # Phase 9B Split-Process Implementation Plan
 
+> Completion note (2026-07-27): all Item 10 implementation units below are
+> complete, the Linux fake-process gate ran three fresh campaigns, and the one
+> permitted v9 rebaseline is final. No Postflight source was added. The next and
+> only allowed work is Item 11/12 split-process-aware Postflight.
+
 ## Item 10/12 scope
 
 Item 10/12 is a separate, local/mock-only authorization. It may implement source

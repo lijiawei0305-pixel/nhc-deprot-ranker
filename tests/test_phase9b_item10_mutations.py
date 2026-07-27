@@ -171,8 +171,10 @@ def test_campaign_terminal_rejects_label_on_failure() -> None:
 
 
 def test_v8_supersession_is_append_only_documented() -> None:
-    # During the pre-freeze CI commit v8 is retained, not overwritten.  The
-    # final freeze commit changes this assertion to the durable supersession
-    # manifest without changing the mutation registry.
     identity = (ROOT / "docs/PHASE9B_IDENTITY_REBASELINE.md").read_text()
-    assert "v8" in identity
+    manifest = (ROOT / "docs/PHASE9B_RUNNER_SOURCE_V9_MANIFEST.json").read_text()
+    v8 = "5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2"
+    assert v8 in identity and v8 in manifest
+    assert "superseded_before_execution" in identity
+    assert '"deployed": false' in manifest
+    assert '"permit_consumed": false' in manifest

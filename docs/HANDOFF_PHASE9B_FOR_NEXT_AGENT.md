@@ -4,15 +4,17 @@ This is a cold-start briefing. Read it, then read `AGENT.md` and
 `PHASE_STATUS.md`, which remain the authoritative constraints. Everything below
 is true as of merge commit on `main` after PR #47.
 
-> **D1 supersession notice:** this briefing preserves the historical v8
-> single-process context, but it is no longer the current next-action guide.
-> Unified-environment attempts closed after U5, and Item 9/12 froze the
-> split-process successor. Before any new work, read
+> **Item 10 supersession notice:** this briefing preserves historical v8/D1
+> context, but it is no longer the current next-action guide. Unified-environment
+> attempts closed after U5; Items 9/12 and 10/12 froze and implemented the
+> split-process successor. Runner v9 composite is
+> `13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5`.
+> Before any new work, read
 > `PHASE9B_UNIFIED_ENVIRONMENT_STRATEGY_CLOSEOUT.md`,
 > `PHASE9B_SPLIT_PROCESS_RUNTIME_PLAN.md`, and
-> `PHASE9B_SPLIT_PROCESS_IMPLEMENTATION_PLAN.md`. Item 10/12 is the only possible
-> next work and requires separate authorization; all execution gates remain
-> false.
+> `PHASE9B_ITEM10_SPLIT_PROCESS_RUNTIME_REPORT.md`. Item 11/12 split-process-aware
+> Postflight is the only possible next work and requires separate authorization;
+> all execution gates remain false. Do not implement rehearsal or execution.
 
 ---
 
@@ -443,7 +445,10 @@ survivor was a genuine coverage gap.
 
 ```text
 docs/PHASE9B_AUTHORITY_CHAIN.md                  the permit and identity model
-docs/PHASE9B_IDENTITY_REBASELINE.md              v4..v8 generations, all preserved
+docs/PHASE9B_IDENTITY_REBASELINE.md              v4..v9 generations, all preserved
+docs/PHASE9B_RUNNER_SOURCE_V9_MANIFEST.json      disjoint leaf/composite freeze
+docs/PHASE9B_PAIRED_GENERATION_V3.json           gate-closed request/manifests/resources
+docs/PHASE9B_ITEM10_SPLIT_PROCESS_RUNTIME_REPORT.md Item 10 terminal report
 docs/PHASE9B_EXECUTION_RUNTIME_CLOSURE.md        the production adapter, in detail
 docs/PHASE9B_EXECUTION_REACHABILITY.md           what is reachable behind the gates
 docs/PHASE9B_AIMNET2_SMOKE_PLAN.md               the frozen experiment

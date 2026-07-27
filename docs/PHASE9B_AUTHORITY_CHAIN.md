@@ -1,5 +1,12 @@
 # Phase 9B Authority Chain and Implementation Gap
 
+> Item 10/12 supersession note: the retained v8 single-process chain is
+> `superseded_before_execution`. The current prepared chain is runner v9,
+> composite SHA256
+> `13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5`,
+> with one assisted campaign permit and two supervisor-issued internal stage
+> capabilities. No real permit exists and all public gates remain false.
+
 ## Status
 
 Plan only. Phase 9B is **not authorized** by this document. It records what must

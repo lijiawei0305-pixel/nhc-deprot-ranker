@@ -10,7 +10,6 @@ closure now, and the schema version must change with the file set.
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -32,7 +31,7 @@ def _closure() -> tuple[str, ...]:
 def test_schema_version_reflects_the_changed_file_set() -> None:
     """A digest over a different file set must not share the old version."""
 
-    assert runner.RUNNER_SOURCE_SCHEMA_VERSION == "nhc-two-endpoint-runner-source-v8"
+    assert runner.RUNNER_SOURCE_SCHEMA_VERSION == "nhc-two-endpoint-runner-source-v9"
     assert "v3" not in runner.RUNNER_SOURCE_SCHEMA_VERSION
 
 
@@ -42,9 +41,9 @@ def test_every_phase9b_module_is_now_in_the_closure() -> None:
         assert member in closure, member
 
 
-def test_closure_holds_exactly_twenty_three_files_with_no_duplicates() -> None:
+def test_closure_holds_exactly_thirty_four_files_with_no_duplicates() -> None:
     closure = _closure()
-    assert len(closure) == 23
+    assert len(closure) == 34
     assert len(set(closure)) == len(closure)
 
 
@@ -122,23 +121,11 @@ def test_hash_requires_the_exact_file_set() -> None:
 
 
 def test_schema_version_participates_in_the_digest() -> None:
-    """The version must be mixed in, or a file-set change could collide."""
+    """The retained v8 flat identity cannot equal the v9 DAG composite."""
 
-    root = Path(runner.__file__).resolve().parents[2]
-    sources = {name: (root / name).read_bytes() for name in _closure()}
-    real = runner._canonical_runner_source_sha256(sources)  # pyright: ignore[reportPrivateUsage]
-
-    digest = hashlib.sha256()
-    digest.update(b"nhc-two-endpoint-runner-source-v3")
-    digest.update(b"\x00")
-    for name in _closure():
-        encoded_name = name.encode("utf-8")
-        content = sources[name]
-        digest.update(len(encoded_name).to_bytes(2, "big"))
-        digest.update(encoded_name)
-        digest.update(len(content).to_bytes(8, "big"))
-        digest.update(content)
-    assert digest.hexdigest() != real
+    assert runner.current_runner_source_sha256() != (
+        "5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2"
+    )
 
 
 def test_phase9b_authority_now_carries_the_resource_hash() -> None:

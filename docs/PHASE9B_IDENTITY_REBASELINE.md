@@ -70,6 +70,7 @@ closure files          23 (two added: execution adapters, AIMNet2 runtime)
 resources_sha256       0fec2c1914f413a2762e1fafc7daa9900551981b5af72897746864edffac7df8
 request schema         nhc-two-endpoint-request-v2
 permit schema          nhc-phase9b-private-permit-v2
+state                  superseded_before_execution
 ```
 
 The resource budget is byte-identical, so `resources_sha256` did not move. The
@@ -250,3 +251,53 @@ remain `prepared_not_authorized` and
 `blocked_by_no_validated_single_interpreter`. They become
 `superseded_before_execution` only after Item 10/12 completes all source and
 local/mock tests and performs its single v9 rebaseline.
+
+## Item 10/12 final v9 composite identity
+
+Item 10 completed that one-time rebaseline after portable tests, the registered
+32-case mutation suite, and three fresh Linux process-authority campaigns. The
+v8 source, direct/assisted requests, manifests, resources and any unconsumed
+private permit assets are retained as `superseded_before_execution`: none was
+deployed, placed, consumed or launched.
+
+```text
+runner source schema        nhc-two-endpoint-runner-source-v9
+runner_source_sha256        13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5
+closure files               34, disjoint across five leaves
+request schema              nhc-two-endpoint-request-v3
+payload manifest schema     phase9b.payload_manifest.v3
+campaign resources schema   nhc-phase9b-campaign-resources-v2
+campaign resources sha256   39d1be30f30c85a21452a30548b5ba97414cb106461e8d0104beb6c34618c0ab
+state                       prepared_not_authorized
+```
+
+Leaf and composite identities:
+
+```text
+shared_schema_source       3dabcfb2df9dd12ebdc3bab920ec486c5ee3ce8305a5390ca33190d8b7951b5b
+shared_pyscf_core_source   40ebf95cc709bb18720e9da19bc022d51d285b11cbfcac54620aac1024c57f9e
+campaign_control_source    e24c5b7d6a9a4b299d60753239f6088bddbbc341625bc1152e7b0d9ab2fca38e
+stage_a1_source            8aab997e67fcadab4f98dc2cb7aaaedece7a83a7c4d58e65b117d9b1ebc9279c
+stage_a2_source            fb1a3f62486d6cb354483f8458d8a70ffc63ea35386e5f3fc25f28887b04687c
+dependency edges          2b3fe4a8da98078ed4d4a87a114852bab2c7f0a5c057aac1702f76de2cf095ac
+deployment inventory      6b51e853dfdad8a0c8e8648dd7bc45007a611b6340496ad370cbc08121d6b6f4
+```
+
+The new paired generation is:
+
+```text
+request id                 phase9b-lbnp-paired-split-process-v003
+direct attempt             attempt-phase9b-lbnp-direct-v003
+direct request             84046351c5ba6e1a8087acc6e3070f46ff3429f4781a1bf689a1fa473218c4d3
+direct manifest            f6e193706006fc1f6bc937ba636145e1c1617fe9245ea60db9703605f7707d9a
+assisted attempt           attempt-phase9b-lbnp-assisted-v003
+assisted request           24a1caf75b9cdbd061e366eab3202e7d1511d46ed2ca70245b4390fc04681933
+assisted manifest          ed91373bf0ced4a1d100f51966a8010812b41c9e55dbdf0ce56f68f5d06b1904
+real permit generated      false
+```
+
+The split route now binds one MLFF stable interpreter profile for A1 and one
+GPU-PySCF stable profile shared by direct and A2. Host-local absolute bindings
+remain private and must be proven by a later authorized preflight. Postflight
+does not exist yet; it is Item 11/12. All eleven public execution gates remain
+false and the production label count remains 71.

@@ -1,5 +1,11 @@
 # Phase 9B Split-Process Reachability Audit
 
+> Item 10/12 implementation disposition: every row classified as refactor/new
+> in the design audit now has a gate-closed production module and a portable or
+> Linux fake-process regression. The full source inventory is frozen in
+> `PHASE9B_RUNNER_SOURCE_V9_MANIFEST.json`. Postflight rows remain intentionally
+> deferred to Item 11/12; no external A1/A2 launch surface exists.
+
 ## Current single-process assumptions
 
 The v8 assisted route assumes all of the following:
