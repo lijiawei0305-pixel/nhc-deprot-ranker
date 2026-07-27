@@ -76,3 +76,11 @@ v003 was never created and none of those gates ran.
 
 No optimizer, PySCF kernel/gradient, D3 calculation, Postflight, closed-gate
 rehearsal, permit, or label ran.
+
+## Forward link (U3 remains immutable)
+
+The separately authorized U4 design is
+`PHASE9B_UNIFIED_ENVIRONMENT_V004_PLAN.md`. It introduces a new helper identity
+and explicit symlink/capture diagnostics. This link does not change U3's
+status, helper, receipt, manifest, or conclusion and does not authorize a v003
+retry.

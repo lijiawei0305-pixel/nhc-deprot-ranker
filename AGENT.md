@@ -389,3 +389,24 @@ dig +trace domain
 - 因 U3 未签发 identity，目前仍不存在 validated unified environment；不得进入
   Identity Integration、Postflight、rehearsal 或科学执行。唯一允许动作是发布
   已脱敏的 qualification failure evidence 后停止。
+
+## 25. Phase 9B-U4 — Symlink-aware protected metrology 边界
+
+- U1/U2/U3 状态分别固定为 `failed_incomplete_environment`、
+  `rejected_environment`、`failed_before_environment_creation`。U4 使用全新的
+  helper/request/attempt/v004 resources/receipts/identity；不得修改或重跑 v003。
+- U3 根因已在代码中确认：`bin/python` 为 symlink 时在 Python probe、conda、
+  pip、tree 前直接返回 invalid；命令失败和宽泛异常也被压成相同 sentinel，且
+  public receipt 未保存分支原因。U3 结论有效但其 sentinel 不能单独证明分支。
+- U4 只接受普通可执行 launcher，或最终解析到同一环境根内普通可执行文件的
+  稳定有界 symlink chain。必须拒绝 dangling、loop、root escape、其他环境、
+  系统 Python、非普通/不可执行 target，以及 probe 前后任何 inode/identity 漂移。
+- V3 snapshot / V2 projection 不静默改变 U3 V2/V1 语义；diagnostic 位于 stable
+  projection 外。present 必须 `failure=null`，所有其他状态必须有具体注册 code、
+  stage、assertion 和 digest；未知异常必须显式升级。
+- document-first PR 合入前禁止任何 SSH。合入后仅允许一次只读 Q4，对六对象
+  各捕获 A/B；只有全部 present、diagnostic-free、projection/launcher/target
+  identity 相等才可创建 v004。Q4 失败不得修 helper 或重跑，也不得创建 U5。
+- 即使 v004 validated，本轮仍禁止 runner/request/resources/permit、deploy、
+  launch、optimizer、PySCF、D3、Postflight、rehearsal 和 label。v8 SHA256、
+  11 个 false gates 和 71 labels 必须保持不变。

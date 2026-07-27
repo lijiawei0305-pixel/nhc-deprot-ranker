@@ -375,6 +375,12 @@ prefix, wheelhouse, cache, package, import, native map, endpoint, optimizer, or
 kernel operation followed. Consequently there is still no identity eligible
 for that later integration, and this v8 closure remains untouched.
 
+U4's symlink-aware helper and diagnostic schemas are likewise outside this
+closure. The document-first and Q4 gates cannot edit runner comments or
+receipts. Schema v8 and SHA256
+`5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`
+therefore remain frozen throughout U4.
+
 ## 11. What this round did not do
 
 No SSH, no server, no deploy, no permit placed, no launch, no guardian or

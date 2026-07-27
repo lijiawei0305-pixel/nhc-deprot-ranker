@@ -26,6 +26,8 @@ Updated: 2026-07-27
 | Phase 9B — paired direct / assisted smoke | Framework 8 of 10 complete; execution stopped before any irreversible action | 2026-07-27; no single interpreter carries both the MLFF and PySCF stacks; nothing deployed, placed, consumed, or launched |
 | Phase 9B-U1 — dedicated unified environment build and audit | Failed closed; incomplete v001 retained and unusable | 2026-07-27; exact stack installed, but capability harness observed 4 calculator invocations vs 2 expected; no retry; old environments unchanged |
 | Phase 9B-U2 — unified environment v002 | Rejected environment; retained and unusable | 2026-07-27; capability counts/native/cache passed, but protected snapshot schema mismatch failed the canonical gate; no retry |
+| Phase 9B-U3 — qualified metrology / v003 | Failed before environment creation; retained | 2026-07-27; helper rejected normal Conda Python symlinks as invalid; v003 resources never created |
+| Phase 9B-U4 — symlink-aware metrology / v004 | Document-first contract in progress | No SSH or server action before PR merge; all execution gates false |
 
 ## Current completed work
 
@@ -294,6 +296,15 @@ fixed, rerun, or reused. The retained outcome is in
 No validated unified environment exists. Identity Integration, Postflight,
 closed-gate rehearsal, and Phase 9B science remain blocked. All public
 execution gates remain false.
+
+Phase 9B-U4 is separately authorized as a new metrology implementation and new
+identity. Code inspection confirms U3 rejected `bin/python` symlinks before all
+probes and collapsed later failures into the same reason-free invalid sentinel;
+the retained U3 public evidence cannot by itself distinguish those branches.
+U4 adds root-contained symlink-chain authentication and explicit capture
+diagnostics. Its document-first PR must merge before any SSH. Only one later
+read-only Q4 qualification may determine whether new v004 resources can be
+created.
 
 A one-shot execution authorization was granted and its section 11 pre-execution
 audit failed: at that time there was no single interpreter on the compute host
