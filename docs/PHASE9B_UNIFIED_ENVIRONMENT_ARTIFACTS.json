@@ -1,0 +1,64 @@
+{
+  "artifacts": [
+    {
+      "artifact_host": "files.pythonhosted.org",
+      "bytes": 52637822,
+      "filename": "pyscf-2.13.1-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "metadata_url": "https://pypi.org/pypi/pyscf/2.13.1/json",
+      "package": "pyscf",
+      "sha256": "27b991d37ff16137d28b7210f678f8a027264cb66590afdd2002c5b69001f8b3",
+      "version": "2.13.1"
+    },
+    {
+      "artifact_host": "files.pythonhosted.org",
+      "bytes": 392235,
+      "filename": "geometric-1.1.1.tar.gz",
+      "metadata_url": "https://pypi.org/pypi/geometric/1.1.1/json",
+      "package": "geometric",
+      "sha256": "c712c4102bb9db4afab4c7a482289a13d04989735cc1430c89ebb73d587d1d8b",
+      "version": "1.1.1"
+    },
+    {
+      "artifact_host": "files.pythonhosted.org",
+      "bytes": 12729963,
+      "filename": "pyscf_dispersion-1.5.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "metadata_url": "https://pypi.org/pypi/pyscf-dispersion/1.5.0/json",
+      "package": "pyscf-dispersion",
+      "sha256": "c65aa46f24005794bf8198205a0d83f3431a23333868fbafff43bd82efc2294d",
+      "version": "1.5.0"
+    }
+  ],
+  "built_wheels": [
+    {
+      "build_interpreter": "<PHASE9B_UNIFIED_PYTHON>",
+      "build_command_sha256": "4ae0a5e0aaa4a27a01181fce33009fa470376a08e168b5083cdd46879eb84d25",
+      "build_isolation": false,
+      "contents_entries": 117,
+      "contents_manifest_sha256": "4dbad505d485f8041ba4146c19f327c3e6d5ea69051b0156c530dfc653e2989c",
+      "dependencies_resolved": false,
+      "filename": "geometric-1.1.1-py3-none-any.whl",
+      "bytes": 408348,
+      "sha256": "c1d00c5c9e3f248783e8c50289c2480075092c1878be354cf01d185429a93443"
+    }
+  ],
+  "download_policy": {
+    "artifact_downloads": 3,
+    "hash_checked_against_official_pypi_metadata": true,
+    "mirror_fallback_used": false,
+    "model_downloads": 0,
+    "registry_alias_used": false,
+    "hugging_face_accessed": false,
+    "networkx_install_needed": false,
+    "six_install_needed": false
+  },
+  "private_wheelhouse": "<PRIVATE_WHEELHOUSE>",
+  "retained_private_tree": {
+    "failure_readonly_audit_sha256": "5893f2bce0ddd4b52502bb127378b1190a0443092dcce0a1f013e2ab2d97da0f",
+    "file_count_excluding_manifest": 94,
+    "retained_file_manifest_excludes_self": true,
+    "retained_file_manifest_sha256": "c498e44c0269147c3b2dc22000efbc76e5a6b1eddfaa93c79d18f09b5945ae17",
+    "total_bytes_excluding_manifest": 76776836
+  },
+  "schema_version": "phase9b_u1.artifacts.v1",
+  "status": "supply_chain_passed_environment_validation_failed_later"
+}

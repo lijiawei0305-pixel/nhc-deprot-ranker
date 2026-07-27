@@ -24,6 +24,7 @@ Updated: 2026-07-27
 | Phase 9A-S4 — deduplicated interpreter and source inspection | Passed; loader decision A, source_proven | 2026-07-27; read-only; 1 of 1 SSH used; 16 AIMNet + 25 ASE files read; server unchanged |
 | Phase 9B item 8/10 — production execution runtime | Complete; loader, ASE/LBFGS optimizer, trajectory evidence, v8 rebaseline | 2026-07-27; local only; no model, no GPU, no server; eleven gates still false |
 | Phase 9B — paired direct / assisted smoke | Framework 8 of 10 complete; execution stopped before any irreversible action | 2026-07-27; no single interpreter carries both the MLFF and PySCF stacks; nothing deployed, placed, consumed, or launched |
+| Phase 9B-U1 — dedicated unified environment build and audit | Failed closed; incomplete v001 retained and unusable | 2026-07-27; exact stack installed, but capability harness observed 4 calculator invocations vs 2 expected; no retry; old environments unchanged |
 
 ## Current completed work
 
@@ -109,6 +110,12 @@ Updated: 2026-07-27
 - Added six no-chemistry revival-resistance regressions proving all three retired routes hold the latch simultaneously, the checked-in execution gate is false, a stale `server_write_authorized: true` configuration cannot revive deployment, and refusal precedes every input read and SSH attempt. Mutation-tested by flipping the deployment latch off, which failed four of the six.
 - Corrected current-state drift: `PHASE_STATUS.md` listed an already-completed publication as the next action, `AGENT.md` named only the PR #9 planning merge, and `AGENT.md` implied the frozen postflight rejected the attempt after reading the receipt when it had exited earlier at a legitimate zero-byte Phase 7 helper log.
 - Passed the closeout gate on CPython 3.14.3: 562 tests, Ruff lint and format, strict mypy for 72 source files, private-path scan, diff check, and an unchanged `docs/PHASE8B_DFT_SMOKE_V001.json` hash. Recorded, rather than fixed, a pre-existing `pre-commit` `UP038` failure in an untouched file caused by the hook pinning ruff `v0.12.4` against the project's `0.15.16`.
+- Authorized Phase 9B-U1 as a new-prefix-only installation: completed the document-first plan and a before snapshot over project mlff, project aimnet2, project gpupyscf and shared molecular before any server write.
+- Downloaded the exact PySCF 2.13.1, geomeTRIC 1.1.1 and pyscf-dispersion 1.5.0 artifacts from official PyPI/files.pythonhosted.org, re-read all registered SHA256 values, built the geomeTRIC wheel inside the clone, and installed all three offline with `--no-deps`; no model or ensemble member was downloaded.
+- Offline-cloned project mlff into the new versioned v001 prefix and preserved Python 3.11.15, torch 2.8.0+cu128, CUDA 12.8, `sm_70`, aimnet 0.2.0 and ASE 3.29.0. PySCF 2.13.1, geomeTRIC 1.1.1 and pyscf-dispersion 1.5.0 are present; `pip check` and independent metadata dependency validation passed with no protected-package drift.
+- Failed the unified capability harness closed after both endpoint property reads because the counting adapter observed four calculator invocations while the harness preregistered two. No retry or reinterpretation occurred; native-map, endpoint-payload and global-cache after evidence remained incomplete, so the v001 environment is `failed_incomplete_environment` and unusable.
+- Recomputed all four protected-environment snapshots after the failure and proved every before/after SHA identical. Retained the failed prefix, wheelhouse, cache and evidence; ran no optimizer, PySCF kernel/gradient, geomeTRIC, D3 energy or label calculation, and kept all eleven public execution gates false.
+- Closed the public U1 evidence with 1282 tests passing three consecutive times, targeted identity tests, Ruff lint/format, strict mypy for 88 source files, compileall, package-wheel build, privacy/diff/gate scans, independent v8 source digest recomputation, frozen Phase 8B artifact verification and a killed/restored document mutation. `pre-commit --all-files` reproduced only the recorded untouched-file Ruff 0.12.4 `UP038` baseline at `tests/test_phase8b_runtime.py:770`.
 
 ## Current boundary
 
@@ -246,12 +253,24 @@ There are **eleven** such gates and all eleven are false.
 
 ## Next action
 
-**Phase 9B execution is stopped, fail-closed, before any irreversible action.**
+**Phase 9B scientific execution remains stopped, fail-closed, before any irreversible action.**
+
+Phase 9B-U1 has completed as a fail-closed infrastructure attempt. Its v001
+prefix and wheelhouse are retained failure evidence and may not be deleted,
+repaired, retried or reused. The exact package installation passed, but the
+capability harness observed four calculator invocations against a preregistered
+expectation of two; portable native-map, endpoint and global-cache-after
+evidence was therefore incomplete and the environment was not validated.
+
+The only safe next action is to stop. A new attempt would require explicit user
+authorization, a new v002 prefix and wheelhouse, and a document-first resolution
+of calculator invocation versus energy/force property-read semantics. It may
+not proceed under this authorization and may not reuse v001.
 
 A one-shot execution authorization was granted and its section 11 pre-execution
-audit failed: there is no single interpreter on the compute host that can run
-the assisted route. The MLFF stack and the PySCF stack live in disjoint conda
-environments.
+audit failed: at that time there was no single interpreter on the compute host
+that could run the assisted route. The audited pre-U1 MLFF and PySCF stacks
+lived in disjoint conda environments.
 
 The search covers the whole host, not just the project: environments were found
 by their own `conda-meta` and `pyvenv.cfg` markers across `/home`, `/opt`,
@@ -267,23 +286,21 @@ intersection                                 empty
 The nearest miss is the shared `molecular` environment: pyscf 2.13.1, geometric
 1.1.1, pyscf-dispersion 1.5.0 and ase **3.28.0**, but no torch and no aimnet.
 
-Every version present is exactly the frozen one; nothing drifted. They simply do
-not coexist, and Route A must run AIMNet2 and PySCF in one guarded worker
-process because that is what the byte-closed handoff and the assisted permit
-bind.
+Every pre-U1 version was exactly the frozen one; nothing had drifted. U1 later
+created a new prefix containing both package sets, but that prefix failed its
+capability validation and is unusable. Route A still has no accepted interpreter.
 
-Nothing was deployed, no permit was placed or consumed, no remote root was
-created, and no process was started. The only remote action was one read-only
-metadata probe. Route D alone was deliberately not run: a direct-only result is
-not a paired experiment.
+Nothing was deployed, no permit was placed or consumed, and no Phase 9B route
+process was started. U1 wrote only its isolated environment/wheelhouse/evidence
+trees and ran its bounded compatibility smokes. Route D alone was deliberately
+not run: a direct-only result is not a paired experiment.
 
 The reasoning, the options, and the single safe next action are in
 `docs/PHASE9B_EXECUTION_BLOCKED.md`; the evidence is in
 `docs/PHASE9B_SERVER_WIDE_ENVIRONMENT_SEARCH.json`.
 
 Items 9/10 — postflight and the closed-gate full-chain rehearsal — remain not
-started. They are unaffected by this blocker and are the natural next build
-whenever the interpreter question is resolved.
+started and were explicitly forbidden in U1. They are not authorized next work.
 
 ## High-fidelity production labels
 

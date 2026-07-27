@@ -174,13 +174,21 @@ the circularity this round removed.
 
 ## What is still not wired
 
-**Postflight does not exist.** That is item 9/10 and is deliberately not started
-until every interface above is frozen.
+**Postflight does not exist.** That is item 9/10 and remains deliberately not
+started in Phase 9B-U1.
 
-**The AIMNet2 stage has no runtime implementation inside the route.** The handoff
-contract, its receipts, and the gate that stops PySCF are built and tested; what
-produces the preoptimized geometry under the permit is not. Route A cannot run
-until it exists, and Route D is unaffected.
+**The production AIMNet2 runtime is implemented, but no validated unified
+environment identity exists.** U1 created and populated a new v001 prefix, then
+failed its capability harness on four observed calculator invocations versus
+two expected. The prefix is retained as `failed_incomplete_environment` and is
+unusable; it does not move the runner source schema or authorize a route.
 
-**Nothing here has been executed.** No server was contacted, no permit was placed
-or consumed, no guardian ran, and no supervisor was spawned. Every gate is closed.
+**The current control-plane identities do not bind an interpreter.** The v8
+preflight invokes unbound `python3`, and resources/request/permit contain no
+unified-environment identity. Those are explicit schema/integration gaps for a
+future gate-closed round, not fields to add silently during installation.
+
+No Phase 9B payload has been deployed, no permit placed or consumed, and no
+guardian, supervisor or worker launched. Every public execution gate is closed.
+The v8 source digest remains
+`5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`.

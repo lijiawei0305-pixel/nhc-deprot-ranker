@@ -1,0 +1,103 @@
+{
+  "authorization": {
+    "item_9_postflight_authorized": false,
+    "item_10_rehearsal_authorized": false,
+    "label_production_authorized": false,
+    "permit_generation_or_placement_authorized": false,
+    "phase9b_deploy_or_launch_authorized": false,
+    "phase9b_scientific_execution_authorized": false,
+    "server_install_authorized": true
+  },
+  "build": {
+    "clone_source": "<PROJECT_MLFF_ENV>",
+    "clone_source_unchanged_immediately_after_clone": true,
+    "dependency_simulation_protected_changes": [],
+    "geometric_wheel_built": true,
+    "offline_clone_completed": true,
+    "offline_no_deps_install_completed": true,
+    "pip_check_passed": true,
+    "protected_package_drift": [],
+    "target_python_realpath_inside_target": true
+  },
+  "environment_canonical_sha256": null,
+  "execution_identity": {
+    "current_v8_permit_usable": false,
+    "current_v8_request_usable": false,
+    "environment_validated": false,
+    "execution_identity_not_yet_rebased": true,
+    "phase9b_not_authorized": true,
+    "runner_source_schema": "nhc-two-endpoint-runner-source-v8",
+    "runner_source_sha256": "5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2"
+  },
+  "failed_environment_state_sha256": "b3468a9f2319e61cd15d45256aef6a19b8bb06093867361141558f9d75b3f996",
+  "failure": {
+    "actual_calculator_invocations": 4,
+    "failure_class": "capability_smoke_model_invocation_count_mismatch",
+    "failure_environment_deleted": false,
+    "failure_environment_reused": false,
+    "harness_expected_calculator_invocations": 2,
+    "retry_attempted": false
+  },
+  "logical_environment_name": "nhc-phase9b-unified-v001",
+  "package_versions": {
+    "aimnet": "0.2.0",
+    "ase": "3.29.0",
+    "cuda": "12.8",
+    "geometric": "1.1.1",
+    "h5py": "3.16.0",
+    "networkx": "3.6.1",
+    "numpy": "2.4.6",
+    "pyscf": "2.13.1",
+    "pyscf-dispersion": "1.5.0",
+    "python": "3.11.15",
+    "scipy": "1.17.1",
+    "six": "1.17.0",
+    "torch_metadata": "2.8.0",
+    "torch_runtime": "2.8.0+cu128"
+  },
+  "privacy": {
+    "contains_account_name": false,
+    "contains_credential": false,
+    "contains_hostname": false,
+    "contains_ip_address": false,
+    "contains_molecular_coordinates": false,
+    "contains_private_absolute_path": false
+  },
+  "private_evidence": {
+    "failure_readonly_audit_sha256": "5893f2bce0ddd4b52502bb127378b1190a0443092dcce0a1f013e2ab2d97da0f",
+    "retained_file_manifest_sha256": "c498e44c0269147c3b2dc22000efbc76e5a6b1eddfaa93c79d18f09b5945ae17",
+    "retained_files_excluding_manifest": 94
+  },
+  "protected_environment_comparison": {
+    "all_unchanged": true,
+    "project_aimnet2": {
+      "after_sha256": "60249e0bb8b32790bcd83f11cdd5cc9003db56ecc0e864e463ebc787d131bc0d",
+      "before_sha256": "60249e0bb8b32790bcd83f11cdd5cc9003db56ecc0e864e463ebc787d131bc0d"
+    },
+    "project_gpupyscf": {
+      "after_sha256": "42b70ef500da74b5efc1060fa9f08b3d6415827a986b02cfe0fbafc7c592b4ca",
+      "before_sha256": "42b70ef500da74b5efc1060fa9f08b3d6415827a986b02cfe0fbafc7c592b4ca"
+    },
+    "project_mlff": {
+      "after_sha256": "6c88593b5145eb13e523265b3b68cd0ddfb01d862f0cb63eab9421d80522b8a1",
+      "before_sha256": "6c88593b5145eb13e523265b3b68cd0ddfb01d862f0cb63eab9421d80522b8a1"
+    },
+    "shared_molecular": {
+      "after_sha256": "1a4c606067bbfdc4c6c89dc97386e84cfa9f0e879c8e7207f2fb3b76b7218aad",
+      "before_sha256": "1a4c606067bbfdc4c6c89dc97386e84cfa9f0e879c8e7207f2fb3b76b7218aad"
+    }
+  },
+  "schema_version": "phase9b_u1.unified_environment_manifest.v1",
+  "status": "failed_incomplete_environment",
+  "target": {
+    "prefix": "<PHASE9B_UNIFIED_ENV_ROOT>",
+    "retained": true,
+    "tree": {
+      "entries": 49435,
+      "listing_sha256": "9a66962e8a7a6c08ccaf52653b0dacdd8c1578f8a55e3e8304f099358188c7d4",
+      "newest_mtime_ns": 1785131409638332249,
+      "regular_file_bytes": 8250263715
+    },
+    "tree_unchanged_since_package_validation": true
+  }
+}

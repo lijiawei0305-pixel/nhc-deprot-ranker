@@ -284,3 +284,47 @@ dig +trace domain
 - 每个端点必须显式传入总电荷（cation `+1`、neutral `0`），不得由文件名、目录名或原子数推断。任一端点失败即不得产生标签。
 - Phase 8B 边界不变：失败关闭、零完整端点、零 DFT 标签、高保真标签仍为 71、旧 QXH 授权链永久不可复用。大量 Phase 8B 基础设施代码不代表已获得 DFT 结果。
 - 前进路线与授权阶梯：`Phase 9A（本阶段）→ Phase 9A-R 只读服务器预检 → Phase 9B 双路线 smoke → Phase 9C 小型 pilot → Phase 10 分批生产`。每一步都是独立授权；文档规划不等于实现授权，实现不等于服务器写入授权，服务器写入不等于计算授权。
+
+## 22. Phase 9B-U1 — 专用统一环境构建与审计边界
+
+- 用户已冻结采用“离线 clone 项目 `mlff` prefix，再在全新
+  `phase9b_unified_v001` prefix 中加入精确 PySCF 栈”的架构；不得修改
+  `mlff`、`aimnet2`、`gpupyscf`、共享 `molecular` 或任何其他既有环境，
+  不得拼接 `PYTHONPATH`，不得自动切换成双进程架构。
+- 本轮允许的服务器写入严格限于此前不存在的
+  `<PHASE9B_UNIFIED_ENV_ROOT>`、`<PRIVATE_WHEELHOUSE>` 及其中登记的构建、
+  cache 与证据文件。任一目标已存在、是 symlink、有同名 registry entry
+  或 staging 残留即 fail closed；不得覆盖、删除、复用或自行换成 v002。
+- 下载只允许官方 PyPI / `files.pythonhosted.org` 上提示词登记的精确
+  PySCF 2.13.1 wheel、geometric 1.1.1 sdist、pyscf-dispersion 1.5.0
+  wheel，以及确有缺失时从 gpupyscf 冻结版本派生的 `networkx`/`six`
+  精确 artifact。必须先落 wheelhouse、完整 SHA256 复核，再离线
+  `--no-index --no-deps` 安装；禁止 model/Hugging Face/registry 下载。
+- clone 后安装前必须证明 Python 3.11.15、torch 2.8.0+cu128、CUDA 12.8、
+  `sm_70`、aimnet 0.2.0、ASE 3.29.0 与 source MLFF 保护包一致；resolver
+  若想改变 Python、Torch、AIMNet、ASE、NumPy、SciPy、h5py、CUDA、Warp
+  或 nvalchemi toolkit，立即停止。
+- U1 能力 smoke 只允许在一张当前空闲 V100 上用现有 `_0` 权重，对冻结
+  LBNP cation/neutral 各做一次 AIMNet2 energy+force 请求。不得优化坐标，
+  不得构造或运行 PySCF kernel/gradient、geomeTRIC、D3，不得生成标签；
+  无空闲 GPU 时不等待、不换卡、不重试。
+- 四个既有环境必须在安装前后用相同 key set 做完整快照并逐项相等；
+  任一漂移为终态失败，且不得尝试“修回去”。失败的新环境保留并标记
+  `failed_incomplete_environment` 或 `rejected`，不得删除或复用。
+- U1 结束时所有 public execution gates 仍为 false；不得做 Item 9
+  Postflight、Item 10 rehearsal、permit 生成/placement、deploy、launch 或
+  paired science。成功也只得到 `environment_validated`，当前 v8 身份仍是
+  `execution_identity_not_yet_rebased` / `phase9b_not_authorized`。
+- 当前 v8 request/resources/permit 不绑定统一解释器，preflight 仍调用未
+  绑定 prefix 的 `python3`；后续须另开 gate-closed identity integration，
+  诚实重基线 preflight/resources/request/permit，并将旧受阻身份记为
+  `superseded_before_execution`。仅环境变化不构成 runner source v9。
+- Phase 9B-U1 已执行并 fail closed：新 v001 prefix 成功 clone 且精确
+  PySCF 栈安装、`pip check` 与 metadata 依赖验证通过，但 capability
+  harness 预期 2 次 calculator invocation，真实 ASE energy/force 访问记录
+  4 次，故状态为 `failed_incomplete_environment`。不得事后重解释为通过。
+- 失败的 `<PHASE9B_UNIFIED_ENV_ROOT>` 与 `<PRIVATE_WHEELHOUSE>` 已保留；
+  不得删除、修补、重跑或复用。四个既有环境 before/after 完全一致，
+  所有 execution gate 仍 false，生产标签仍 71。唯一安全后续动作是停止；
+  若用户另行授权，必须使用全新 v002 prefix/wheelhouse，并先冻结
+  calculator invocation 与 energy/force property read 的精确定义。
