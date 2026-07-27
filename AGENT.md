@@ -410,3 +410,10 @@ dig +trace domain
 - 即使 v004 validated，本轮仍禁止 runner/request/resources/permit、deploy、
   launch、optimizer、PySCF、D3、Postflight、rehearsal 和 label。v8 SHA256、
   11 个 false gates 和 71 labels 必须保持不变。
+- U4 document-first 合同已由 PR #54 合入。唯一一次只读 Q4 随后对六对象
+  A/B 均返回 `CONDA_EXPLICIT_FAILED`；root containment 与 failed-projection
+  equality为 true，但 state 均为 invalid。v004 三个资源路径前后均不存在。
+- Q4 summary 未把 observation-level launcher chain、command return code 与精确
+  failure stage 晋升为 portable evidence，而是输出失败 snapshot sentinel；此
+  observability 限制必须公开保留，不得通过第二次 SSH、推断补写或 helper 修复。
+  U4 终态为 `failed_before_environment_creation`，不得 build、重跑或创建 U5。

@@ -1,0 +1,66 @@
+{
+  "schema_version": "nhc-phase9b-unified-environment-v004-public-manifest-v1",
+  "logical_name": "nhc-phase9b-unified-v004",
+  "attempt_id": "attempt-phase9b-unified-v004",
+  "status": "failed_before_environment_creation",
+  "helper_source_sha256": "4e80ea845692223542a33a0bc18aae3b2363017d652f0b674c81f76bcfcc8aa5",
+  "qualification": {
+    "all_passed": false,
+    "failed_object_count": 6,
+    "failure_code": "CONDA_EXPLICIT_FAILED",
+    "all_a_b_projections_equal": true,
+    "all_resolved_targets_inside_root": true,
+    "portable_diagnostic_complete": false
+  },
+  "resources": {
+    "prefix_state": "absent",
+    "wheelhouse_state": "absent",
+    "cache_state": "absent",
+    "paths_absent_before": true,
+    "paths_absent_after": true
+  },
+  "build": {
+    "started": false,
+    "artifacts_downloaded": 0,
+    "package_versions_observed": false
+  },
+  "terminal": {
+    "terminal_status": "failed_before_environment_creation",
+    "failure": {
+      "code": "CONDA_EXPLICIT_FAILED",
+      "stage": "measurement_qualification",
+      "assertion": "all six Q4 captures are present and diagnostic-free",
+      "object_ids": [
+        "phase9b_unified_v001_env",
+        "phase9b_unified_v002_env",
+        "project_aimnet2",
+        "project_gpupyscf",
+        "project_mlff",
+        "shared_molecular"
+      ],
+      "details_digest": "6c92284ba771ccace43c4851b908dd9090ebb36fd926e23067f7ca8a196a0d96"
+    }
+  },
+  "identity": {
+    "unified_execution_environment_identity_v4_issued": false,
+    "environment_canonical_sha256": null,
+    "runner_source_schema": "v8",
+    "runner_source_sha256": "5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2"
+  },
+  "execution": {
+    "scientific_execution_started": false,
+    "public_execution_gate_count": 11,
+    "all_public_execution_gates_false": true,
+    "optimizer_steps": 0,
+    "pyscf_kernel_calls": 0,
+    "pyscf_gradient_calls": 0,
+    "d3_calculations": 0,
+    "labels_created": 0,
+    "production_high_fidelity_labels": 71
+  },
+  "privacy": {
+    "private_absolute_paths_included": false,
+    "host_or_account_included": false,
+    "credentials_included": false
+  }
+}

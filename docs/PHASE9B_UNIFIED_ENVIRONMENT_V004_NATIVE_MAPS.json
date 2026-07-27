@@ -1,0 +1,8 @@
+{
+  "schema_version": "nhc-phase9b-unified-environment-v004-native-maps-v1",
+  "status": "not_run_failed_before_environment_creation",
+  "reason": "q4_measurement_qualification_failed",
+  "ml_first": null,
+  "pyscf_first": null,
+  "native_gate_classification": "not_run"
+}

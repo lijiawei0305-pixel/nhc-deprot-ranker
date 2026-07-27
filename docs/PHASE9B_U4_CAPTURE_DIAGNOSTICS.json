@@ -1,0 +1,24 @@
+{
+  "schema_version": "nhc-phase9b-u4-public-capture-diagnostics-v1",
+  "status": "failed_before_environment_creation",
+  "object_ids": [
+    "project_mlff",
+    "project_aimnet2",
+    "project_gpupyscf",
+    "shared_molecular",
+    "phase9b_unified_v001_env",
+    "phase9b_unified_v002_env"
+  ],
+  "capture_a_state": "invalid",
+  "capture_b_state": "invalid",
+  "capture_a_failure_code": "CONDA_EXPLICIT_FAILED",
+  "capture_b_failure_code": "CONDA_EXPLICIT_FAILED",
+  "resolved_target_inside_root": true,
+  "failure_stage": "not_portable_in_q4_summary",
+  "command_return_codes": "not_portable_in_q4_summary",
+  "launcher_kind": "sentinel_invalid_in_q4_summary",
+  "symlink_chain": "not_portable_in_q4_summary",
+  "portable_diagnostic_complete": false,
+  "limitation": "the in-memory observation diagnostic was not promoted into the returned qualification summary; no rerun or reconstruction was performed",
+  "repair_or_retry_performed": false
+}

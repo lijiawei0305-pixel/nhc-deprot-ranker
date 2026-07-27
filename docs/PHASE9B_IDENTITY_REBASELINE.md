@@ -214,3 +214,12 @@ returned stable `state=invalid` captures and terminated as
 were never created. No `UnifiedExecutionEnvironmentIdentity v3` or environment
 canonical SHA256 exists, and there is nothing eligible to integrate or
 supersede before execution.
+
+## U4 pre-creation terminal outcome
+
+Phase 9B-U4 kept its helper outside the runner closure and ended during Q4 with
+all six objects reporting `CONDA_EXPLICIT_FAILED`. No v004 resource or
+`UnifiedExecutionEnvironmentIdentity v4` exists, and no environment canonical
+SHA256 can be computed. Runner schema v8 and SHA256
+`5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`
+remain unchanged; nothing is eligible for Integration or supersession.

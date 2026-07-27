@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
 
@@ -469,3 +471,50 @@ def test_u4_module_is_outside_runner_source_closure() -> None:
         "nhc_deprot_ranker/preparation/phase9b_u4_metrology.py"
         not in two_endpoint._RUNNER_SOURCE_RELATIVE_PATHS  # pyright: ignore[reportPrivateUsage]
     )
+
+
+def test_public_u4_failure_is_closed_and_observability_limit_is_retained() -> None:
+    repository = Path(__file__).resolve().parents[1]
+
+    def load(name: str) -> dict[str, object]:
+        value = json.loads((repository / "docs" / name).read_bytes())
+        assert isinstance(value, dict)
+        return value
+
+    manifest = load("PHASE9B_UNIFIED_ENVIRONMENT_V004_MANIFEST.json")
+    qualification = load("PHASE9B_U4_MEASUREMENT_QUALIFICATION_RECEIPT.json")
+    diagnostics = load("PHASE9B_U4_CAPTURE_DIAGNOSTICS.json")
+    capability = load("PHASE9B_UNIFIED_ENVIRONMENT_V004_CAPABILITY.json")
+
+    def assert_failed(candidate: dict[str, object]) -> None:
+        assert candidate["status"] == "failed_before_environment_creation"
+        resources = candidate["resources"]
+        assert isinstance(resources, dict)
+        assert set(resources.values()) == {"absent", True}
+        identity = candidate["identity"]
+        assert isinstance(identity, dict)
+        assert identity["unified_execution_environment_identity_v4_issued"] is False
+        assert identity["environment_canonical_sha256"] is None
+
+    assert_failed(manifest)
+    assert qualification["all_passed"] is False
+    helper_sha256 = hashlib.sha256(Path(u4.__file__).read_bytes()).hexdigest()
+    assert qualification["helper_source_sha256"] == helper_sha256
+    rows = qualification["object_results"]
+    assert isinstance(rows, list) and len(rows) == 6
+    assert all(row["snapshot_a_state"] == row["snapshot_b_state"] == "invalid" for row in rows)
+    assert all(
+        row["diagnostic_a_failure_code"]
+        == row["diagnostic_b_failure_code"]
+        == u4.CONDA_EXPLICIT_FAILED
+        for row in rows
+    )
+    assert diagnostics["portable_diagnostic_complete"] is False
+    assert diagnostics["failure_stage"] == "not_portable_in_q4_summary"
+    assert capability["property_reads"] == 0
+    assert capability["aimnet2ase_calculate_calls"] == 0
+
+    mutation = deepcopy(manifest)
+    mutation["status"] = "validated"
+    with pytest.raises(AssertionError):
+        assert_failed(mutation)
