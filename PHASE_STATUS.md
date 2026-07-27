@@ -280,14 +280,20 @@ may not be deleted, repaired, retried or reused. No validated unified
 environment identity exists, so Unified Environment Identity Integration,
 Postflight, and the closed-gate rehearsal may not begin.
 
-Phase 9B-U3 is now authorized as a new attempt with a qualified measurement
-schema, not as a retry or repair of U2. Its document-first gate is specified in
-`docs/PHASE9B_UNIFIED_ENVIRONMENT_V003_PLAN.md`. Before any server write, the
-single snapshot helper and stable-projection schema must pass the full local
-gate and merge to `main`; after merge, six protected objects must pass a
-read-only A/B measurement qualification before any v003 resource is created.
-Until those gates pass, no v003 environment exists and all public execution
-gates remain false.
+Phase 9B-U3 was authorized as a new attempt with a qualified measurement
+schema, not as a retry or repair of U2. Its document-first contract merged as
+PR #52. The subsequent read-only six-object A/B qualification failed before
+environment creation: every schema/projection equality was true, but the one
+capture helper returned stable `state=invalid` observations rather than the
+required `present`. The v003 prefix, wheelhouse, and cache remained absent
+before and after; no artifact was downloaded and no build/import/capability
+gate ran. U3 is terminal `failed_before_environment_creation` and may not be
+fixed, rerun, or reused. The retained outcome is in
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_V003_BUILD_REPORT.md`.
+
+No validated unified environment exists. Identity Integration, Postflight,
+closed-gate rehearsal, and Phase 9B science remain blocked. All public
+execution gates remain false.
 
 A one-shot execution authorization was granted and its section 11 pre-execution
 audit failed: at that time there was no single interpreter on the compute host

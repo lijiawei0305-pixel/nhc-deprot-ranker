@@ -153,3 +153,13 @@ Unified Environment Identity Integration that binds the v003 interpreter,
 corrects invocation prose, moves the runner schema honestly, supersedes v8
 before execution, then develops postflight and the closed-gate rehearsal before
 any paired-smoke authorization.
+
+## Retained outcome
+
+The document-first contract merged as PR #52. The one authorized read-only
+measurement qualification then failed: six A/B stable projections were
+pairwise identical, but every capture state was `invalid`, not `present`.
+Accordingly U3 terminated as `failed_before_environment_creation`; all v003
+resource paths stayed absent and no later stage in this plan ran. See
+`PHASE9B_UNIFIED_ENVIRONMENT_V003_BUILD_REPORT.md`. This plan and helper may not
+be modified and retried under the U3 identity.

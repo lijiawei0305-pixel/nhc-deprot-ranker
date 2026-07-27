@@ -1,0 +1,147 @@
+{
+  "schema_version": "nhc-phase9b-measurement-qualification-receipt-v1",
+  "attempt_id": "attempt-phase9b-unified-v003",
+  "helper_source_sha256": "194f628d6182b96ee268e7a172cd4ca617aabb0f8a66a4023ced24cd5e11eb0b",
+  "all_passed": false,
+  "server_write_performed_between_captures": false,
+  "object_results": [
+    {
+      "object_id": "project_mlff",
+      "snapshot_a_projection_sha256": "6c9014911e1c78a8029d9ae8264340b4087f3b6c563c1178d0566f6a68e653e4",
+      "snapshot_b_projection_sha256": "6c9014911e1c78a8029d9ae8264340b4087f3b6c563c1178d0566f6a68e653e4",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true,
+      "qualification_result": "failed",
+      "comparison": {
+        "schema_version": "nhc-phase9b-protected-object-comparison-v1",
+        "object_id": "project_mlff",
+        "schema_keyset_equal": true,
+        "projection_keyset_equal": true,
+        "projection_bytes_equal": true,
+        "projection_sha256_equal": true,
+        "before_projection_sha256": "6c9014911e1c78a8029d9ae8264340b4087f3b6c563c1178d0566f6a68e653e4",
+        "after_projection_sha256": "6c9014911e1c78a8029d9ae8264340b4087f3b6c563c1178d0566f6a68e653e4",
+        "failure_code": "none",
+        "failure_assertion": "none",
+        "details_digest": "f45d47cc41158372e1163f12731c4a177ce7bbfdf65db9e014bb82ac86941181"
+      }
+    },
+    {
+      "object_id": "project_aimnet2",
+      "snapshot_a_projection_sha256": "1244915bdbdc142076b17d6b919ab3c5140edaf75e5f5e83539c7409ed2dc622",
+      "snapshot_b_projection_sha256": "1244915bdbdc142076b17d6b919ab3c5140edaf75e5f5e83539c7409ed2dc622",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true,
+      "qualification_result": "failed",
+      "comparison": {
+        "schema_version": "nhc-phase9b-protected-object-comparison-v1",
+        "object_id": "project_aimnet2",
+        "schema_keyset_equal": true,
+        "projection_keyset_equal": true,
+        "projection_bytes_equal": true,
+        "projection_sha256_equal": true,
+        "before_projection_sha256": "1244915bdbdc142076b17d6b919ab3c5140edaf75e5f5e83539c7409ed2dc622",
+        "after_projection_sha256": "1244915bdbdc142076b17d6b919ab3c5140edaf75e5f5e83539c7409ed2dc622",
+        "failure_code": "none",
+        "failure_assertion": "none",
+        "details_digest": "f45d47cc41158372e1163f12731c4a177ce7bbfdf65db9e014bb82ac86941181"
+      }
+    },
+    {
+      "object_id": "project_gpupyscf",
+      "snapshot_a_projection_sha256": "23e21ff5a28452ae06af8826cdc6b294ca88c2954147937160c21374dfca8df9",
+      "snapshot_b_projection_sha256": "23e21ff5a28452ae06af8826cdc6b294ca88c2954147937160c21374dfca8df9",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true,
+      "qualification_result": "failed",
+      "comparison": {
+        "schema_version": "nhc-phase9b-protected-object-comparison-v1",
+        "object_id": "project_gpupyscf",
+        "schema_keyset_equal": true,
+        "projection_keyset_equal": true,
+        "projection_bytes_equal": true,
+        "projection_sha256_equal": true,
+        "before_projection_sha256": "23e21ff5a28452ae06af8826cdc6b294ca88c2954147937160c21374dfca8df9",
+        "after_projection_sha256": "23e21ff5a28452ae06af8826cdc6b294ca88c2954147937160c21374dfca8df9",
+        "failure_code": "none",
+        "failure_assertion": "none",
+        "details_digest": "f45d47cc41158372e1163f12731c4a177ce7bbfdf65db9e014bb82ac86941181"
+      }
+    },
+    {
+      "object_id": "shared_molecular",
+      "snapshot_a_projection_sha256": "a9e40ae062b419135c4f26c6a782e3d3c8636863c70e9261fb24e8ac264405f3",
+      "snapshot_b_projection_sha256": "a9e40ae062b419135c4f26c6a782e3d3c8636863c70e9261fb24e8ac264405f3",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true,
+      "qualification_result": "failed",
+      "comparison": {
+        "schema_version": "nhc-phase9b-protected-object-comparison-v1",
+        "object_id": "shared_molecular",
+        "schema_keyset_equal": true,
+        "projection_keyset_equal": true,
+        "projection_bytes_equal": true,
+        "projection_sha256_equal": true,
+        "before_projection_sha256": "a9e40ae062b419135c4f26c6a782e3d3c8636863c70e9261fb24e8ac264405f3",
+        "after_projection_sha256": "a9e40ae062b419135c4f26c6a782e3d3c8636863c70e9261fb24e8ac264405f3",
+        "failure_code": "none",
+        "failure_assertion": "none",
+        "details_digest": "f45d47cc41158372e1163f12731c4a177ce7bbfdf65db9e014bb82ac86941181"
+      }
+    },
+    {
+      "object_id": "phase9b_unified_v001_env",
+      "snapshot_a_projection_sha256": "526fe19b1e201d0186d1c3ed3823e4b86709dbf9492054773454ae137f043b87",
+      "snapshot_b_projection_sha256": "526fe19b1e201d0186d1c3ed3823e4b86709dbf9492054773454ae137f043b87",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true,
+      "qualification_result": "failed",
+      "comparison": {
+        "schema_version": "nhc-phase9b-protected-object-comparison-v1",
+        "object_id": "phase9b_unified_v001_env",
+        "schema_keyset_equal": true,
+        "projection_keyset_equal": true,
+        "projection_bytes_equal": true,
+        "projection_sha256_equal": true,
+        "before_projection_sha256": "526fe19b1e201d0186d1c3ed3823e4b86709dbf9492054773454ae137f043b87",
+        "after_projection_sha256": "526fe19b1e201d0186d1c3ed3823e4b86709dbf9492054773454ae137f043b87",
+        "failure_code": "none",
+        "failure_assertion": "none",
+        "details_digest": "f45d47cc41158372e1163f12731c4a177ce7bbfdf65db9e014bb82ac86941181"
+      }
+    },
+    {
+      "object_id": "phase9b_unified_v002_env",
+      "snapshot_a_projection_sha256": "fa4e6fce923fe42fd838c4f964285b0456f5ecc69ba6352a80d3a1d7457ec295",
+      "snapshot_b_projection_sha256": "fa4e6fce923fe42fd838c4f964285b0456f5ecc69ba6352a80d3a1d7457ec295",
+      "schema_keyset_equal": true,
+      "projection_keyset_equal": true,
+      "projection_bytes_equal": true,
+      "projection_sha256_equal": true,
+      "qualification_result": "failed",
+      "comparison": {
+        "schema_version": "nhc-phase9b-protected-object-comparison-v1",
+        "object_id": "phase9b_unified_v002_env",
+        "schema_keyset_equal": true,
+        "projection_keyset_equal": true,
+        "projection_bytes_equal": true,
+        "projection_sha256_equal": true,
+        "before_projection_sha256": "fa4e6fce923fe42fd838c4f964285b0456f5ecc69ba6352a80d3a1d7457ec295",
+        "after_projection_sha256": "fa4e6fce923fe42fd838c4f964285b0456f5ecc69ba6352a80d3a1d7457ec295",
+        "failure_code": "none",
+        "failure_assertion": "none",
+        "details_digest": "f45d47cc41158372e1163f12731c4a177ce7bbfdf65db9e014bb82ac86941181"
+      }
+    }
+  ]
+}

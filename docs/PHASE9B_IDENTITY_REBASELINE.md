@@ -203,3 +203,14 @@ remain retained, but no `UnifiedExecutionEnvironmentIdentity v2` or
 `environment_canonical_sha256` was issued. Consequently no resources, request,
 permit, or preflight identity was regenerated, and every v8 identity remains
 blocked rather than superseded.
+
+## U3 pre-creation terminal outcome
+
+Phase 9B-U3 did not reach environment identity construction. Its document-first
+metrology code stayed outside the runner closure, so schema v8 and the SHA256
+above remain unchanged. The read-only six-object measurement qualification
+returned stable `state=invalid` captures and terminated as
+`failed_before_environment_creation`; the v003 prefix, wheelhouse, and cache
+were never created. No `UnifiedExecutionEnvironmentIdentity v3` or environment
+canonical SHA256 exists, and there is nothing eligible to integrate or
+supersede before execution.

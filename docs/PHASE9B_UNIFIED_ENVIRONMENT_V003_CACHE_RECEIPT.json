@@ -1,0 +1,11 @@
+{
+  "schema_version": "nhc-phase9b-unified-environment-v003-cache-receipt-v1",
+  "status": "not_run_failed_before_environment_creation",
+  "reason": "measurement_qualification_failed",
+  "attempt_cache_created": false,
+  "attempt_local_files_created": 0,
+  "attempt_local_bytes_written": 0,
+  "global_cache_drift": "not_measured",
+  "external_internet_connect_send_calls": "not_measured",
+  "local_socket_activity": "not_measured"
+}
