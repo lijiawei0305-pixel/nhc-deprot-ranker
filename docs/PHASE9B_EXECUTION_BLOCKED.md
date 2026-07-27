@@ -10,6 +10,11 @@ as `failed_incomplete_environment`. It is not an accepted interpreter and may
 not be used. All environments that existed before U1 remain unchanged. See
 `docs/PHASE9B_UNIFIED_ENVIRONMENT_BUILD_REPORT.md`.
 
+A separately authorized, new-identity U2 environment attempt is now at its
+document-first gate. Its plan is
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_V002_PLAN.md`. Environment validation alone
+does not open the scientific-execution blocker or any public execution gate.
+
 The one-shot execution authorization requires, in its section 11, a single exact
 interpreter able to run the whole assisted route. That interpreter does not
 exist on the compute host.
