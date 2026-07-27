@@ -1,0 +1,261 @@
+{
+  "closest_environment": {
+    "has": {
+      "ase": "3.28.0",
+      "geometric": "1.1.1",
+      "pyscf": "2.13.1",
+      "pyscf-dispersion": "1.5.0"
+    },
+    "missing": [
+      "torch",
+      "aimnet"
+    ],
+    "note": "its ase is 3.28.0, not the frozen 3.29.0, so it would need two additions and one upgrade rather than one addition",
+    "root": "<SHARED_MINIFORGE_ROOT>/envs/molecular"
+  },
+  "conda_registry": [
+    "<SHARED_MINIFORGE_ROOT>/envs/molecular",
+    "<SHARED_MINIFORGE_ROOT>/envs/periodic",
+    "<SHARED_MINIFORGE_ROOT>/envs/mlip",
+    "<SHARED_MINIFORGE_ROOT>/envs/fairchem",
+    "<REMOTE_HOME>/miniforge3/envs/ff",
+    "<SHARED_MINIFORGE_ROOT>/envs/cp2kcpu",
+    "<SHARED_MINIFORGE_ROOT>/envs/mlff",
+    "<REMOTE_PROJECT_ROOT>/env/conda/mlff",
+    "<REMOTE_PROJECT_ROOT>/env/conda/gpupyscf",
+    "<REMOTE_PROJECT_ROOT>/env/conda/mace",
+    "<REMOTE_PROJECT_ROOT>/env/conda/aimnet2"
+  ],
+  "conda_registry_entry_count": 11,
+  "decision": "no_single_interpreter",
+  "environment_roots_found": 14,
+  "environments": [
+    {
+      "aimnet": null,
+      "ase": null,
+      "environment_root": "<SHARED_MINIFORGE_ROOT>",
+      "geometric": null,
+      "has_full_mlff": false,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.13.13",
+      "satisfies_full_route": false,
+      "torch": null
+    },
+    {
+      "aimnet": null,
+      "ase": null,
+      "environment_root": "<SHARED_MINIFORGE_ROOT>/envs/cp2kcpu",
+      "geometric": null,
+      "has_full_mlff": false,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.14.6",
+      "satisfies_full_route": false,
+      "torch": null
+    },
+    {
+      "aimnet": null,
+      "ase": "3.29.0",
+      "environment_root": "<SHARED_MINIFORGE_ROOT>/envs/fairchem",
+      "geometric": null,
+      "has_full_mlff": false,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.11.15",
+      "satisfies_full_route": false,
+      "torch": "2.4.1+cu121"
+    },
+    {
+      "aimnet": null,
+      "ase": null,
+      "environment_root": "<SHARED_MINIFORGE_ROOT>/envs/mlff",
+      "geometric": null,
+      "has_full_mlff": false,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.11.15",
+      "satisfies_full_route": false,
+      "torch": null
+    },
+    {
+      "aimnet": null,
+      "ase": "3.29.0",
+      "environment_root": "<SHARED_MINIFORGE_ROOT>/envs/mlip",
+      "geometric": null,
+      "has_full_mlff": false,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.11.15",
+      "satisfies_full_route": false,
+      "torch": "2.4.1+cu121"
+    },
+    {
+      "aimnet": null,
+      "ase": "3.28.0",
+      "environment_root": "<SHARED_MINIFORGE_ROOT>/envs/molecular",
+      "geometric": "1.1.1",
+      "has_full_mlff": false,
+      "has_full_qc": true,
+      "pyscf": "2.13.1",
+      "pyscf-dispersion": "1.5.0",
+      "python": "3.11.15",
+      "satisfies_full_route": false,
+      "torch": null
+    },
+    {
+      "aimnet": null,
+      "ase": "3.28.0",
+      "environment_root": "<SHARED_MINIFORGE_ROOT>/envs/periodic",
+      "geometric": null,
+      "has_full_mlff": false,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.11.15",
+      "satisfies_full_route": false,
+      "torch": null
+    },
+    {
+      "aimnet": null,
+      "ase": null,
+      "environment_root": "<REMOTE_HOME>/miniforge3",
+      "geometric": null,
+      "has_full_mlff": false,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.13.13",
+      "satisfies_full_route": false,
+      "torch": null
+    },
+    {
+      "aimnet": null,
+      "ase": null,
+      "environment_root": "<REMOTE_HOME>/miniforge3/envs/ff",
+      "geometric": null,
+      "has_full_mlff": false,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.12.13",
+      "satisfies_full_route": false,
+      "torch": null
+    },
+    {
+      "aimnet": "0.2.0",
+      "ase": "3.29.0",
+      "environment_root": "<REMOTE_PROJECT_ROOT>/env/conda/aimnet2",
+      "geometric": null,
+      "has_full_mlff": true,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.11.15",
+      "satisfies_full_route": false,
+      "torch": "2.8.0"
+    },
+    {
+      "aimnet": null,
+      "ase": null,
+      "environment_root": "<REMOTE_PROJECT_ROOT>/env/conda/gpupyscf",
+      "geometric": "1.1.1",
+      "has_full_mlff": false,
+      "has_full_qc": true,
+      "pyscf": "2.13.1",
+      "pyscf-dispersion": "1.5.0",
+      "python": "3.11.15",
+      "satisfies_full_route": false,
+      "torch": null
+    },
+    {
+      "aimnet": null,
+      "ase": "3.29.0",
+      "environment_root": "<REMOTE_PROJECT_ROOT>/env/conda/mace",
+      "geometric": null,
+      "has_full_mlff": false,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.11.15",
+      "satisfies_full_route": false,
+      "torch": "2.8.0"
+    },
+    {
+      "aimnet": "0.2.0",
+      "ase": "3.29.0",
+      "environment_root": "<REMOTE_PROJECT_ROOT>/env/conda/mlff",
+      "geometric": null,
+      "has_full_mlff": true,
+      "has_full_qc": false,
+      "pyscf": null,
+      "pyscf-dispersion": null,
+      "python": "3.11.15",
+      "satisfies_full_route": false,
+      "torch": "2.8.0"
+    }
+  ],
+  "home_directories": [
+    "<REMOTE_USER>"
+  ],
+  "home_directory_count": 1,
+  "interpreters_probed": 27,
+  "interpreters_satisfying_full_route": [],
+  "irreversible_action_taken": false,
+  "limitations_of_this_search": [
+    "symlinked directories were not followed, so an environment reachable only through a symlink outside the search roots would be missed; its real location would still be walked if it lies under one of them",
+    "depth was limited to 9 from each search root",
+    "a second, deeper gap-closure pass truncated at its 800000-directory visit cap and its package inventory is therefore partial; it is NOT the basis of any conclusion here",
+    "24 directories were unreadable during that truncated pass"
+  ],
+  "max_depth": 9,
+  "method": [
+    "environments located by their own markers (conda-meta, pyvenv.cfg), not by a guessed layout",
+    "interpreter names collapsed by (st_dev, st_ino) before counting",
+    "each interpreter reports its own versions via importlib.metadata; nothing imported",
+    "cross-checked against conda's own environments.txt registry"
+  ],
+  "nodes_visited": 31879,
+  "non_conda_virtualenvs_found": 0,
+  "phase": "9B pre-execution audit, server-wide re-check",
+  "receipt_sha256": "925db471aedc32fa8ef2579345fa056a82ec114481bee5f87a47ede1e7f911c8",
+  "required_versions": {
+    "aimnet": "0.2.0",
+    "ase": "3.29.0",
+    "geometric": "1.1.1",
+    "pyscf": "2.13.1",
+    "pyscf-dispersion": "1.5.0",
+    "python": "3.11.15",
+    "torch": "2.8.0"
+  },
+  "schema_version": "phase9b.server_wide_environment_search.v1",
+  "search_roots_that_existed": [
+    "/home",
+    "/opt",
+    "/usr/local",
+    "/srv",
+    "/mnt"
+  ],
+  "seconds": 22.8,
+  "server_modified": false,
+  "site_packages_containing_aimnet": [
+    "<REMOTE_PROJECT_ROOT>/env/conda/aimnet2/lib/python3.11/site-packages",
+    "<REMOTE_PROJECT_ROOT>/env/conda/mlff/lib/python3.11/site-packages"
+  ],
+  "site_packages_containing_both_stacks": [
+    "<SHARED_MINIFORGE_ROOT>/envs/molecular/lib/python3.11/site-packages"
+  ],
+  "site_packages_containing_pyscf": [
+    "<SHARED_MINIFORGE_ROOT>/envs/molecular/lib/python3.11/site-packages",
+    "<REMOTE_PROJECT_ROOT>/env/conda/gpupyscf/lib/python3.11/site-packages"
+  ],
+  "status": "hard_stop_no_single_interpreter",
+  "supersedes": "the first audit, which only examined <REMOTE_PROJECT_ROOT>/env/conda/*",
+  "walk_completed_within_budget": true,
+  "what_is_nevertheless_settled": "conda's own registry lists 11 environments and every one of them was probed; the completed walk found pyscf in exactly two site-packages and aimnet in exactly two, with no overlap. /home contains a single user and no non-conda virtualenv was found anywhere."
+}
