@@ -187,3 +187,18 @@ recomputes energy and gradients from scratch on the transferred structure. It
 does not warm-start from AIMNet2 output, does not accept an AIMNet2 energy as an
 initial value, and does not shorten any convergence test because AIMNet2
 reported convergence.
+
+## D1 cross-process binding
+
+A1 writes one authoritative `output.xyz` per endpoint and hashes it in its
+preoptimization and `CrossProcessPySCFHandoffReceiptV1` receipts. After A1 and
+all descendants are reaped, the campaign supervisor independently opens and
+hashes those files, validates the exact allowed tree and scientific identities,
+and writes `StageA2AdmissionReceiptV1`. A2 then independently opens the files
+again before importing PySCF and proves that its parser receives those exact
+bytes.
+
+No in-memory rebound request, coordinate object, pickle, JSON coordinate array,
+environment variable, CLI floats, or reserialization crosses from A1 to A2. The
+exact equality and failure rules are frozen in
+`PHASE9B_CROSS_PROCESS_HANDOFF_CONTRACT.md`.

@@ -1,0 +1,32 @@
+{
+  "attempt_id": "example-assisted-attempt",
+  "candidate": "example-candidate",
+  "endpoint": "cation",
+  "geometry": {
+    "atom_count": 26,
+    "element_order_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_xyz_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "output_xyz_bytes": 2048,
+    "output_xyz_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "identity": {
+    "mlff_interpreter_identity_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "stage_a1_source_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "weight_sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28"
+  },
+  "no_pyscf_assertion": true,
+  "receipts": {
+    "preoptimization_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "trajectory_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "route": "assisted",
+  "schema_version": "nhc-phase9b-cross-process-pyscf-handoff-v1",
+  "science": {
+    "calculator_invocation_count": 4,
+    "charge": 1,
+    "final_max_force_ev_per_angstrom": 0.04,
+    "multiplicity": 1,
+    "optimizer_steps": 12,
+    "structural_gates_passed": true
+  }
+}

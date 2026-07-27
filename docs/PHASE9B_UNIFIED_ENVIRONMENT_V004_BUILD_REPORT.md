@@ -82,3 +82,7 @@ The separately authorized U5 design is
 with direct, read-only prefix metadata capture under a new helper/schema/Q5 and
 possible v005 identity. This link does not resolve U4's unknown command
 subfailure or modify its status, receipts, evidence limitation, or conclusion.
+
+Forward link only: the unified-environment strategy is now closed after U5; see
+`PHASE9B_UNIFIED_ENVIRONMENT_STRATEGY_CLOSEOUT.md`. U4 remains
+`failed_before_environment_creation` without reinterpretation.

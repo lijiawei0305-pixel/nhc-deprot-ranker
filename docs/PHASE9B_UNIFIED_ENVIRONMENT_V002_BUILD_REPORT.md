@@ -180,3 +180,7 @@ That separate authorization now exists as Phase 9B-U3. Its new, qualified
 snapshot schema and pre-write measurement gate are defined in
 `PHASE9B_UNIFIED_ENVIRONMENT_V003_PLAN.md`. This link does not modify U2's
 status, receipt, manifest, failure fields, or conclusion.
+
+Forward link only: the unified-environment strategy is now closed after U5; see
+`PHASE9B_UNIFIED_ENVIRONMENT_STRATEGY_CLOSEOUT.md`. U2 remains
+`rejected_environment` without reinterpretation.

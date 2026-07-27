@@ -451,3 +451,41 @@ dig +trace domain
 - 不得修复 loader、重跑 Q5、补用旧 receipt、创建 v005/U6 或继续 Integration。
   根据 U5 冻结决策，新的统一环境 attempt 到此终止；唯一允许的下一设计方向是
   另行授权的 dual-environment / split-process assisted route。
+
+## 27. Phase 9B-D1 — Dual-environment split-process 设计边界
+
+- U1–U5 终态全部不可变；统一环境策略正式为
+  `closed_after_u5 / frozen_attempt_policy / observed_but_no_validated_identity`。
+  不得创建新的统一环境 attempt。这不是软件不兼容结论：U1/U2 已证明精确制品、
+  两种 import order、native maps 和 AIMNet2 capability 可以技术共存。
+- Phase 9B 已重排为 12 项：v8 单进程 runtime 是 complete 但 host-incompatible 的
+  Item 8/12；D1 是仅文档的 Item 9/12；Item 10/12 split-process implementation
+  与一次 v9 freeze、Item 11/12 Postflight、Item 12/12 rehearsal 均未开始。
+- assisted route 仍是一个 candidate、一个 route、一个 overall attempt、一张用户
+  one-shot permit、一个 campaign guardian、一个 campaign supervisor 和一个 overall
+  terminal。A1/A2 是同一 authority 下的顺序内部 stage，不是两个 attempt 或两张
+  普通 permit。
+- A1 只能使用 frozen exact MLFF interpreter，在一个进程中加载一次 base model，
+  依次处理 cation/neutral 并持久化结构、轨迹和 receipt；两端 AIMNet2 全部通过且
+  A1 process tree 完全消失后，supervisor 才能独立验证 handoff 并签发 A2 capability。
+- A2 只能使用 frozen exact GPU-PySCF interpreter，必须在 import PySCF 前自行从
+  磁盘 no-follow 重读已 admission 的 XYZ bytes 并重算 hash。不得信任 parent 内存
+  坐标、重序列化、fallback、重新 AIMNet2 或使用 AIMNet2 energy 生成 label。
+- InternalStageCapabilityV1 只能由已消费用户 permit 的 campaign supervisor 通过
+  inherited anonymous pipe、one-shot release token、registration/ack/compute-claim
+  链创建和消费。只持久化 capability/token digest，不持久化可重放 token；CLI、
+  request、文件名或另一个 attempt 均不能构造 capability。
+- campaign 总 deadline 是 supervisor start + 7200 秒；A1 是总 deadline 与本地
+  900 秒上限的较小者；A2 只取得剩余时间。A1/A2 process window 不得重叠，A1
+  residual process 必须阻止 A2。
+- direct 与 A2 必须调用同一个强类型 PySCF core；除 assisted 的已验证 A1 起始
+  XYZ 外，candidate、atom order、charge/mult、electron count、PySCF protocol、
+  resources、endpoint order、D3 evidence 和 label formula 完全相同。
+- D1 禁止 SSH、服务器读写、runtime source、request/manifest/permit、source
+  rebaseline、deploy、placement、launch、Postflight 实现、rehearsal 和任何科学
+  计算。v8 保持 prepared/blocked；只有 Item 10 完成并一次生成 v9 后才可标记
+  `superseded_before_execution`。
+- runner v8 SHA256 仍为
+  `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`；
+  11 个 public gates 持续 false，生产标签持续 71。唯一允许的下一工作是另行授权的
+  Item 10/12 local/mock-only split-process 实现，不得在 D1 授权内开始。

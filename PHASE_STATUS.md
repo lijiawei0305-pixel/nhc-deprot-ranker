@@ -22,8 +22,9 @@ Updated: 2026-07-27
 | Phase 9A-S2 — exact interpreter discovery | Inconclusive; two environments match, loader decision unresolved | 2026-07-27; read-only; 1 of 2 SSH used, stopped on ambiguity; server unchanged |
 | Phase 9A-S3 — activation-bound source inspection | Inconclusive; mlff.sh binding resolved, loader decision unresolved | 2026-07-27; read-only; 1 of 1 SSH used, stopped on interpreter enumeration; server unchanged |
 | Phase 9A-S4 — deduplicated interpreter and source inspection | Passed; loader decision A, source_proven | 2026-07-27; read-only; 1 of 1 SSH used; 16 AIMNet + 25 ASE files read; server unchanged |
-| Phase 9B item 8/10 — production execution runtime | Complete; loader, ASE/LBFGS optimizer, trajectory evidence, v8 rebaseline | 2026-07-27; local only; no model, no GPU, no server; eleven gates still false |
-| Phase 9B — paired direct / assisted smoke | Framework 8 of 10 complete; execution stopped before any irreversible action | 2026-07-27; no single interpreter carries both the MLFF and PySCF stacks; nothing deployed, placed, consumed, or launched |
+| Phase 9B item 8/12 — single-process production runtime v8 | Complete, host-incompatible; loader, ASE/LBFGS optimizer, trajectory evidence, v8 rebaseline | 2026-07-27; local only; no model, no GPU, no server; eleven gates still false |
+| Phase 9B item 9/12 — split-process design | Complete; documents and static schemas only | 2026-07-27; one permit / one campaign / exact MLFF A1 then exact GPU-PySCF A2; no server or runtime source change |
+| Phase 9B — paired direct / assisted smoke | Framework 9 of 12 complete; execution stopped before any irreversible action | 2026-07-27; Item 10 implementation, Item 11 Postflight and Item 12 rehearsal not started |
 | Phase 9B-U1 — dedicated unified environment build and audit | Failed closed; incomplete v001 retained and unusable | 2026-07-27; exact stack installed, but capability harness observed 4 calculator invocations vs 2 expected; no retry; old environments unchanged |
 | Phase 9B-U2 — unified environment v002 | Rejected environment; retained and unusable | 2026-07-27; capability counts/native/cache passed, but protected snapshot schema mismatch failed the canonical gate; no retry |
 | Phase 9B-U3 — qualified metrology / v003 | Failed before environment creation; retained | 2026-07-27; helper rejected normal Conda Python symlinks as invalid; v003 resources never created |
@@ -173,28 +174,30 @@ calculator's default model string exposes a remote-fetch path, which is why the
 production loader must use an explicit local path and why the exact mechanism for
 doing so has to be recovered rather than guessed.
 
-The Phase 9B implementation plan was re-baselined twice — from six components to
-eight, then to ten — as building each item surfaced real integration gaps: the
+The Phase 9B implementation plan was re-baselined from six components to eight,
+then ten, and now twelve as real integration gaps were discovered: the
 launch argv had no CLI to parse it, the supervisor's production execution path
 was unwired (`execute=None`), nothing placed the one-shot permit, and the
-production AIMNet2 adapters were refusal stubs. Eight of ten are now built, all
-with their source gates closed:
+production AIMNet2 adapters were refusal stubs; later, no validated single
+interpreter could host v8. Nine of twelve items are complete, all public source
+gates closed:
 
 ```text
-1/10  preparation/phase9b_preopt.py      AIMNet2 preoptimization contract  complete
-2/10  preparation/phase9b_bundle.py      request and payload manifest      complete
-3/10  preparation/phase9b_preflight.py   read-only environment recheck     complete
-4/10  preparation/phase9b_deploy.py      directed two-route deployment     complete
-5/10  preparation/phase9b_launch.py      two-route guardian launch         complete
-6/10  pre-launch integration closure     CLI, adapter, permit stage        complete
-7/10  quantum/phase9b_guardian.py        guardian, transport, handoff      complete
-8/10  execution runtime closure          production loader, optimizer,     complete
-                                         trajectory evidence, v8 rebaseline
-9/10  preparation/phase9b_postflight.py  evidence harvest and acceptance   not started
-10/10 closed-gate full-chain rehearsal   dry run and final freeze          not started
+1/12  AIMNet2 preoptimization contract                 complete
+2/12  request and payload manifest                     complete
+3/12  read-only server preflight                       complete
+4/12  directed two-route deployment                    complete
+5/12  guardian launch                                  complete
+6/12  pre-launch integration                           complete
+7/12  guardian / transport / handoff contract          complete
+8/12  single-process production runtime v8             complete, host-incompatible
+9/12  dual-environment split-process design            complete
+10/12 split-process runtime implementation + v9 freeze not started
+11/12 split-process-aware Postflight                    not started
+12/12 closed-gate full-chain rehearsal                  not started
 ```
 
-Item 8/10 is complete as of PR #45. The production AIMNet2 loader and the
+Item 8/12 (formerly Item 8/10) is complete as of PR #45. The production AIMNet2 loader and the
 production ASE/LBFGS optimizer are implemented; neither is a refusal stub.
 
 ```text
@@ -255,11 +258,10 @@ seam and refuses a real invocation while its `EXECUTION_AUTHORIZED` is false.
 There are **eleven** such gates and all eleven are false.
 
 > **Handing this to another agent?** Start with
-> `docs/HANDOFF_PHASE9B_FOR_NEXT_AGENT.md` — a cold-start briefing covering the
-> frozen science, the authority model, what items 9 and 10 must be, why the real
-> execution is blocked, and the traps this codebase has already surfaced.
+> `docs/PHASE9B_SPLIT_PROCESS_IMPLEMENTATION_PLAN.md`, then use
+> `docs/HANDOFF_PHASE9B_FOR_NEXT_AGENT.md` for retained v8 history and traps.
 
-## Next action
+## Historical unified-environment attempt progression
 
 **Phase 9B scientific execution remains stopped, fail-closed, before any irreversible action.**
 
@@ -367,10 +369,60 @@ The reasoning, the options, and the single safe next action are in
 `docs/PHASE9B_EXECUTION_BLOCKED.md`; the evidence is in
 `docs/PHASE9B_SERVER_WIDE_ENVIRONMENT_SEARCH.json`.
 
-Items 9/10 — postflight and the closed-gate full-chain rehearsal — remain not
-started and were explicitly forbidden in U1. They are not authorized next work.
+Under the former ten-item numbering, Postflight and rehearsal were Items 9/10
+and 10/10. They are now Items 11/12 and 12/12 and remain not started.
 
 ## High-fidelity production labels
 
 71. Unchanged. No Phase 9B smoke label exists, and none may enter the production
 table without a separate data-contract acceptance.
+
+## Phase 9B-D1 — split-process architecture freeze (Item 9/12)
+
+Phase 9B-U1 through U5 retain their terminal results exactly:
+
+```text
+U1 = failed_incomplete_environment
+U2 = rejected_environment
+U3 = failed_before_environment_creation
+U4 = failed_before_environment_creation
+U5 = failed_before_environment_creation
+
+unified_environment_strategy = closed_after_u5
+closure_reason               = frozen_attempt_policy
+technical_coexistence         = observed_but_no_validated_identity
+```
+
+No further unified-environment attempt is allowed. This is a provenance
+decision, not a claim that AIMNet2 and PySCF are incompatible: U1/U2 established
+installation, import-order and native compatibility, and U2 completed the
+endpoint capability smoke. The frozen attempt policies and U5 decision boundary
+make a U6 impermissible.
+
+The Phase 9B plan is now 12 items. Items 1–7 are complete; Item 8/12, the v8
+single-process runtime, is complete but host-incompatible; Item 9/12, the
+dual-environment split-process design, is complete in the
+`PHASE9B_SPLIT_PROCESS_*` document set; Item 10/12 implementation and v9 freeze,
+Item 11/12 split-process-aware Postflight, and Item 12/12 closed-gate rehearsal
+are not started.
+
+The assisted topology is one attempt and one one-shot user permit managed by one
+campaign guardian and one campaign supervisor. The supervisor starts an exact
+MLFF A1 process for both AIMNet2 endpoints, independently verifies durable
+hash-closed XYZ evidence, then starts an exact GPU-PySCF A2 process. Internal
+stage capabilities are one-shot, inherited, non-replayable authority derived
+only after permit consumption; they are not extra user permits. A1 and A2 are
+strictly sequential under one 7200-second absolute campaign deadline.
+
+Item 9/12 changed documentation and static examples only. It did not connect to
+a server or modify runner source, requests, manifests, resources, or permits.
+Runner v8 remains `prepared_not_authorized` and
+`blocked_by_no_validated_single_interpreter`, schema v8, SHA256
+`5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`.
+It may be marked `superseded_before_execution` only after all Item 10 source and
+tests are final and the single v9 rebaseline is performed. All eleven public
+execution gates remain false and the production high-fidelity label count is 71.
+
+The only allowed next work is a separately authorized Item 10/12 local/mock-only
+implementation of the frozen split-process architecture. It may not begin under
+the D1 authorization.

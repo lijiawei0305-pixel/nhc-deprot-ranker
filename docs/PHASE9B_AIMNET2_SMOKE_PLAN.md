@@ -613,3 +613,22 @@ of those counters -- `calculator_invocations` is the honest cost figure.
 The authoritative trajectory is this project's canonical JSONL
 (`nhc-phase9b-aimnet2-trajectory-v1`), not an ASE binary; `trajectory=None`
 guarantees no unregistered file appears beside it.
+
+## D1 architecture rebaseline
+
+The unified-environment successor path is closed after U5. The plan is now
+9/12 complete: v8 single-process runtime remains valuable but cannot be hosted
+by a validated single interpreter, and D1 freezes its two-process successor.
+It is not superseded in D1.
+
+The assisted route is one campaign under one consumed user permit. One
+exact-MLFF A1 process handles both endpoints with one base-model load; the
+standard-library campaign supervisor independently verifies durable XYZ and
+issues a one-shot internal capability; one exact-GPU-PySCF A2 process re-reads
+those bytes and runs the shared PySCF core. Both processes share one absolute
+7200-second campaign deadline and may not overlap. A2 starts only after both A1
+endpoints pass.
+
+The frozen design is in `PHASE9B_SPLIT_PROCESS_RUNTIME_PLAN.md` and its companion
+documents. Item 10/12 implementation, Item 11/12 Postflight, and Item 12/12
+rehearsal remain not started. All eleven execution gates remain false.

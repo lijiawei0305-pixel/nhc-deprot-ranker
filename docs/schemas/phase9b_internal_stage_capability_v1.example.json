@@ -1,0 +1,18 @@
+{
+  "attempt_id": "example-assisted-attempt",
+  "campaign_absolute_deadline_ns": 7200000000000,
+  "capability_id": "example-nonreplayable-capability",
+  "exact_interpreter_identity_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "input_identity_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "output_root_identity_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "parent": {
+    "expected_process_group_id": 1001,
+    "expected_supervisor_pid": 1001,
+    "supervisor_identity_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "release_token_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "schema_version": "nhc-phase9b-internal-stage-capability-v1",
+  "stage": "aimnet2_preoptimization",
+  "stage_argv_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "stage_source_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+}

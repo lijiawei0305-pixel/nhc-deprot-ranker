@@ -84,3 +84,7 @@ The separately authorized U4 design is
 and explicit symlink/capture diagnostics. This link does not change U3's
 status, helper, receipt, manifest, or conclusion and does not authorize a v003
 retry.
+
+Forward link only: the unified-environment strategy is now closed after U5; see
+`PHASE9B_UNIFIED_ENVIRONMENT_STRATEGY_CLOSEOUT.md`. U3 remains
+`failed_before_environment_creation` without reinterpretation.

@@ -1,0 +1,41 @@
+{
+  "authorization": {
+    "execution_authorized": false,
+    "fallback_authorized": false,
+    "one_shot": true,
+    "resume_authorized": false,
+    "retry_authorized": false
+  },
+  "campaign": {
+    "attempt_id": "example-assisted-attempt",
+    "candidate": "example-candidate",
+    "deadline_seconds": 7200,
+    "endpoint_order": [
+      "cation",
+      "neutral"
+    ],
+    "route": "assisted",
+    "schedule": [
+      "aimnet2_preoptimization",
+      "handoff_verification",
+      "pyscf_residual_optimization"
+    ]
+  },
+  "inputs": {
+    "cation_initial_xyz_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "neutral_initial_xyz_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "profiles": {
+    "stage_a1": "phase9b-mlff-profile-v1",
+    "stage_a2": "phase9b-gpupyscf-profile-v1"
+  },
+  "schema_version": "nhc-phase9b-assisted-campaign-permit-v3",
+  "source": {
+    "campaign_control_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "full_assisted_campaign_source_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "shared_pyscf_core_source_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "shared_schema_source_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "stage_a1_source_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stage_a2_source_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+  }
+}

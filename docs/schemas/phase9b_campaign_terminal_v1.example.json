@@ -1,0 +1,24 @@
+{
+  "attempt_id": "example-assisted-attempt",
+  "deadline": {
+    "a1_a2_overlap": false,
+    "campaign_absolute_deadline_ns": 7200000000000,
+    "remaining_seconds_at_a2_admission": 6400.0,
+    "total_wall_seconds": 0.0
+  },
+  "evidence_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "failure": {
+    "classification": "failed_before_irreversible_action",
+    "details_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "stage": "permit_validation"
+  },
+  "label": null,
+  "permit_state": "not_consumed",
+  "route_outcome": "rejected",
+  "schema_version": "nhc-phase9b-assisted-campaign-terminal-v1",
+  "stages": {
+    "a1": "not_started",
+    "a2": "not_started",
+    "handoff": "not_started"
+  }
+}

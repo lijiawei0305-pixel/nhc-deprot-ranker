@@ -174,8 +174,8 @@ the circularity this round removed.
 
 ## What is still not wired
 
-**Postflight does not exist.** That is item 9/10 and remains deliberately not
-started in Phase 9B-U1.
+**Postflight does not exist.** Under the D1 rebaseline it is Item 11/12 and
+remains deliberately not started.
 
 **The production AIMNet2 runtime is implemented, but no validated unified
 environment identity exists.** U1 created and populated a new v001 prefix, then
@@ -237,3 +237,16 @@ created and no `UnifiedExecutionEnvironmentIdentity v5` or environment
 canonical SHA256 exists. U5 changes no v8 identity and produces nothing eligible
 for Integration or supersession. Its frozen successor is a new split-process
 design, not another unified-environment attempt.
+
+## D1 composite v9 migration plan
+
+D1 selects independently verifiable campaign-control, A1, A2,
+shared-PySCF-core and shared-schema subclosures plus one composite v9 identity.
+No v9 digest, request, manifest, resource identity or permit is generated here.
+
+Current schema v8 and SHA256
+`5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`
+remain `prepared_not_authorized` and
+`blocked_by_no_validated_single_interpreter`. They become
+`superseded_before_execution` only after Item 10/12 completes all source and
+local/mock tests and performs its single v9 rebaseline.
