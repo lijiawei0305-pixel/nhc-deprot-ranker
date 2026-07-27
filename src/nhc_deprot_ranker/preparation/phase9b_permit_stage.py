@@ -31,6 +31,11 @@ from nhc_deprot_ranker.preparation.phase9b_deploy import (
     DeploymentOutcome,
     DeployState,
 )
+from nhc_deprot_ranker.quantum.phase9b_campaign_schemas import (
+    AssistedCampaignPermitV3,
+    DirectRoutePermitV3,
+    render_non_authorizing_permit,
+)
 from nhc_deprot_ranker.quantum.phase9b_permit import (
     REQUEST_ID,
     ROUTE_ASSISTED,
@@ -754,6 +759,14 @@ def observed_permits(receipt: PermitPlacementReceipt) -> Mapping[str, ObservedPe
     return table
 
 
+def render_item10_non_authorizing_permit_fixture(
+    record: AssistedCampaignPermitV3 | DirectRoutePermitV3,
+) -> bytes:
+    """Render only false-gate fixture bytes; real ready permits remain absent."""
+
+    return render_non_authorizing_permit(record)
+
+
 __all__ = [
     "CANDIDATE_INCHIKEY",
     "EXECUTION_AUTHORIZED",
@@ -780,6 +793,7 @@ __all__ = [
     "place_both_permits",
     "receipt_payload",
     "recomputed_receipt_sha256",
+    "render_item10_non_authorizing_permit_fixture",
     "validate_plan_pair",
     "verify_promoted_deployment",
 ]

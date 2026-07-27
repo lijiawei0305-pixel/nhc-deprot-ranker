@@ -56,8 +56,9 @@ REQUEST_SCHEMA_VERSION: Final = "nhc-two-endpoint-request-v1"
 # AIMNet2 stage and Route D declares the absence of one.  An optional section
 # would make a dropped stage indistinguishable from "direct".
 REQUEST_SCHEMA_VERSION_V2: Final = "nhc-two-endpoint-request-v2"
+REQUEST_SCHEMA_VERSION_V3: Final = "nhc-two-endpoint-request-v3"
 _REQUEST_SCHEMA_VERSIONS: Final[frozenset[str]] = frozenset(
-    {REQUEST_SCHEMA_VERSION, REQUEST_SCHEMA_VERSION_V2}
+    {REQUEST_SCHEMA_VERSION, REQUEST_SCHEMA_VERSION_V2, REQUEST_SCHEMA_VERSION_V3}
 )
 RESULT_SCHEMA_VERSION: Final = "nhc-two-endpoint-result-v2"
 ATTEMPT_SCHEMA_VERSION: Final = "nhc-two-endpoint-attempt-v2"
@@ -1007,10 +1008,21 @@ def load_two_endpoint_request(request_path: Path) -> TwoEndpointRequest:
         "protocol",
         "endpoints",
     }
-    if schema_version == REQUEST_SCHEMA_VERSION_V2:
+    if schema_version in {REQUEST_SCHEMA_VERSION_V2, REQUEST_SCHEMA_VERSION_V3}:
         fields.add("preoptimization")
+    if schema_version == REQUEST_SCHEMA_VERSION_V3:
+        fields.update(
+            {
+                "generation",
+                "topology",
+                "interpreter_profiles",
+                "source_closures",
+                "resources_sha256",
+                "execution_state",
+            }
+        )
     _require_exact_keys(payload, fields, "two-endpoint request")
-    if schema_version == REQUEST_SCHEMA_VERSION_V2:
+    if schema_version in {REQUEST_SCHEMA_VERSION_V2, REQUEST_SCHEMA_VERSION_V3}:
         preoptimization = payload["preoptimization"]
         if not isinstance(preoptimization, dict) or not preoptimization:
             raise RequestValidationError("preoptimization section must be a non-empty object")
@@ -1024,6 +1036,46 @@ def load_two_endpoint_request(request_path: Path) -> TwoEndpointRequest:
                 raise RequestValidationError(
                     "external preoptimization preparation is never authorized"
                 )
+    if schema_version == REQUEST_SCHEMA_VERSION_V3:
+        if payload["generation"] != "phase9b-split-process-v003":
+            raise RequestValidationError("request v3 generation drifted")
+        topology = payload["topology"]
+        stage = cast(dict[str, object], payload["preoptimization"])["stage"]
+        expected_topology = "split_process_campaign" if stage == "aimnet2" else "single_stage_pyscf"
+        if topology != expected_topology:
+            raise RequestValidationError("request v3 topology differs from its frozen route")
+        profiles = payload["interpreter_profiles"]
+        if not isinstance(profiles, dict) or set(profiles) != {"a1_mlff", "direct_and_a2_gpupyscf"}:
+            raise RequestValidationError("request v3 interpreter profile set drifted")
+        for role, profile in profiles.items():
+            if not isinstance(profile, dict) or set(profile) != {"logical_profile_id", "sha256"}:
+                raise RequestValidationError(
+                    f"request v3 interpreter profile fields drifted: {role}"
+                )
+            identifier = profile["logical_profile_id"]
+            if not isinstance(identifier, str) or _REQUEST_ID_RE.fullmatch(identifier) is None:
+                raise RequestValidationError("request v3 profile ID is invalid")
+            _require_sha256(profile["sha256"], label=f"interpreter_profiles.{role}.sha256")
+        closures = payload["source_closures"]
+        expected_closures = {
+            "shared_schema_source",
+            "shared_pyscf_core_source",
+            "campaign_control_source",
+            "stage_a1_source",
+            "stage_a2_source",
+            "full_assisted_campaign_source",
+        }
+        if not isinstance(closures, dict) or set(closures) != expected_closures:
+            raise RequestValidationError("request v3 source closure set drifted")
+        for name, digest in closures.items():
+            _require_sha256(digest, label=f"source_closures.{name}")
+        _require_sha256(payload["resources_sha256"], label="resources_sha256")
+        if payload["execution_state"] != "prepared_not_authorized":
+            raise RequestValidationError(
+                "request v3 execution state must be prepared_not_authorized"
+            )
+        if payload["execution_authorized"] is not False:
+            raise RequestValidationError("prepared request v3 cannot authorize execution")
     request_id = payload["request_id"]
     if not isinstance(request_id, str) or _REQUEST_ID_RE.fullmatch(request_id) is None:
         raise RequestValidationError("request_id must be a safe lowercase identifier")
@@ -1056,7 +1108,11 @@ def load_two_endpoint_request(request_path: Path) -> TwoEndpointRequest:
         raise RequestValidationError("cation and neutral XYZ paths must differ")
     _validate_endpoint_pair_electrons(cation, neutral)
     return TwoEndpointRequest(
-        schema_version=REQUEST_SCHEMA_VERSION,
+        schema_version=(
+            REQUEST_SCHEMA_VERSION_V3
+            if schema_version == REQUEST_SCHEMA_VERSION_V3
+            else REQUEST_SCHEMA_VERSION
+        ),
         request_id=request_id,
         inchikey=inchikey,
         execution_authorized=execution_authorized,

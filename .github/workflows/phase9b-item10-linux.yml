@@ -1,0 +1,33 @@
+name: Phase 9B Item 10 Linux Process Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/nhc_deprot_ranker/quantum/phase9b_*.py"
+      - "src/nhc_deprot_ranker/quantum/process_supervisor.py"
+      - "src/nhc_deprot_ranker/quantum/linux_guardian.py"
+      - "src/nhc_deprot_ranker/preparation/phase9b_item10_*.py"
+      - "tests/test_phase9b_split_process_linux.py"
+      - ".github/workflows/phase9b-item10-linux.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  linux-process-authority:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11.15"
+      - name: Run three fresh no-chemistry process chains
+        working-directory: src
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python -m nhc_deprot_ranker.preparation.phase9b_item10_linux_harness
+          python -m nhc_deprot_ranker.preparation.phase9b_item10_linux_harness
+          python -m nhc_deprot_ranker.preparation.phase9b_item10_linux_harness

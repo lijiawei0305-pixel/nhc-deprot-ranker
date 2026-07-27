@@ -43,6 +43,11 @@ from nhc_deprot_ranker.quantum.phase9b_permit import (
     ROUTE_ASSISTED,
     ROUTE_DIRECT,
 )
+from nhc_deprot_ranker.quantum.phase9b_source_identity import (
+    CompositeSourceIdentityV9,
+    SourceClosureError,
+    validate_source_closure_definitions,
+)
 
 # Real deployment is a separate authorization.  Source-level gate.
 EXECUTION_AUTHORIZED: Final[bool] = False
@@ -639,6 +644,59 @@ def deploy_both_routes(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class CompositeDeploymentValidationV3:
+    generation: str
+    full_source_sha256: str
+    deployment_inventory_sha256: str
+    direct_manifest_sha256: str
+    assisted_manifest_sha256: str
+    atomic_inventory_complete: bool
+    deployed: bool = False
+
+
+def validate_composite_deployment_v3(
+    *,
+    source_identity: CompositeSourceIdentityV9,
+    direct_manifest: bytes,
+    assisted_manifest: bytes,
+) -> CompositeDeploymentValidationV3:
+    """Validate the one atomic v3 inventory locally; never deploy it."""
+
+    try:
+        validate_source_closure_definitions()
+    except SourceClosureError as exc:
+        raise Phase9BDeployError("v9 closure DAG is invalid") from exc
+    direct = _strict_json_object(direct_manifest, label="direct v3 manifest")
+    assisted = _strict_json_object(assisted_manifest, label="assisted v3 manifest")
+    for route, payload in ((ROUTE_DIRECT, direct), (ROUTE_ASSISTED, assisted)):
+        if (
+            payload.get("schema_version") != "phase9b.payload_manifest.v3"
+            or payload.get("generation") != "phase9b-split-process-v003"
+            or payload.get("route") != route
+            or payload.get("execution_authorized") is not False
+            or payload.get("real_permit_generated") is not False
+        ):
+            raise Phase9BDeployError(f"{route} v3 manifest identity drifted")
+        closures = payload.get("source_closures")
+        if not isinstance(closures, dict):
+            raise Phase9BDeployError(f"{route} source closure payload is missing")
+        if (
+            closures.get("full_assisted_campaign_source")
+            != source_identity.full_assisted_campaign_source_sha256
+        ):
+            raise Phase9BDeployError(f"{route} carries a mixed source generation")
+    return CompositeDeploymentValidationV3(
+        generation="phase9b-split-process-v003",
+        full_source_sha256=source_identity.full_assisted_campaign_source_sha256,
+        deployment_inventory_sha256=source_identity.deployment_inventory_sha256,
+        direct_manifest_sha256=hashlib.sha256(direct_manifest).hexdigest(),
+        assisted_manifest_sha256=hashlib.sha256(assisted_manifest).hexdigest(),
+        atomic_inventory_complete=True,
+        deployed=False,
+    )
+
+
 __all__ = [
     "DEPLOY_EVIDENCE_SCHEMA_VERSION",
     "DEPLOY_OUTCOME_SCHEMA_VERSION",
@@ -648,6 +706,7 @@ __all__ = [
     "REMOTE_PROMOTER_SOURCE",
     "REMOTE_RECEIVER_SOURCE",
     "CommandRunner",
+    "CompositeDeploymentValidationV3",
     "DeployState",
     "DeployVerificationReceipt",
     "DeploymentOutcome",
@@ -663,6 +722,7 @@ __all__ = [
     "deploy_both_routes",
     "recomputed_verification_sha256",
     "validate_absolute_root",
+    "validate_composite_deployment_v3",
     "validate_relative_member",
     "verify_local_payload",
     "verify_remote_evidence",

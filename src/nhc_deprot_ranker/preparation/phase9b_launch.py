@@ -83,6 +83,8 @@ CANDIDATE_INCHIKEY: Final = "LBNPGYISTSLAHY-UHFFFAOYSA-N"
 # and would skip permit consumption entirely.
 GUARDIAN_ENTRY: Final = "nhc_deprot_ranker.quantum.phase9b_guardian"
 SUPERVISOR_ENTRY: Final = "nhc_deprot_ranker.quantum.phase9b_supervisor"
+CAMPAIGN_GUARDIAN_ENTRY_V3: Final = "nhc_deprot_ranker.quantum.phase9b_campaign_guardian"
+DIRECT_GUARDIAN_ENTRY_V3: Final = GUARDIAN_ENTRY
 
 # ``-B`` writes no bytecode and ``-s`` drops the user site directory.  ``-I`` is
 # deliberately not used here: it implies ``-E``, which would discard the
@@ -1074,9 +1076,25 @@ def launch_both_routes(
     )
 
 
+def external_launch_entries_v3() -> tuple[str, str]:
+    """Only externally reachable v3 launch targets; stages are intentionally absent."""
+
+    return (DIRECT_GUARDIAN_ENTRY_V3, CAMPAIGN_GUARDIAN_ENTRY_V3)
+
+
+def validate_external_launch_entry_v3(entry: str) -> str:
+    if entry not in external_launch_entries_v3():
+        raise Phase9BLaunchError("v3 external launch may target only a route guardian")
+    if entry.endswith("stage_a1") or entry.endswith("stage_a2"):
+        raise Phase9BLaunchError("internal stage entrypoints are not externally launchable")
+    return entry
+
+
 __all__ = [
     "ALLOWED_ARGUMENTS",
+    "CAMPAIGN_GUARDIAN_ENTRY_V3",
     "CANDIDATE_INCHIKEY",
+    "DIRECT_GUARDIAN_ENTRY_V3",
     "EXECUTION_AUTHORIZED",
     "GUARDIAN_ENTRY",
     "LAUNCH_ACKNOWLEDGEMENT_TIMEOUT_SECONDS",
@@ -1097,6 +1115,7 @@ __all__ = [
     "build_launch_command",
     "build_route_launch_plan",
     "deploy_outcome_digest",
+    "external_launch_entries_v3",
     "frozen_route_order",
     "launch_both_routes",
     "next_action_for",
@@ -1105,6 +1124,7 @@ __all__ = [
     "redact_argv",
     "render_launch_argv",
     "validate_argument_value",
+    "validate_external_launch_entry_v3",
     "validate_plan_pair",
     "verified_files_for_route",
     "verify_deploy_outcome",

@@ -199,28 +199,26 @@ def _run_two_endpoint_pyscf(
     absolute_deadline_monotonic: float,
     backend_factory: BackendFactory | None = None,
 ) -> int:
-    """The shared PySCF execution primitive.  No route-specific state lives here."""
+    """Direct provenance adapter into the shared direct/A2 PySCF core."""
 
-    from nhc_deprot_ranker.quantum import two_endpoint as runner
+    from nhc_deprot_ranker.quantum.phase9b_shared_pyscf_core import (
+        SHARED_TWO_ENDPOINT_PYSCF_CORE,
+        FrozenDirectInputProvenance,
+    )
 
-    if backend_factory is not None:
-        backend = backend_factory(capability)
-    else:
-        # Lazy: constructing the backend is what pulls PySCF in, and it must not
-        # happen until a capability exists.
-        backend = runner.PySCFBackend(capability)
-
-    try:
-        runner._execute_validated_request(  # pyright: ignore[reportPrivateUsage]
-            request,
-            output_root,
-            backend=backend,  # type: ignore[arg-type]
-            attempt_id=attempt_id,
-            absolute_deadline_monotonic=absolute_deadline_monotonic,
-        )
-    except runner.TwoEndpointRunError as error:
-        return int(error.exit_code)
-    return 0
+    return SHARED_TWO_ENDPOINT_PYSCF_CORE.execute(
+        request,
+        output_root,
+        capability=capability,
+        attempt_id=attempt_id,
+        absolute_deadline_monotonic=absolute_deadline_monotonic,
+        input_provenance=FrozenDirectInputProvenance(
+            route="direct",
+            cation_xyz_sha256=request.cation.xyz_sha256,
+            neutral_xyz_sha256=request.neutral.xyz_sha256,
+        ),
+        backend_factory=backend_factory,
+    )
 
 
 def _execute_direct(
