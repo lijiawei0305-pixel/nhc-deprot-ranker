@@ -1,0 +1,46 @@
+{
+  "fixture_schema": "nhc-phase9b-u2-retained-protected-asymmetry-fixture-v1",
+  "source_terminal_receipt_sha256": "1598ff63c2567d59dad39cdc33a17b060f6436bae5b68b0e2e6002fcc85ad457",
+  "object_id": "project_mlff",
+  "before_snapshot_sha256": "e223fe1ad33befb828048e8dd89cc903ca657bbe0e2ede952deceb3a6a239faf",
+  "after_snapshot_sha256": "20ec4c182366ae52db316d93685189a6d25b9a87ba2f1de3932cb6ad32a12203",
+  "before_snapshot_top_level_keys": [
+    "canonical_tree_digest",
+    "conda_explicit",
+    "conda_history_sha256",
+    "critical_metadata_record",
+    "file_system_entries",
+    "kind",
+    "label",
+    "mtime_ns_max",
+    "mtime_ns_min",
+    "pip_freeze",
+    "python_identity",
+    "regular_file_bytes",
+    "root_identity",
+    "snapshot_sha256"
+  ],
+  "after_snapshot_top_level_keys": [
+    "canonical_tree_digest",
+    "conda_explicit",
+    "conda_history_sha256",
+    "critical_metadata_record",
+    "file_system_entries",
+    "kind",
+    "label",
+    "mtime_ns_max",
+    "mtime_ns_min",
+    "pip_freeze",
+    "python_identity",
+    "regular_file_bytes",
+    "root_identity",
+    "snapshot_sha256",
+    "state"
+  ],
+  "only_after": [
+    "state"
+  ],
+  "tree_digest_equal": true,
+  "u2_status": "rejected_environment",
+  "expected_failure_code": "PROTECTED_SNAPSHOT_SCHEMA_ASYMMETRY"
+}

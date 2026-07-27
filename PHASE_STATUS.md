@@ -278,9 +278,16 @@ not, and was not repaired or reinterpreted. The full outcome is
 The v002 prefix, wheelhouse, cache, logs, traces and receipts are retained and
 may not be deleted, repaired, retried or reused. No validated unified
 environment identity exists, so Unified Environment Identity Integration,
-Postflight, and the closed-gate rehearsal may not begin. The only safe next
-action under this authorization is to publish the retained U2 failure evidence
-and stop; no v003 attempt is authorized.
+Postflight, and the closed-gate rehearsal may not begin.
+
+Phase 9B-U3 is now authorized as a new attempt with a qualified measurement
+schema, not as a retry or repair of U2. Its document-first gate is specified in
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_V003_PLAN.md`. Before any server write, the
+single snapshot helper and stable-projection schema must pass the full local
+gate and merge to `main`; after merge, six protected objects must pass a
+read-only A/B measurement qualification before any v003 resource is created.
+Until those gates pass, no v003 environment exists and all public execution
+gates remain false.
 
 A one-shot execution authorization was granted and its section 11 pre-execution
 audit failed: at that time there was no single interpreter on the compute host

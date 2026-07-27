@@ -361,6 +361,14 @@ because before and after helpers emitted different top-level key sets. No
 `UnifiedExecutionEnvironmentIdentity v2` was issued, so the v8 control plane
 still has no accepted interpreter to integrate.
 
+U3 is a new authorized environment attempt with a pre-write qualification of
+the protected-object measurement system. Its schema and capture helper remain
+outside this runner closure. U3 may not modify runner comments or receipt
+semantics, so this closure remains schema v8 with SHA256
+`5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`.
+Only a later, separately authorized Unified Environment Identity Integration
+may move that source identity.
+
 ## 11. What this round did not do
 
 No SSH, no server, no deploy, no permit placed, no launch, no guardian or
