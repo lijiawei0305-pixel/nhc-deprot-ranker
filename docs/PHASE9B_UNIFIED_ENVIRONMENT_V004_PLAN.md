@@ -90,3 +90,14 @@ Integration. Runner source remains v8 at
 `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`,
 all eleven public execution gates remain false, and production labels remain
 71.
+
+## Retained outcome
+
+The contract merged as PR #54. The single Q4 call returned
+`CONDA_EXPLICIT_FAILED` for both captures of every protected object. All failed
+A/B projections were equal and root containment was true, but no object was
+present. The v004 paths stayed absent, so no later stage in this plan ran. The
+qualification summary did not promote observation-level chain/command details;
+that retained evidence limitation is documented without retry in
+`PHASE9B_UNIFIED_ENVIRONMENT_V004_BUILD_REPORT.md`. U4 is terminal
+`failed_before_environment_creation`.

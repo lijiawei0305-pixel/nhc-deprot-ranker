@@ -381,6 +381,11 @@ receipts. Schema v8 and SHA256
 `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`
 therefore remain frozen throughout U4.
 
+U4 ended during its read-only Q4 qualification, before v004 creation. No U4
+package, import, native, endpoint, cache, runner, request, resource, or permit
+identity was produced. The v8 closure remains byte-identical and ineligible for
+execution.
+
 ## 11. What this round did not do
 
 No SSH, no server, no deploy, no permit placed, no launch, no guardian or

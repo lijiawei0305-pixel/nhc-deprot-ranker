@@ -207,3 +207,9 @@ U4 is now authorized only through the staged contract in
 helper must merge before any SSH; then one read-only Q4 qualification must pass
 all six objects before v004 can exist. This authorization does not unblock
 Identity Integration, Postflight, rehearsal, permit, or science.
+
+Q4 has now failed before environment creation with `CONDA_EXPLICIT_FAILED` for
+all six objects. The v004 resources stayed absent, and no build or capability
+gate ran. The portable qualification summary also retained an observability
+gap for launcher-chain and command-stage details; it was not repaired or
+rerun. No validated unified environment exists.

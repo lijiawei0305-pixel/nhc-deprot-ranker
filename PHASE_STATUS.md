@@ -27,7 +27,7 @@ Updated: 2026-07-27
 | Phase 9B-U1 — dedicated unified environment build and audit | Failed closed; incomplete v001 retained and unusable | 2026-07-27; exact stack installed, but capability harness observed 4 calculator invocations vs 2 expected; no retry; old environments unchanged |
 | Phase 9B-U2 — unified environment v002 | Rejected environment; retained and unusable | 2026-07-27; capability counts/native/cache passed, but protected snapshot schema mismatch failed the canonical gate; no retry |
 | Phase 9B-U3 — qualified metrology / v003 | Failed before environment creation; retained | 2026-07-27; helper rejected normal Conda Python symlinks as invalid; v003 resources never created |
-| Phase 9B-U4 — symlink-aware metrology / v004 | Document-first contract in progress | No SSH or server action before PR merge; all execution gates false |
+| Phase 9B-U4 — symlink-aware metrology / v004 | Failed before environment creation; retained | Q4 reached conda evidence then returned `CONDA_EXPLICIT_FAILED` for all six; v004 resources never created |
 
 ## Current completed work
 
@@ -305,6 +305,14 @@ U4 adds root-contained symlink-chain authentication and explicit capture
 diagnostics. Its document-first PR must merge before any SSH. Only one later
 read-only Q4 qualification may determine whether new v004 resources can be
 created.
+
+The document-first contract merged as PR #54. The one read-only Q4 call then
+failed all six A/B captures with the registered code
+`CONDA_EXPLICIT_FAILED`; each pair was stable and root-contained but had
+`state=invalid`, not `present`. The v004 prefix, wheelhouse, and cache remained
+absent before and after. No build, artifact, import, native, capability, cache,
+GPU, endpoint, or scientific gate ran. U4 is terminal
+`failed_before_environment_creation` and cannot be repaired or rerun.
 
 A one-shot execution authorization was granted and its section 11 pre-execution
 audit failed: at that time there was no single interpreter on the compute host
