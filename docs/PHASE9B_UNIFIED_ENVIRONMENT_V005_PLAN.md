@@ -115,3 +115,15 @@ authorized Unified Environment Identity Integration. Runner source remains v8
 at `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`,
 all eleven public execution gates remain false, and production labels remain
 71.
+
+## Retained outcome
+
+The document-first contract merged in PR #56. The one Q5 SSH failed during
+remote in-memory helper module initialization, before any protected-object
+capture. No launcher, Python, Conda record, distribution, tree, or projection
+evidence exists for Q5, so the terminal classification is
+`failed_before_environment_creation` with
+`PROTECTED_SNAPSHOT_EVIDENCE_INCOMPLETE`. No v005 resource was created and the
+attempt was not repaired or retried. Under this plan's frozen decision boundary,
+future work must leave the unified-environment route and use a separately
+authorized dual-environment / split-process assisted design.

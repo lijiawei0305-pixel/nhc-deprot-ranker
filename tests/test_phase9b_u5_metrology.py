@@ -6,6 +6,7 @@ import ast
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
 
@@ -685,3 +686,56 @@ def test_all_public_execution_gates_remain_false() -> None:
             if isinstance(gates, dict):
                 gate_values.extend(value for value in gates.values() if isinstance(value, bool))
     assert not any(gate_values)
+
+
+def test_public_u5_failure_is_closed_and_evidence_limit_is_explicit() -> None:
+    repository = Path(__file__).resolve().parents[1]
+
+    def load(name: str) -> dict[str, object]:
+        value = json.loads((repository / "docs" / name).read_bytes())
+        assert isinstance(value, dict)
+        return value
+
+    manifest = load("PHASE9B_UNIFIED_ENVIRONMENT_V005_MANIFEST.json")
+    qualification = load("PHASE9B_U5_MEASUREMENT_QUALIFICATION_RECEIPT.json")
+    conda_inventory = load("PHASE9B_U5_CONDA_PREFIX_INVENTORY.json")
+    distribution_inventory = load("PHASE9B_U5_DISTRIBUTION_INVENTORY.json")
+    capability = load("PHASE9B_UNIFIED_ENVIRONMENT_V005_CAPABILITY.json")
+
+    def assert_failed(candidate: dict[str, object]) -> None:
+        assert candidate["status"] == "failed_before_environment_creation"
+        resources = candidate["resources"]
+        assert isinstance(resources, dict)
+        assert resources["creation_code_reached"] is False
+        assert resources["prefix_created"] is False
+        identity = candidate["identity"]
+        assert isinstance(identity, dict)
+        assert identity["unified_execution_environment_identity_v5_issued"] is False
+        assert identity["environment_canonical_sha256"] is None
+
+    assert_failed(manifest)
+    helper_sha256 = hashlib.sha256(Path(u5.__file__).read_bytes()).hexdigest()
+    assert qualification["helper_source_sha256"] == helper_sha256
+    assert qualification["controlled_ssh_calls"] == 1
+    assert qualification["protected_snapshot_started"] is False
+    assert qualification["package_manager_cli_invocations"] == 0
+    assert qualification["pip_cli_invocations"] == 0
+    rows = qualification["object_results"]
+    assert isinstance(rows, list) and len(rows) == 6
+    assert all(row["state"] == "not_captured" for row in rows)
+    failure = qualification["failure"]
+    assert isinstance(failure, dict)
+    assert failure["code"] == u5.EVIDENCE_INCOMPLETE
+    assert failure["stage"] == "remote_helper_module_initialization"
+    assert failure["cause_classification"] == "q5_remote_harness_bootstrap_defect"
+    assert conda_inventory["status"] == "not_captured_q5_bootstrap_failure"
+    assert distribution_inventory["status"] == "not_captured_q5_bootstrap_failure"
+    assert all(row["record_count"] is None for row in conda_inventory["objects"])
+    assert all(row["all_distribution_count"] is None for row in distribution_inventory["objects"])
+    assert capability["property_reads"] == 0
+    assert capability["aimnet2ase_calculate_calls"] == 0
+
+    mutation = deepcopy(manifest)
+    mutation["status"] = "validated"
+    with pytest.raises(AssertionError):
+        assert_failed(mutation)

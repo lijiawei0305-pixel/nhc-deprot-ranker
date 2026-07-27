@@ -1,0 +1,16 @@
+{
+  "schema_version": "nhc-phase9b-unified-environment-v005-capability-v1",
+  "status": "not_run_failed_before_environment_creation",
+  "reason": "q5_remote_helper_module_initialization_failed",
+  "model_load_count": 0,
+  "endpoint_wrapper_count": 0,
+  "property_reads": 0,
+  "aimnet2ase_calculate_calls": 0,
+  "base_model_forward_calls": "unmeasured",
+  "optimizer_steps": 0,
+  "pyscf_kernel_calls": 0,
+  "pyscf_gradient_calls": 0,
+  "d3_calculations": 0,
+  "labels": 0,
+  "endpoints": []
+}

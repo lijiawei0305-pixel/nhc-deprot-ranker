@@ -1,0 +1,65 @@
+{
+  "schema_version": "nhc-phase9b-unified-environment-v005-public-manifest-v1",
+  "logical_name": "nhc-phase9b-unified-v005",
+  "attempt_id": "attempt-phase9b-unified-v005",
+  "status": "failed_before_environment_creation",
+  "helper_source_sha256": "3319728d9687912ee0ca344a9d2f1e4506b6fa6b451e1be3dd771ff0e5f578f3",
+  "qualification": {
+    "all_passed": false,
+    "protected_snapshot_started": false,
+    "failure_code": "PROTECTED_SNAPSHOT_EVIDENCE_INCOMPLETE",
+    "failure_stage": "remote_helper_module_initialization",
+    "failed_object_count": 0,
+    "not_captured_object_count": 6,
+    "package_manager_cli_invocations": 0,
+    "pip_cli_invocations": 0,
+    "retry_performed": false
+  },
+  "resources": {
+    "prefix_created": false,
+    "wheelhouse_created": false,
+    "cache_created": false,
+    "creation_code_reached": false,
+    "post_failure_path_state_observed": false
+  },
+  "build": {
+    "started": false,
+    "artifacts_downloaded": 0,
+    "package_versions_observed": false,
+    "target_lifecycle_started": false
+  },
+  "terminal": {
+    "terminal_status": "failed_before_environment_creation",
+    "failure": {
+      "code": "PROTECTED_SNAPSHOT_EVIDENCE_INCOMPLETE",
+      "stage": "remote_helper_module_initialization",
+      "assertion": "exact merged U5 helper initializes as a registered module before any protected capture",
+      "object_ids": [],
+      "details_digest": "424d935e3e034594df9fd21ca8a1ca191c5122ad9edfd36994dba570301b13f1"
+    }
+  },
+  "identity": {
+    "unified_execution_environment_identity_v5_issued": false,
+    "environment_canonical_sha256": null,
+    "runner_source_schema": "v8",
+    "runner_source_sha256": "5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2"
+  },
+  "execution": {
+    "scientific_execution_started": false,
+    "public_execution_gate_count": 11,
+    "all_public_execution_gates_false": true,
+    "optimizer_steps": 0,
+    "pyscf_kernel_calls": 0,
+    "pyscf_gradient_calls": 0,
+    "d3_calculations": 0,
+    "labels_created": 0,
+    "production_high_fidelity_labels": 71
+  },
+  "next_route": "dual_environment_or_split_process_assisted_design",
+  "privacy": {
+    "private_absolute_paths_included": false,
+    "host_or_account_included": false,
+    "credentials_included": false,
+    "raw_traceback_included": false
+  }
+}

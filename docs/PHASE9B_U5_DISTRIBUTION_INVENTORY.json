@@ -1,0 +1,16 @@
+{
+  "schema_version": "nhc-phase9b-u5-python-distribution-inventory-public-v1",
+  "status": "not_captured_q5_bootstrap_failure",
+  "authoritative_capture_method": "direct_dist_info_read_without_pip_cli",
+  "pip_cli_invocations": 0,
+  "objects": [
+    {"object_id": "project_mlff", "all_distribution_count": null, "all_distribution_inventory_sha256": null},
+    {"object_id": "project_aimnet2", "all_distribution_count": null, "all_distribution_inventory_sha256": null},
+    {"object_id": "project_gpupyscf", "all_distribution_count": null, "all_distribution_inventory_sha256": null},
+    {"object_id": "shared_molecular", "all_distribution_count": null, "all_distribution_inventory_sha256": null},
+    {"object_id": "phase9b_unified_v001_env", "all_distribution_count": null, "all_distribution_inventory_sha256": null},
+    {"object_id": "phase9b_unified_v002_env", "all_distribution_count": null, "all_distribution_inventory_sha256": null}
+  ],
+  "reason": "remote_helper_module_initialization_failed_before_first_object_capture",
+  "old_receipts_used_to_fill_inventory": false
+}

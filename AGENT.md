@@ -442,3 +442,12 @@ dig +trace domain
 - 即使 v005 validated，本轮仍禁止 runner/resources/request/permit、deploy、
   launch、optimizer、PySCF、D3、Postflight、rehearsal 和 label。runner v8 SHA、
   十一个 false gates 与 71 个生产标签保持不变。
+- PR #56 已合入 document-first 合同。唯一一次 Q5 SSH 在任何 object capture 前的
+  remote helper module initialization 失败：动态 module 未注册到 `sys.modules`，
+  dataclass decoration 抛出 `AttributeError`。没有 launcher/probe/conda-meta/
+  dist-info/tree evidence 可被诚实声称，因此终态是
+  `failed_before_environment_creation` 加
+  `PROTECTED_SNAPSHOT_EVIDENCE_INCOMPLETE`。
+- 不得修复 loader、重跑 Q5、补用旧 receipt、创建 v005/U6 或继续 Integration。
+  根据 U5 冻结决策，新的统一环境 attempt 到此终止；唯一允许的下一设计方向是
+  另行授权的 dual-environment / split-process assisted route。
