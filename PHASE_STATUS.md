@@ -418,7 +418,7 @@ strictly sequential under one 7200-second absolute campaign deadline.
 Item 10 implemented the campaign guardian/supervisor, post-registration internal
 stage capabilities, MLFF A1, three immutable handoff receipts, GPU-PySCF A2,
 shared direct/A2 PySCF core, exact evidence tree, and gate-closed v3 generation.
-Linux run `30268978451` completed three fresh no-chemistry process campaigns.
+Linux run `30270727079` completed three fresh no-chemistry process campaigns.
 
 Runner v8 SHA256
 `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`

@@ -495,7 +495,7 @@ dig +trace domain
 - Item 10 已完成 production source、strict schemas、campaign guardian、长期 campaign
   supervisor、post-registration internal capability、MLFF A1、三份不可变 handoff
   receipt、GPU-PySCF A2、direct/A2 shared PySCF core 和 exact evidence tree。
-- 所有验证均为 local/mock/fake subprocess；GitHub Linux run `30268978451` 连续三次
+- 所有验证均为 local/mock/fake subprocess；GitHub Linux run `30270727079` 连续三次
   完成 no-chemistry campaign，并证明 A1/A2 顺序、process-group 清理和 terminal
   evidence。没有 SSH、服务器动作、真实模型、GPU、PySCF、D3 或标签计算。
 - runner source 已唯一一次冻结为

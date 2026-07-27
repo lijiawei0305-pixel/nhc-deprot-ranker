@@ -1,0 +1,20 @@
+{
+  "chemistry_executed": false,
+  "fresh_run_count": 3,
+  "linux_authoritative": true,
+  "process_checks": {
+    "a1_a2_sequential": true,
+    "campaign_outcome": "accepted",
+    "campaign_supervisor_is_a_real_subprocess": true,
+    "no_chemistry": true,
+    "process_group_timeout_cleanup": true,
+    "stage_processes_are_real_subprocesses": true,
+    "synthetic_test_only": true
+  },
+  "runner_source_sha256": "13ba49fe33f8a85cceae76b043619df832d15633aa08a91d0eadfab7c6f580f5",
+  "schema_version": "nhc-phase9b-item10-linux-process-receipt-v1",
+  "source_commit": "1e108f9b8ec827dfd5d7109b64b8b7ebd2afdc2f",
+  "status": "passed",
+  "workflow": "Phase 9B Item 10 Linux Process Gate",
+  "workflow_run_id": 30270727079
+}

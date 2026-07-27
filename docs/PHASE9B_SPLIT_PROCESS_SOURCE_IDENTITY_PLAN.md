@@ -96,7 +96,7 @@ campaign guardian; no A1/A2 launcher is public.
 ## Item 10/12 one-time v9 freeze
 
 The freeze occurred after portable tests, the 32-case mutation guard set, and
-GitHub Linux process authority run `30268978451` completed successfully. The
+GitHub Linux process authority run `30270727079` completed successfully. The
 five leaf owners remain disjoint and their dependency graph remains acyclic.
 The retained v8 identity was never deployed, placed, consumed, or launched and
 is now `superseded_before_execution`; its preserved SHA256 is

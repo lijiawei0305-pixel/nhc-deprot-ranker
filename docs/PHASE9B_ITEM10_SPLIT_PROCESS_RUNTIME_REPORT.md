@@ -51,8 +51,8 @@ guardian behavior, A1 model-load-once/early-stop, exact-byte handoff, A2 disk
 reread, shared-core parity, closure DAG and evidence immutability. The 32
 pre-registered mutation cases each name an executable guard.
 
-GitHub Actions Linux run `30268978451`, source commit
-`9c6b097943ad865e36ba9fb98639bae72ea71b70`, ran three fresh campaign supervisor
+GitHub Actions Linux run `30270727079`, source-freeze commit
+`1e108f9b8ec827dfd5d7109b64b8b7ebd2afdc2f`, ran three fresh campaign supervisor
 processes. Each supervisor spawned real fake A1/A2 process groups, completed the
 registration/capability/release protocol, accepted the hash-closed handoff, and
 proved timeout TERM/KILL/reap cleanup. Every result reported
