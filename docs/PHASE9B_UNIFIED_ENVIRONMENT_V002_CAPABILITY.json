@@ -1,0 +1,92 @@
+{
+  "schema_version": "nhc-phase9b-unified-v002-public-capability-v1",
+  "status": "capability_contract_matched_but_environment_rejected_elsewhere",
+  "endpoint_order": [
+    "cation",
+    "neutral"
+  ],
+  "property_read_semantics": "ase_property_read",
+  "calculator_call_semantics": "one observed entry to AIMNet2ASE.calculate",
+  "base_model_forward_calls": "unmeasured",
+  "totals": {
+    "energy_property_reads": 2,
+    "force_property_reads": 2,
+    "total_property_reads": 4,
+    "energy_calculate_calls": 2,
+    "force_calculate_calls": 2,
+    "total_calculate_calls": 4,
+    "base_model_load_count": 1,
+    "endpoint_wrapper_count": 2,
+    "geometry_optimization_steps": 0,
+    "pyscf_kernel_calls": 0,
+    "pyscf_gradient_calls": 0,
+    "d3_calculations": 0,
+    "labels": 0
+  },
+  "endpoints": {
+    "cation": {
+      "charge": 1,
+      "multiplicity": 1,
+      "atom_count": 26,
+      "property_read_sequence": [
+        "energy",
+        "forces"
+      ],
+      "calculate_call_triggers": [
+        "energy",
+        "forces"
+      ],
+      "energy_ev": -38353.04313413836,
+      "energy_finite": true,
+      "force_shape": [
+        26,
+        3
+      ],
+      "forces_finite": true,
+      "coordinates_unchanged": true,
+      "receipt_sha256": "34a4e1b808340ab9651fb431e51721e8224462031f831c009267e730612cd096"
+    },
+    "neutral": {
+      "charge": 0,
+      "multiplicity": 1,
+      "atom_count": 25,
+      "property_read_sequence": [
+        "energy",
+        "forces"
+      ],
+      "calculate_call_triggers": [
+        "energy",
+        "forces"
+      ],
+      "energy_ev": -38341.635253577624,
+      "energy_finite": true,
+      "force_shape": [
+        25,
+        3
+      ],
+      "forces_finite": true,
+      "coordinates_unchanged": true,
+      "receipt_sha256": "e2539e182c5ab32de8670dbdf7f788732af2eda6e12c7a6a6c2e21b02075fbd3"
+    }
+  },
+  "weight": {
+    "filename": "aimnet2_wb97m_d3_0.pt",
+    "bytes": 8836941,
+    "sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28",
+    "unchanged": true
+  },
+  "gpu": {
+    "model": "Tesla V100-SXM2-32GB",
+    "memory_total_mib": 32768,
+    "memory_used_mib_before": 5,
+    "utilization_percent_before": 0,
+    "selected_as_lowest_free_exact_v100": true,
+    "private_device_identity_omitted": true
+  },
+  "network": {
+    "external_internet_connect_send_calls": 0,
+    "local_socket_activity": 2,
+    "zero_network_syscalls_claimed": false
+  },
+  "environment_terminal_status": "rejected_environment"
+}

@@ -89,3 +89,15 @@ source comments, receipt-field description, and relevant tests with these
 terms while binding the validated interpreter into resources, requests, and
 permits. That edit necessarily moves `runner_source_sha256`; it must be a
 visible source-v9 rebaseline, never a silent v8 correction.
+
+## U2 observation
+
+U2 observed the preregistered result exactly: one energy property read and one
+force property read produced two `AIMNet2ASE.calculate()` entries per endpoint,
+four of each counter across cation then neutral. The base model loaded once and
+two distinct endpoint wrappers were constructed. `base_model_forward_calls`
+remains `unmeasured`.
+
+This metrology match did not validate the environment. U2 was independently
+rejected by its protected canonical snapshot gate, as recorded in
+`PHASE9B_UNIFIED_ENVIRONMENT_V002_BUILD_REPORT.md`.

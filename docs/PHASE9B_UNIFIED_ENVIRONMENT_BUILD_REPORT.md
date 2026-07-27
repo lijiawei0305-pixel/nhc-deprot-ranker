@@ -24,6 +24,10 @@ definitions in `docs/PHASE9B_CALCULATOR_INVOCATION_SEMANTICS.md`. Those links
 do not amend this report, complete its missing evidence, or change U1's
 `failed_incomplete_environment` result.
 
+That successor completed independently as `rejected_environment`; its report is
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_V002_BUILD_REPORT.md`. The U2 outcome does not
+alter, repair, or validate U1.
+
 ## Why MLFF was cloned
 
 The project MLFF prefix is the only audited project environment that already

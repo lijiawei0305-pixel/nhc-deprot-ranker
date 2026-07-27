@@ -175,3 +175,13 @@ After server validation: all protected before/after comparisons, v001
 before/after, fresh-path proof, artifact rehash, build/import/native/endpoint/
 cache/terminal receipts, no-external-Internet proof, and no-unregistered-file
 proof must be present before sanitized public evidence is prepared.
+
+## Terminal outcome
+
+U2 completed as `rejected_environment`. The build, native, capability, cache,
+weight, target-after, and endpoint receipts were durable, and the frozen four
+property reads/four calculator calls matched. The formal protected snapshot
+gate failed because the Stage 0 helper omitted a top-level `state` key while
+the Stage 4 helper emitted `state=present`. No retry, repair, reinterpretation,
+deletion, reuse, v003 creation, identity integration, or scientific execution
+followed. See `PHASE9B_UNIFIED_ENVIRONMENT_V002_BUILD_REPORT.md`.

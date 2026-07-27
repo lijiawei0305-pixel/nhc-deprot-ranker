@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -384,3 +385,45 @@ def test_harness_has_no_scientific_execution_or_transport_entry_points() -> None
         "label =",
     ):
         assert forbidden not in source
+
+
+def test_public_u2_evidence_is_consistent_with_rejected_terminal_state() -> None:
+    repository = Path(__file__).resolve().parents[1]
+
+    def load(name: str) -> dict[str, object]:
+        value = json.loads((repository / "docs" / name).read_bytes())
+        assert isinstance(value, dict)
+        return value
+
+    manifest = load("PHASE9B_UNIFIED_ENVIRONMENT_V002_MANIFEST.json")
+    capability = load("PHASE9B_UNIFIED_ENVIRONMENT_V002_CAPABILITY.json")
+    native = load("PHASE9B_UNIFIED_ENVIRONMENT_V002_NATIVE_MAPS.json")
+    cache = load("PHASE9B_UNIFIED_ENVIRONMENT_V002_CACHE_RECEIPT.json")
+
+    assert manifest["status"] == "rejected_environment"
+    target = manifest["target_environment"]
+    assert isinstance(target, dict)
+    assert target["unified_execution_environment_identity_v2_issued"] is False
+    assert target["environment_canonical_sha256"] is None
+    formal = manifest["formal_protected_snapshot_gate"]
+    assert isinstance(formal, dict)
+    assert formal["accepted"] is False
+    assert formal["all_six_tree_digests_counts_bytes_and_critical_metadata_equal"] is True
+
+    totals = capability["totals"]
+    assert isinstance(totals, dict)
+    assert totals["total_property_reads"] == 4
+    assert totals["total_calculate_calls"] == 4
+    assert capability["base_model_forward_calls"] == "unmeasured"
+    assert capability["environment_terminal_status"] == "rejected_environment"
+
+    import_orders = native["import_orders"]
+    assert isinstance(import_orders, dict)
+    assert all(row["classification"] == "compatible" for row in import_orders.values())
+    assert cache["global_cache_drift"] is False
+    assert cache["external_internet_connect_send_calls"] == 0
+
+    execution = manifest["execution"]
+    assert isinstance(execution, dict)
+    assert execution["all_public_execution_gates_false"] is True
+    assert execution["production_high_fidelity_labels"] == 71

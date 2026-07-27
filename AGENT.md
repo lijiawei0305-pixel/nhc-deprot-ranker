@@ -328,3 +328,28 @@ dig +trace domain
   所有 execution gate 仍 false，生产标签仍 71。唯一安全后续动作是停止；
   若用户另行授权，必须使用全新 v002 prefix/wheelhouse，并先冻结
   calculator invocation 与 energy/force property read 的精确定义。
+
+## 23. Phase 9B-U2 — Unified Environment v002 终态边界
+
+- U2 的 document-first 合同已由 PR #50 在任何服务器写入前合入 `main`。
+  `ase_property_read`、`aimnet2ase_calculate_call` 与未测量的
+  `base_model_forward_call` 是三个不可混用的计数；实际 capability 精确得到
+  4 次 property read、4 次 `AIMNet2ASE.calculate()`、1 次 model load 和 2 个
+  endpoint wrapper。
+- v002 使用新的 prefix、wheelhouse、attempt cache、request/attempt identity，
+  以 `--copy` offline clone 项目 MLFF，并重新下载和验证三份官方 artifact；
+  未复制或 hardlink v001，未复用 v001 wheelhouse/cache/log/receipt。
+- 精确 PySCF 栈、`pip check`、独立 metadata validation、保护包零漂移、两种
+  import order、native map、端点有限性、坐标不变、cache/network/weight/target
+  after evidence均完成。没有 optimizer、PySCF kernel/gradient、D3 或 label。
+- U2 终态是 `rejected_environment`，不是 `validated`。Stage 0 protected
+  snapshot 没有顶层 `state` 字段，Stage 4 snapshot 增加 `state=present`；虽然
+  六项真实 tree digest/count/bytes/mtime、Python/conda/pip/METADATA/RECORD 均
+  相同，canonical snapshot SHA 仍按冻结合同不相等。不得在 U2 中修补或改判。
+- v002 prefix、wheelhouse、cache、logs、traces、receipts 必须永久保留；不得
+  删除、修复、重试或复用，不得自动创建 v003。因为没有签发
+  `UnifiedExecutionEnvironmentIdentity v2`，不得进入 identity integration、
+  Postflight、closed-gate rehearsal 或 Phase 9B 科学执行。
+- runner source 仍为 v8，SHA256 仍为
+  `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`；
+  十一个 public execution gates 全为 false，生产高保真标签仍为 71。

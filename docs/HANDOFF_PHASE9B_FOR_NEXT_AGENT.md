@@ -83,6 +83,15 @@ not be deleted, repaired, retried or reused. All four pre-existing environments
 were proven byte-metadata unchanged. The v8 source identity above did not move,
 all gates remain false, and Items 9/10 and 10/10 remain not started.
 
+Phase 9B-U2 then ran as a wholly independent v002 attempt. Its exact build,
+both import orders, native maps, cache isolation, one model load, two endpoint
+wrappers, and four property reads/four `AIMNet2ASE.calculate()` calls all
+completed. It nevertheless ended `rejected_environment`: the Stage 0 protected
+snapshot helper omitted a top-level `state` key which Stage 4 added, so the
+canonical before/after snapshot SHA contract failed even though every physical
+tree and critical package field matched. v002 is retained and may not be
+repaired, retried, deleted, or reused. No validated unified interpreter exists.
+
 ---
 
 ## 3. The frozen science — never change any of this
@@ -272,9 +281,11 @@ because that is what the byte-closed handoff and the assisted permit bind.
 
 Phase 9B-U1 later produced a prefix containing both installed stacks, but that
 prefix failed its capability validation and is not an accepted interpreter.
-The current blocker is therefore `no_validated_single_interpreter`, not the
-continued physical absence of both package trees from one prefix. See
-`docs/PHASE9B_UNIFIED_ENVIRONMENT_BUILD_REPORT.md`.
+Phase 9B-U2 produced another prefix and matched the frozen capability semantics,
+but failed its formal protected canonical snapshot gate. The current blocker is
+therefore `no_validated_single_interpreter`, not the continued physical absence
+of both package trees from one prefix. See the U1 and U2 unified-environment
+build reports.
 
 The search covered the whole host, not just the project: environments were
 located by their own `conda-meta` and `pyvenv.cfg` markers across `/home`,

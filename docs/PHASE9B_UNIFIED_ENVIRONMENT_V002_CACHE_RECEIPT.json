@@ -1,0 +1,18 @@
+{
+  "schema_version": "nhc-phase9b-unified-v002-public-cache-receipt-v1",
+  "same_registered_key_set_before_after": true,
+  "attempt_local_files_created": 123,
+  "attempt_local_bytes_written": 10062629,
+  "global_cache_drift": false,
+  "global_cache_drift_keys": [],
+  "source_tree_drift": false,
+  "source_tree_pycache_drift": false,
+  "weight_directory_drift": false,
+  "hugging_face_asset_drift": false,
+  "external_internet_connect_send_calls": 0,
+  "local_socket_activity": 2,
+  "zero_network_syscalls_claimed": false,
+  "weight_unchanged": true,
+  "target_environment_unchanged_during_import_and_capability": true,
+  "receipt_sha256": "edfcfc4c05e1021148bce943f811e614085f9cbafae901157a1ffeef827d397a"
+}
