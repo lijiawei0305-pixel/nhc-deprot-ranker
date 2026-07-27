@@ -185,3 +185,12 @@ Full evidence is in `docs/PHASE9B_SERVER_WIDE_ENVIRONMENT_SEARCH.json` (the
 server-wide search this conclusion rests on) and
 `docs/PHASE9B_PRE_EXECUTION_INTERPRETER_AUDIT.json` (the earlier,
 project-scoped pass, retained for the record).
+
+## U3 qualified-metrology authorization
+
+U1 and U2 remain unusable retained attempts. U3 is separately authorized under
+`docs/PHASE9B_UNIFIED_ENVIRONMENT_V003_PLAN.md`, but it cannot create its new
+resources until a document-first PR has merged and the six-object read-only
+measurement qualification passes. Even a validated v003 would not authorize
+Phase 9B science: Unified Environment Identity Integration would remain the
+only next stage. Postflight and closed-gate rehearsal are still blocked.

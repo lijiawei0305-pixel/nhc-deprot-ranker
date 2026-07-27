@@ -173,3 +173,10 @@ validated. The only allowed action after publishing this retained failure
 evidence is to stop. A future attempt would require a new explicit
 authorization and a new identity; this report does not create or authorize
 v003.
+
+## Forward link (U2 remains immutable)
+
+That separate authorization now exists as Phase 9B-U3. Its new, qualified
+snapshot schema and pre-write measurement gate are defined in
+`PHASE9B_UNIFIED_ENVIRONMENT_V003_PLAN.md`. This link does not modify U2's
+status, receipt, manifest, failure fields, or conclusion.

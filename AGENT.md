@@ -353,3 +353,30 @@ dig +trace domain
 - runner source 仍为 v8，SHA256 仍为
   `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`；
   十一个 public execution gates 全为 false，生产高保真标签仍为 71。
+
+## 24. Phase 9B-U3 — Qualified snapshot metrology 与 v003 边界
+
+- U3 是全新的 environment attempt 加全新的 qualified metrology schema，
+  不是 U2 重试。U1 保持 `failed_incomplete_environment`，U2 保持
+  `rejected_environment`；两者的 prefix、wheelhouse、cache、logs、receipts
+  与结论均不可删除、修复、补写、复用或重解释。
+- U1 失败于 calculator-call metrology contract；U2 的 exact build、native、
+  calculator、endpoint、cache 与 network 均通过，但失败于 protected-snapshot
+  metrology contract，且其 terminal `failure_assertion=null` 是第二个保留缺陷。
+  两次均不是 dependency、native library 或 AIMNet2 incompatibility。
+- U3 必须先把 `ProtectedObjectSnapshotV2`、stable identity projection、
+  observation receipt、结构化 terminal failure 与真实 U2 regression 合入
+  `main`。在 document-first PR 合入前不得对服务器进行任何 U3 写入。
+- 合入后，六个 protected environment 必须在一个只读进程中由同一 helper
+  连续捕获 A/B；全部 `state=present`、schema keyset、projection bytes 与 SHA
+  精确相等，才允许创建 v003 prefix、wheelhouse 或 cache。失败状态为
+  `failed_before_environment_creation`，且不得创建任何 v003 资源。
+- target environment 不进入 protected unchanged gate。它使用独立
+  `TargetEnvironmentLifecycleReceiptV1`，只比较 post-build baseline 与
+  post-capability final；不得比较 pre-build absent 与 post-build present。
+- v003 成功仍只签发 `UnifiedExecutionEnvironmentIdentity v3`。本轮禁止修改
+  runner、request/resources/permit、deploy、placement、launch、optimizer、
+  PySCF kernel/gradient、D3、Postflight、rehearsal 与 label。
+- runner source 保持 v8 / SHA256
+  `5f9f710a68904a76022afb99bcf46e2b3a5aa019ba0b40a19a227d9e08772fc2`；
+  十一个 public execution gates 必须持续为 false，生产标签持续为 71。
