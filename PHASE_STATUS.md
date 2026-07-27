@@ -239,6 +239,11 @@ No module has been run against a server: each takes an injected runner or spawn
 seam and refuses a real invocation while its `EXECUTION_AUTHORIZED` is false.
 There are **eleven** such gates and all eleven are false.
 
+> **Handing this to another agent?** Start with
+> `docs/HANDOFF_PHASE9B_FOR_NEXT_AGENT.md` — a cold-start briefing covering the
+> frozen science, the authority model, what items 9 and 10 must be, why the real
+> execution is blocked, and the traps this codebase has already surfaced.
+
 ## Next action
 
 **Phase 9B execution is stopped, fail-closed, before any irreversible action.**
