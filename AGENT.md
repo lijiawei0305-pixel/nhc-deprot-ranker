@@ -615,3 +615,28 @@ dig +trace domain
   `docs/PHASE9B_SCIENCE_PILOT_V006_REPORT.md`。唯一后续动作只能是审查本次
   PySCF-only 最后步骤与累计负担，再决定是否值得另行授权延长同一候选预算；不得
   自动延长、重跑、启动第二候选或 batch。
+
+## 33. Phase 9B Parent-Level Benchmark P01 — protocol audit terminal
+
+- P01 是独立、non-production 的 parent-level 方法核验；没有改变 v001–v006、
+  production runner/v9、10° gate、Item 11/12 blocked 状态或 Item 12/12 未开始状态。
+- 静态方法映射已闭合：AIMNet2 0.2.0 权重对应 dispersion-stripped
+  omegaB97M/def2-TZVPP short-range labels加显式 two-body D3(BJ)，ATM=false；PySCF
+  `wb97m-d3bj` 使用 omegaB97M-V LibXC base、关闭 VV10，并调用匹配的显式
+  D3(BJ)/ATM=false 路径。不得只凭方法字符串相似推断这一结论。
+- 固定 AIMNet2 cation geometry 上的 grid-3 PySCF SCF与解析梯度完成且有限：
+  `E=-1409.47384591833 Eh`、13 cycles、346168 grid points。独立 AIMNet D3 为
+  `-0.042863715440034866 Eh`，gradient finite、two-body、ATM=false。
+- 强制 grid-4 audit 在 standard SCF complete cycle 11 后达到 `7190 s` one-shot
+  timeout；该能量未收敛，解析梯度和有限差分未运行，不能用于grid sensitivity比较，
+  final grid没有冻结。后续超时也使完整PySCF D3/reconstruction结构化receipt未发布。
+- P01终态为 `INCONCLUSIVE`，原因是resource/time限制，不是候选、D3、PySCF或
+  parent method的科学失败。没有retry或参数改变，远端audit process已消失。
+- Group A、Group B和assisted-only extension均未启动；没有parent-level geometry、
+  endpoint energy、label、speedup、第二个Pure PySCF候选或extension cohort。
+- 没有使用xTB类rescue，没有production permit、production accepted或label insertion。
+  11个public gates继续false，生产标签继续71。
+- Portable evidence见 `docs/PHASE9B_PARENT_LEVEL_P01_PROTOCOL_AUDIT.json` 和
+  `docs/PHASE9B_PARENT_LEVEL_P01_REPORT.md`。唯一允许的下一动作是另行决定是否为
+  同一fixed geometry的level-4 grid/gradient audit授权更大明确预算或更多CPU；在audit
+  闭合前不得启动Group A、Group B、extension、第二候选或production。

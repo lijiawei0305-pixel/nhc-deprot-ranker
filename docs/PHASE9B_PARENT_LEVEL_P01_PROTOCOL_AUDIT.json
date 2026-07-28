@@ -1,0 +1,90 @@
+{
+  "schema_version": "nhc-phase9b-parent-level-protocol-audit-p01-public-v1",
+  "status": "INCONCLUSIVE",
+  "parent_method_static_identity": "established",
+  "parent_method_runtime_identity": "incomplete_grid4_timeout",
+  "candidate": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+  "fixed_geometry_sha256": "ea796a5c81504184382b965d57c588c74968a09de8942148d3d9cbadf70a7774",
+  "aimnet2": {
+    "package_version": "0.2.0",
+    "weight_filename": "aimnet2_wb97m_d3_0.pt",
+    "weight_bytes": 8836941,
+    "weight_sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28",
+    "short_range_reference": "omegaB97M labels with dispersion removed",
+    "reference_basis": "def2-TZVPP",
+    "external_dispersion": {
+      "type": "two-body D3(BJ)",
+      "atm_three_body": false,
+      "s6": 1.0,
+      "s8": 0.3908,
+      "a1": 0.566,
+      "a2": 3.128
+    },
+    "installed_calculator_source_sha256": "4f50f2f22cbb1698a00a2328a9d8cb0a430b8a8c672ca88aeed195e924f38841",
+    "installed_long_range_source_sha256": "fe31354eede1dc4d8042ff5f0faab8d1b719b03a347e2227e2c7cdd912ac076f",
+    "independent_d3_energy_hartree": -0.042863715440034866,
+    "independent_d3_gradient_finite": true,
+    "independent_d3_atm": false
+  },
+  "pyscf": {
+    "python": "3.11.15",
+    "pyscf": "2.13.1",
+    "pyscf_dispersion": "1.5.0",
+    "geometric": "1.1.1",
+    "libxc": "7.0.0",
+    "functional_alias": "wb97m-d3bj",
+    "parsed_semilocal_functional": "wb97m-v",
+    "parsed_libxc_id": 531,
+    "parsed_libxc_name": "HYB_MGGA_XC_WB97M_V",
+    "vv10_nonlocal_correlation": false,
+    "dispersion_method": "wb97m",
+    "dispersion_version": "d3bj",
+    "dispersion_atm": false,
+    "basis": "def2-TZVPP",
+    "grid3": {
+      "status": "SCF_AND_ANALYTIC_GRADIENT_COMPLETE",
+      "grid_points": 346168,
+      "scf_cycles": 13,
+      "extra_cycle": true,
+      "total_energy_hartree": -1409.47384591833,
+      "gradient_rms_hartree_per_bohr": 0.0016396694610228003,
+      "gradient_max_hartree_per_bohr": 0.006971401,
+      "d3_energy_and_gradient_executed": true,
+      "d3_structured_numeric_receipt_persisted": false
+    },
+    "grid4": {
+      "status": "TIMEOUT_DURING_STANDARD_SCF",
+      "grid_points": 679168,
+      "last_completed_cycle": 11,
+      "last_energy_hartree_not_converged": -1409.47383054465,
+      "analytic_gradient": "not_run",
+      "finite_difference": "not_run"
+    },
+    "audit_wall_seconds": 7190.02,
+    "exit_status": 124,
+    "stderr_bytes": 0,
+    "residual_process": false
+  },
+  "grid_sensitivity": {
+    "status": "unavailable_grid4_not_converged",
+    "selected_final_grid": "not_frozen",
+    "no_post_hoc_threshold": true
+  },
+  "implementation_cross_check": {
+    "orca": "not_run_usr_bin_orca_is_screen_reader_46_1_not_quantum_chemistry",
+    "pyscf_energy_reconstruction": "executed_for_grid3_but_structured_receipt_not_published_before_later_timeout",
+    "pyscf_d3_gradient": "executed_for_grid3_and_finite",
+    "aimnet_pyscf_d3_numeric_comparison": "not_independently_reconstructable_from_persisted_bytes"
+  },
+  "formal_routes": {
+    "group_a_assisted": "not_started",
+    "group_b_pure_pyscf": "not_started",
+    "extension_assisted": "not_started"
+  },
+  "failure_classification": "environment_resource_time_limit",
+  "scientific_failure": false,
+  "retry": false,
+  "production_accepted": false,
+  "production_label_inserted": false,
+  "final_conclusion": "INCONCLUSIVE — 本轮没有获得足够的parent-level证据"
+}

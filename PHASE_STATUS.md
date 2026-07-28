@@ -34,6 +34,8 @@ Updated: 2026-07-28
 | Phase 9B-U5 — metadata-native metrology / v005 | Failed before environment creation; retained | One Q5 SSH failed in remote helper bootstrap before all object captures; no v005 resource was created |
 | Phase 9B science pilot v004 — corrected geometry + PySCF single points | `PASS`, `science_pilot_only`; not production accepted | 2026-07-28; same candidate and retained v002 AIMNet2 XYZ; exact-byte cation/neutral PySCF single points converged; no production label or gate change |
 | Phase 9B science pilot v005 — frozen-initial PySCF single-point control | `PASS`, `science_pilot_only`; not production accepted | 2026-07-28; same candidate's frozen initial geometries compared with retained v004 assisted results; no AIMNet2 rerun, geometry optimization, permit, production label or gate change |
+| Phase 9B science pilot v006 — paired end-to-end timing | `PARTIAL_PASS`, `science_pilot_only`; not production accepted | 2026-07-28; assisted route complete; PySCF-only neutral timed out at 7190 s; speedup is a lower bound only |
+| Phase 9B Parent-Level Benchmark P01 | `INCONCLUSIVE` at mandatory protocol audit | 2026-07-28; static parent-method mapping established; grid-4 SCF timed out at 7190 s; Group A, Group B and extension not started |
 
 ## Current completed work
 
@@ -483,11 +485,33 @@ raw timeout/partial trajectory evidence is retained outside production.
 Details are in `docs/PHASE9B_SCIENCE_PILOT_V006_RESULT.json` and
 `docs/PHASE9B_SCIENCE_PILOT_V006_REPORT.md`.
 
+Parent-Level Benchmark P01 then audited whether the installed AIMNet2 model and
+the proposed PySCF protocol represented the same parent method before starting
+either formal route.  The static mapping closed on dispersion-stripped
+omegaB97M/def2-TZVPP short-range labels plus explicit two-body D3(BJ), with ATM
+disabled; PySCF's `wb97m-d3bj` alias selected the omegaB97M-V LibXC base with
+VV10 disabled and the matching explicit D3(BJ) path.
+
+The fixed-geometry grid-3 PySCF audit converged and produced a finite analytic
+gradient.  The mandatory grid-4 audit reached only complete SCF cycle 11 before
+the one-shot `7190 s` boundary, so no converged grid comparison, final grid,
+finite-difference check or complete structured reconstruction receipt exists.
+P01 is therefore `INCONCLUSIVE`, classified as a resource/time limitation rather
+than scientific failure.  Group A, Group B and the extension cohort were not
+started; no parent-level route energy, label, geometry comparison or speedup was
+created.  See `docs/PHASE9B_PARENT_LEVEL_P01_PROTOCOL_AUDIT.json` and
+`docs/PHASE9B_PARENT_LEVEL_P01_REPORT.md`.
+
+The only permissible next action under a separate authorization is to decide
+whether to continue this same fixed-geometry level-4 grid/gradient audit with a
+larger explicit budget or more CPU resources.  Formal Group A/Group B chemistry,
+an extension cohort, a second candidate and production remain prohibited until
+that audit closes.
+
 No Postflight source was implemented, no v9 leaf moved, and no v10 was created.
 Item 12/12 rehearsal cannot start. Runner remediation was the Item 11 closeout
 next action, but the later science-pilot priority explicitly paused that track.
 The current only permissible next work, under separate authorization, is to
-review the timed-out PySCF-only neutral's last completed step and accumulated
-compute burden, then decide whether a budget extension for this same candidate
-is worthwhile. V006 did not extend or rerun it and did not start a second
-candidate or batch.
+decide whether to continue the same fixed-geometry P01 level-4 grid/gradient
+audit with a larger explicit budget or more CPU resources.  P01 did not start
+Group A, Group B, an extension cohort, a second candidate or production.
