@@ -40,8 +40,8 @@ PARENT_BASIS: Final = "def2-tzvpp"
 GRID_LEVEL: Final = 4
 HARTREE_TO_KCAL: Final = 627.509474
 PROTON_CORRECTION: Final = 6.28
-GROUP_A_LIMIT_SECONDS: Final = 7200
-GROUP_B_LIMIT_SECONDS: Final = 21600
+GROUP_A_LIMIT_SECONDS: Final = 21600
+GROUP_B_LIMIT_SECONDS: Final = 86400
 SCHEMA: Final = "nhc-phase9b-parent-level-paired-benchmark-p01-v1"
 
 
@@ -108,7 +108,12 @@ def timeout_lower_bound(group_a: float, observed_group_b: float) -> dict[str, fl
     }
 
 
-def protocol() -> dict[str, object]:
+def protocol(
+    *,
+    threads: int = 4,
+    cpu_affinity: Sequence[int] = (0, 1, 2, 3),
+    max_memory_mb: int = 12000,
+) -> dict[str, object]:
     return {
         "protocol_id": "phase9b-parent-level-p01",
         "phase": "gas",
@@ -128,9 +133,9 @@ def protocol() -> dict[str, object]:
         "dm0": False,
         "geometry_optimizer": "geomeTRIC",
         "geometry_max_steps": 100,
-        "threads": 4,
-        "cpu_affinity": [0, 1, 2, 3],
-        "max_memory_mb": 12000,
+        "threads": threads,
+        "cpu_affinity": list(cpu_affinity),
+        "max_memory_mb": max_memory_mb,
     }
 
 
@@ -186,7 +191,9 @@ def _request(
     }
 
 
-def build_parent_backend(*, pilot: Any, module: Any) -> Any:
+def build_parent_backend(
+    *, pilot: Any, module: Any, threads: int = 4, memory_mb: int = 12000
+) -> Any:
     """Adapt the audited pilot backend without changing production source."""
 
     base = pilot._SciencePilotPySCFBackend.build(module)
@@ -238,7 +245,7 @@ def build_parent_backend(*, pilot: Any, module: Any) -> Any:
                 basis=PARENT_BASIS,
                 charge=charge,
                 spin=0,
-                max_memory=module.PYSCF_MAX_MEMORY_MB,
+                max_memory=memory_mb,
                 verbose=0,
             )
             if tuple(molecule.atom_symbol(i) for i in range(molecule.natm)) != tuple(
@@ -248,6 +255,8 @@ def build_parent_backend(*, pilot: Any, module: Any) -> Any:
             if int(molecule.nelectron) != electron_count or int(molecule.spin) != 0:
                 raise BenchmarkError("parent backend electron or spin identity drifted")
             mean_field = modules.dft.RKS(molecule)
+            if modules.lib.num_threads(threads) != threads or modules.lib.num_threads() != threads:
+                raise BenchmarkError("parent PySCF thread binding drifted")
             mean_field.xc = PARENT_XC
             mean_field.grids.level = GRID_LEVEL
             mean_field.conv_tol = 1.0e-9
@@ -277,6 +286,8 @@ def build_parent_backend(*, pilot: Any, module: Any) -> Any:
                 "vv10": False,
                 "init_guess": getattr(mean_field, "init_guess", None),
                 "dm0_passed": False,
+                "threads": threads,
+                "max_memory_mb": memory_mb,
             }
             return mean_field, runtime, modules
 
@@ -289,6 +300,55 @@ def _rusage() -> tuple[float, float, int | str]:
     return float(observed.ru_utime), float(observed.ru_stime), maximum_rss
 
 
+def _parse_cpu_list(value: str) -> tuple[int, ...]:
+    result: set[int] = set()
+    for item in value.split(","):
+        if "-" in item:
+            left, right = item.split("-", 1)
+            result.update(range(int(left), int(right) + 1))
+        else:
+            result.add(int(item))
+    if not result:
+        raise BenchmarkError("empty CPU list")
+    return tuple(sorted(result))
+
+
+def _configure_parent_resources(
+    *, module: Any, root: Path, threads: int, cpu_list: tuple[int, ...], memory_mb: int
+) -> None:
+    if threads <= 0 or threads > len(cpu_list):
+        raise BenchmarkError("thread count exceeds CPU affinity")
+    environment = {
+        "BLIS_NUM_THREADS": str(threads),
+        "GOTO_NUM_THREADS": str(threads),
+        "MKL_DYNAMIC": "FALSE",
+        "MKL_NUM_THREADS": str(threads),
+        "NUMEXPR_NUM_THREADS": str(threads),
+        "OMP_DYNAMIC": "FALSE",
+        "OMP_MAX_ACTIVE_LEVELS": "1",
+        "OMP_NESTED": "FALSE",
+        "OMP_NUM_THREADS": str(threads),
+        "OMP_THREAD_LIMIT": str(threads),
+        "OMP_WAIT_POLICY": "PASSIVE",
+        "OMP_PROC_BIND": "close",
+        "OMP_PLACES": "cores",
+        "OPENBLAS_NUM_THREADS": str(threads),
+        "VECLIB_MAXIMUM_THREADS": str(threads),
+    }
+    os.environ.update(environment)
+    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+    os.environ["TMPDIR"] = str(root / "runtime_tmp")
+    module.COMPUTE_THREADS = threads
+    module.PYSCF_MAX_MEMORY_MB = memory_mb
+    module.THREAD_ENVIRONMENT = environment
+    module._CANONICAL_THREAD_ENVIRONMENT = tuple(sorted(environment.items()))
+    linux_os = cast(Any, os)
+    linux_os.sched_setaffinity(0, set(cpu_list))
+    if tuple(sorted(linux_os.sched_getaffinity(0))) != cpu_list:
+        raise BenchmarkError("parent CPU affinity drifted")
+    (root / "runtime_tmp").mkdir(mode=0o700, exist_ok=False)
+
+
 def parent_worker(args: argparse.Namespace) -> int:
     helper = load_module(Path(args.v006_helper).resolve(strict=True), "p01_v006_helper")
     pilot = load_module(Path(args.pilot_helper).resolve(strict=True), "p01_pilot_helper")
@@ -298,7 +358,14 @@ def parent_worker(args: argparse.Namespace) -> int:
     from nhc_deprot_ranker.quantum import two_endpoint
 
     root = Path(args.root).resolve(strict=True)
-    helper._configure_pyscf(two_endpoint, root)
+    cpu_list = _parse_cpu_list(args.cpu_list)
+    _configure_parent_resources(
+        module=two_endpoint,
+        root=root,
+        threads=args.threads,
+        cpu_list=cpu_list,
+        memory_mb=args.max_memory_mb,
+    )
     started = time.monotonic()
     deadline = started + float(args.route_limit_seconds)
     for name in ("input", "handoff"):
@@ -330,7 +397,12 @@ def parent_worker(args: argparse.Namespace) -> int:
         handoffs[endpoint] = handoff
         helper.write_json_new(root / "handoff" / f"{endpoint}.json", handoff)
 
-    backend = build_parent_backend(pilot=pilot, module=two_endpoint)
+    backend = build_parent_backend(
+        pilot=pilot,
+        module=two_endpoint,
+        threads=args.threads,
+        memory_mb=args.max_memory_mb,
+    )
     energies: dict[str, float] = {}
     endpoint_results: dict[str, object] = {}
     for endpoint in ENDPOINTS:
@@ -396,7 +468,11 @@ def parent_worker(args: argparse.Namespace) -> int:
             "multiplicity": 1,
             "spin": 0,
             "electron_count": ELECTRONS,
-            "protocol": protocol(),
+            "protocol": protocol(
+                threads=args.threads,
+                cpu_affinity=cpu_list,
+                max_memory_mb=args.max_memory_mb,
+            ),
             "input": handoffs[endpoint],
             "parent_backend_identity": backend.parent_identity,
             "selected_strategy": strategy,
@@ -446,7 +522,11 @@ def parent_worker(args: argparse.Namespace) -> int:
         "second_pure_pyscf_candidate": False,
         "batch": False,
         "retry": False,
-        "protocol": protocol(),
+        "protocol": protocol(
+            threads=args.threads,
+            cpu_affinity=cpu_list,
+            max_memory_mb=args.max_memory_mb,
+        ),
         "endpoint_results": endpoint_results,
         "deprotonation": deprotonation(energies["cation"], energies["neutral"]),
         "internal_wall_seconds": time.monotonic() - started,
@@ -529,7 +609,7 @@ def assisted_controller(args: argparse.Namespace) -> int:
             [
                 "taskset",
                 "-c",
-                "0-3",
+                args.cpu_list,
                 args.gpupyscf_python,
                 "-I",
                 "-B",
@@ -539,6 +619,12 @@ def assisted_controller(args: argparse.Namespace) -> int:
                 "assisted",
                 "--route-limit-seconds",
                 str(GROUP_A_LIMIT_SECONDS),
+                "--threads",
+                str(args.threads),
+                "--cpu-list",
+                args.cpu_list,
+                "--max-memory-mb",
+                str(args.max_memory_mb),
                 "--root",
                 str(root),
                 "--source-root",
@@ -658,9 +744,15 @@ def parser() -> argparse.ArgumentParser:
     ):
         controller.add_argument(f"--{name}", required=True)
     controller.add_argument("--gpu-index", type=int, required=True)
+    controller.add_argument("--threads", type=int, required=True)
+    controller.add_argument("--cpu-list", required=True)
+    controller.add_argument("--max-memory-mb", type=int, required=True)
     worker = sub.add_parser("parent-worker")
     worker.add_argument("--route", choices=("assisted", "pure_pyscf"), required=True)
     worker.add_argument("--route-limit-seconds", type=float, required=True)
+    worker.add_argument("--threads", type=int, required=True)
+    worker.add_argument("--cpu-list", required=True)
+    worker.add_argument("--max-memory-mb", type=int, required=True)
     for name in (
         "root",
         "source-root",

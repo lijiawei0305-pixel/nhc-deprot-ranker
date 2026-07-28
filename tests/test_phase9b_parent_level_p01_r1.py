@@ -8,6 +8,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/phase9b_parent_level_p01_r1.py"
+PAIRED = ROOT / "scripts/phase9b_parent_level_paired_benchmark.py"
 
 
 def _load():
@@ -125,3 +126,25 @@ def test_no_rescue_batch_or_second_candidate() -> None:
 def test_script_is_outside_production_source() -> None:
     assert SCRIPT.parent.name == "scripts"
     assert not list(ROOT.joinpath("src").glob("**/*p01_r1*"))
+
+
+def test_paired_groups_bind_same_dynamic_resources() -> None:
+    source = PAIRED.read_text()
+    assert "GROUP_A_LIMIT_SECONDS: Final = 21600" in source
+    assert "GROUP_B_LIMIT_SECONDS: Final = 86400" in source
+    assert "cpu_list = _parse_cpu_list(args.cpu_list)" in source
+    assert "threads=args.threads" in source
+    assert "max_memory_mb=args.max_memory_mb" in source
+    assert "args.cpu_list" in source
+
+
+def test_paired_worker_rejects_thread_affinity_mismatch() -> None:
+    spec = importlib.util.spec_from_file_location("p01_paired_r1_test", PAIRED)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    with pytest.raises(module.BenchmarkError, match="thread count exceeds CPU affinity"):
+        module._configure_parent_resources(
+            module=object(), root=ROOT, threads=3, cpu_list=(0, 1), memory_mb=64000
+        )
