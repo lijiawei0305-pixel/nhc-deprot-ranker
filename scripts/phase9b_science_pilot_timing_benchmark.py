@@ -15,11 +15,13 @@ import importlib.util
 import json
 import math
 import os
+import re
 import resource
 import stat
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Final, cast
 
@@ -79,14 +81,17 @@ def read_regular(path: Path, *, maximum: int = 64 << 20) -> bytes:
         after = os.fstat(descriptor)
     finally:
         os.close(descriptor)
-    identity = lambda value: (  # noqa: E731
-        value.st_dev,
-        value.st_ino,
-        value.st_size,
-        value.st_mtime_ns,
-        stat.S_IMODE(value.st_mode),
-        value.st_nlink,
-    )
+
+    def identity(value: os.stat_result) -> tuple[int, int, int, int, int, int]:
+        return (
+            value.st_dev,
+            value.st_ino,
+            value.st_size,
+            value.st_mtime_ns,
+            stat.S_IMODE(value.st_mode),
+            value.st_nlink,
+        )
+
     if identity(before) != identity(after):
         raise BenchmarkError(f"file changed during read: {path.name}")
     return b"".join(chunks)
@@ -172,6 +177,63 @@ def timing_comparison(assisted: float, pyscf_only: float) -> dict[str, float]:
         "speedup_ratio_pyscf_only_over_assisted": pyscf_only / assisted,
         "percent_time_saved": saved / pyscf_only * 100.0,
     }
+
+
+def timeout_lower_bound(assisted: float, observed_pyscf_only: float) -> dict[str, float]:
+    """Return conservative timing bounds when the PySCF-only route times out."""
+    if assisted <= 0 or observed_pyscf_only <= 0:
+        raise BenchmarkError("route wall times must be positive")
+    saved = observed_pyscf_only - assisted
+    return {
+        "assisted_total_seconds": assisted,
+        "pyscf_only_observed_seconds": observed_pyscf_only,
+        "minimum_time_saved_seconds": saved,
+        "minimum_speedup_lower_bound": observed_pyscf_only / assisted,
+        "minimum_percent_time_saved_lower_bound": saved / observed_pyscf_only * 100.0,
+    }
+
+
+def read_external_elapsed(path: Path) -> float:
+    """Read the numeric GNU-time value, including a timeout status prefix."""
+    lines = read_regular(path).decode("ascii", errors="strict").splitlines()
+    for line in reversed(lines):
+        try:
+            value = float(line.strip())
+        except ValueError:
+            continue
+        if not math.isfinite(value) or value <= 0:
+            raise BenchmarkError("external route elapsed time is invalid")
+        return value
+    raise BenchmarkError("external route elapsed time is absent")
+
+
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
+_GEOMETRIC_STEP = re.compile(r"^Step\s+(?P<step>\d+)")
+_GEOMETRIC_GRADIENT = re.compile(r"Grad\s*=\s*(?P<rms>[0-9.eE+-]+)/(?P<maximum>[0-9.eE+-]+)")
+_GEOMETRIC_ENERGY = re.compile(r"(?:Energy|E\s*\(change\))\s*=\s*(?P<energy>[0-9.eE+-]+)")
+
+
+def last_geometric_observation(raw: bytes) -> dict[str, object]:
+    """Extract only the last explicitly printed geomeTRIC observation."""
+    latest: dict[str, object] | None = None
+    for original in raw.decode("utf-8", errors="strict").splitlines():
+        line = _ANSI_ESCAPE.sub("", original)
+        step = _GEOMETRIC_STEP.search(line)
+        gradient = _GEOMETRIC_GRADIENT.search(line)
+        energy = _GEOMETRIC_ENERGY.search(line)
+        if step is None or gradient is None or energy is None:
+            continue
+        latest = {
+            "last_completed_step": int(step.group("step")),
+            "gradient_rms": float(gradient.group("rms")),
+            "gradient_maximum": float(gradient.group("maximum")),
+            "energy_hartree": float(energy.group("energy")),
+            "source": "geomeTRIC structured stderr line",
+            "not_a_wrapper_call_count": True,
+        }
+    if latest is None:
+        raise BenchmarkError("neutral geomeTRIC observation is absent")
+    return latest
 
 
 def system_snapshot(args: argparse.Namespace) -> int:
@@ -301,10 +363,14 @@ def _configure_pyscf(module: Any, root: Path) -> None:
     os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
     os.environ["TMPDIR"] = str(root / "runtime_tmp")
     make_directory(root / "runtime_tmp")
-    if not hasattr(os, "sched_setaffinity") or not hasattr(os, "sched_getaffinity"):
+    raw_setaffinity = getattr(os, "sched_setaffinity", None)
+    raw_getaffinity = getattr(os, "sched_getaffinity", None)
+    if raw_setaffinity is None or raw_getaffinity is None:
         raise BenchmarkError("Linux CPU affinity API is unavailable")
-    os.sched_setaffinity(0, {0, 1, 2, 3})
-    if set(os.sched_getaffinity(0)) != {0, 1, 2, 3}:
+    setaffinity = cast(Callable[[int, set[int]], None], raw_setaffinity)
+    getaffinity = cast(Callable[[int], set[int]], raw_getaffinity)
+    setaffinity(0, {0, 1, 2, 3})
+    if set(getaffinity(0)) != {0, 1, 2, 3}:
         raise BenchmarkError("CPU affinity drifted")
 
 
@@ -686,7 +752,12 @@ def manifest(root: Path) -> dict[str, object]:
     for path in sorted(root.rglob("*")):
         if path.is_symlink():
             raise BenchmarkError("evidence contains symlink")
-        if path.is_dir() or "runtime_tmp" in path.parts or path.name == "manifest.json":
+        if (
+            path.is_dir()
+            or "runtime_tmp" in path.relative_to(root).parts
+            or path == root / "manifest.json"
+            or path == root / "file_manifest.json"
+        ):
             continue
         raw = read_regular(path)
         files.append(
@@ -697,6 +768,261 @@ def manifest(root: Path) -> dict[str, object]:
             }
         )
     return {"schema_version": SCHEMA, "science_pilot_only": True, "files": files}
+
+
+def geometry_comparison(
+    helper: Any,
+    *,
+    assisted_path: Path,
+    pyscf_only_path: Path,
+) -> dict[str, object]:
+    assisted_raw = read_regular(assisted_path)
+    direct_raw = read_regular(pyscf_only_path)
+    assisted = helper.parse_xyz(assisted_raw)
+    direct = helper.parse_xyz(direct_raw)
+    if assisted.elements != direct.elements:
+        raise BenchmarkError("geometry comparison atom order drifted")
+    aligned, _ = helper.kabsch_align(assisted.coordinates, direct.coordinates)
+    displacement = ((aligned - assisted.coordinates) ** 2).sum(axis=1) ** 0.5
+    assisted_bonds = helper.infer_connectivity(assisted.elements, assisted.coordinates)
+    direct_bonds = helper.infer_connectivity(direct.elements, direct.coordinates)
+    assisted_ring = helper.find_five_membered_ring(assisted_bonds)
+    direct_ring = helper.find_five_membered_ring(direct_bonds)
+    if assisted_ring != direct_ring:
+        raise BenchmarkError("geometry comparison ring identity drifted")
+    assisted_plane = helper.best_fit_plane(assisted.coordinates[list(assisted_ring)])
+    direct_plane = helper.best_fit_plane(direct.coordinates[list(direct_ring)])
+    return {
+        "status": "available_for_cation_only",
+        "atom_order_equal": True,
+        "aligned_rmsd_angstrom": float((displacement**2).mean() ** 0.5),
+        "maximum_displacement_angstrom": float(displacement.max()),
+        "maximum_displacement_atom_index": int(displacement.argmax()),
+        "connectivity_equal": assisted_bonds == direct_bonds,
+        "ring_atom_indices": list(assisted_ring),
+        "assisted": {
+            "sha256": sha256_bytes(assisted_raw),
+            "c2_n1_angstrom": helper.distance(assisted.coordinates, 14, 8),
+            "c2_n3_angstrom": helper.distance(assisted.coordinates, 14, 15),
+            "n1_c2_n3_angle_degrees": helper.angle_degrees(assisted.coordinates, 8, 14, 15),
+            "ring_rms_out_of_plane_angstrom": assisted_plane["rms_out_of_plane_angstrom"],
+        },
+        "pyscf_only": {
+            "sha256": sha256_bytes(direct_raw),
+            "c2_n1_angstrom": helper.distance(direct.coordinates, 14, 8),
+            "c2_n3_angstrom": helper.distance(direct.coordinates, 14, 15),
+            "n1_c2_n3_angle_degrees": helper.angle_degrees(direct.coordinates, 8, 14, 15),
+            "ring_rms_out_of_plane_angstrom": direct_plane["rms_out_of_plane_angstrom"],
+        },
+        "neutral": "unavailable_pyscf_only_timeout_before_final_geometry",
+        "no_atom_rematching": True,
+    }
+
+
+def finalize_partial(args: argparse.Namespace) -> int:
+    """Seal the authorized timeout outcome without resuming either route."""
+    root = Path(args.root).resolve(strict=True)
+    assisted_root = root / "assisted"
+    direct_root = root / "pyscf_only"
+    if (direct_root / "result.json").exists():
+        raise BenchmarkError("complete PySCF-only result cannot use partial finalization")
+    assisted = json.loads(read_regular(assisted_root / "result.json"))
+    cation = json.loads(
+        read_regular(direct_root / "optimization" / "cation" / "endpoint_result.json")
+    )
+    if assisted.get("final_outcome") != "PASS" or cation.get("status") != "success":
+        raise BenchmarkError("partial finalization lacks the completed prerequisite evidence")
+    assisted_total = read_external_elapsed(Path(args.assisted_elapsed))
+    observed_direct = read_external_elapsed(Path(args.pyscf_only_elapsed))
+    if args.pyscf_only_exit_status != 124:
+        raise BenchmarkError("partial finalization requires the frozen timeout status 124")
+    if observed_direct < 7190.0 or observed_direct > 7210.0:
+        raise BenchmarkError("observed timeout is outside the frozen process boundary")
+
+    neutral_stderr = read_regular(direct_root / "optimization" / "neutral" / "stderr")
+    neutral_observation = last_geometric_observation(neutral_stderr)
+    trajectory_source = Path(args.neutral_trajectory).resolve(strict=True)
+    trajectory_raw = read_regular(trajectory_source)
+    trajectory_receipt = write_new(
+        direct_root / "optimization" / "neutral" / "partial_trajectory.xyz",
+        trajectory_raw,
+    )
+    trajectory_receipt["source_sha256"] = sha256_bytes(trajectory_raw)
+    trajectory_receipt["source_bytes"] = len(trajectory_raw)
+
+    timing_bound = timeout_lower_bound(assisted_total, observed_direct)
+    aimnet = cast(dict[str, Any], assisted["aimnet2"])
+    assisted_cation = cast(dict[str, Any], assisted["endpoint_results"])["cation"]
+    assisted_cation_compute = float(aimnet["endpoints"]["cation"]["wall_seconds"]) + float(
+        assisted_cation["endpoint_total_wall_seconds"]
+    )
+    cation_timing = {
+        "assisted_geometry_plus_final_single_point_seconds": assisted_cation_compute,
+        "shared_model_load_and_route_overhead_excluded": True,
+        "pyscf_only_geometry_plus_final_single_point_seconds": cation[
+            "endpoint_total_wall_seconds"
+        ],
+        "time_saved_seconds": float(cation["endpoint_total_wall_seconds"])
+        - assisted_cation_compute,
+        "speedup_ratio_pyscf_only_over_assisted": float(cation["endpoint_total_wall_seconds"])
+        / assisted_cation_compute,
+    }
+
+    helper = load_module(Path(args.geometry_review_helper), "v006_geometry_review_helper")
+    geometries = {
+        "cation": geometry_comparison(
+            helper,
+            assisted_path=Path(args.assisted_cation_xyz).resolve(strict=True),
+            pyscf_only_path=Path(args.pyscf_only_cation_xyz).resolve(strict=True),
+        ),
+        "neutral": "unavailable_pyscf_only_timeout_before_final_geometry",
+    }
+
+    ephemeral = []
+    runtime_tmp = direct_root / "runtime_tmp"
+    for path in sorted(runtime_tmp.rglob("*")):
+        if path.is_file():
+            raw = read_regular(path)
+            ephemeral.append(
+                {
+                    "relative_path": path.relative_to(direct_root).as_posix(),
+                    "bytes": len(raw),
+                    "sha256": sha256_bytes(raw),
+                }
+            )
+    partial_direct = {
+        "schema_version": SCHEMA,
+        "science_pilot_only": True,
+        "production_accepted": False,
+        "production_label_inserted": False,
+        "candidate": CANDIDATE,
+        "route": "pyscf_only",
+        "final_outcome": "TIMEOUT",
+        "exit_status": 124,
+        "observed_route_wall_seconds": observed_direct,
+        "deadline_seconds": 7200,
+        "cation": cation,
+        "neutral": {
+            "status": "timeout_during_geometry_optimization",
+            "observation": neutral_observation,
+            "partial_trajectory": trajectory_receipt,
+            "final_geometry": "unavailable",
+            "final_single_point": "not_run",
+        },
+        "deprotonation": None,
+        "retry": False,
+        "third_attempt": False,
+        "ephemeral_checkpoint_created": bool(ephemeral),
+        "ephemeral_checkpoint_expected_to_disappear": True,
+        "ephemeral_runtime_files_present_post_exit": ephemeral,
+    }
+    write_json_new(direct_root / "partial_result.json", partial_direct)
+
+    comparison_root = root / "comparison"
+    if comparison_root.exists():
+        if comparison_root.is_symlink() or not comparison_root.is_dir():
+            raise BenchmarkError("comparison root has an unsafe identity")
+        if any(comparison_root.iterdir()):
+            raise BenchmarkError("comparison root is not empty")
+    else:
+        make_directory(comparison_root)
+    write_json_new(comparison_root / "route_timing.json", timing_bound)
+    write_json_new(
+        comparison_root / "endpoint_timing.json",
+        {
+            "cation": cation_timing,
+            "neutral": "unavailable_pyscf_only_timeout",
+        },
+    )
+    write_json_new(
+        comparison_root / "compute_burden.json",
+        {
+            "assisted": {
+                "aimnet2_calculator_invocations": sum(
+                    int(aimnet["endpoints"][endpoint]["calculator_invocations"])
+                    for endpoint in ENDPOINTS
+                ),
+                "aimnet2_optimizer_steps": sum(
+                    int(aimnet["endpoints"][endpoint]["optimization_steps"])
+                    for endpoint in ENDPOINTS
+                ),
+                "pyscf_geometry_steps": 0,
+                "final_single_point_scf_cycles": sum(
+                    int(assisted["endpoint_results"][endpoint]["scf_cycles"])
+                    for endpoint in ENDPOINTS
+                ),
+                "gpu_allocated_wall_seconds": aimnet["total_wall_seconds"],
+                "gpu_utilization": "unavailable",
+            },
+            "pyscf_only": {
+                "cation_geometry_steps": cation["geometry_optimization"]["geometry_steps"],
+                "cation_d3_energy_calls": cation["geometry_optimization"]["d3_energy_calls"],
+                "cation_d3_gradient_calls": cation["geometry_optimization"]["d3_gradient_calls"],
+                "cation_final_scf_cycles": cation["scf_cycles"],
+                "neutral_last_geometric_step_observed": neutral_observation["last_completed_step"],
+                "neutral_wrapper_counts": "unavailable_process_terminated_before_receipt",
+                "cumulative_scf_cycles": "unavailable_not_exposed_by_frozen_backend",
+            },
+        },
+    )
+    write_json_new(comparison_root / "geometry_comparison.json", geometries)
+    write_json_new(
+        comparison_root / "energy_comparison.json",
+        {
+            "cation": {
+                "assisted_hartree": assisted_cation["energy_hartree"],
+                "pyscf_only_hartree": cation["energy_hartree"],
+                "assisted_minus_pyscf_only_hartree": float(assisted_cation["energy_hartree"])
+                - float(cation["energy_hartree"]),
+            },
+            "neutral": "unavailable_pyscf_only_timeout",
+        },
+    )
+    write_json_new(
+        comparison_root / "label_comparison.json",
+        {
+            "assisted_kcal_per_mol": assisted["deprotonation"]["value_kcal_per_mol"],
+            "pyscf_only_kcal_per_mol": "unavailable_pyscf_only_timeout",
+            "assisted_minus_pyscf_only_kcal_per_mol": "unavailable_pyscf_only_timeout",
+        },
+    )
+    terminal = {
+        "schema_version": SCHEMA,
+        "science_pilot_only": True,
+        "production_accepted": False,
+        "production_label_inserted": False,
+        "candidate": CANDIDATE,
+        "second_candidate": False,
+        "batch": False,
+        "retry": False,
+        "route_order": ["AIMNet2-assisted", "60-second idle", "PySCF-only"],
+        "assisted_final_outcome": "PASS",
+        "pyscf_only_final_outcome": "TIMEOUT",
+        "route_timing_lower_bound": timing_bound,
+        "cation_timing": cation_timing,
+        "assisted_deprotonation_kcal_per_mol": assisted["deprotonation"]["value_kcal_per_mol"],
+        "pyscf_only_deprotonation_kcal_per_mol": "unavailable_pyscf_only_timeout",
+        "label_delta": "unavailable_pyscf_only_timeout",
+        "final_outcome": "PARTIAL_PASS",
+        "final_conclusion": (
+            "PARTIAL_PASS — PySCF-only路线未在冻结预算内完成，"  # noqa: RUF001
+            "已获得AIMNet2-assisted相对时间优势的保守下界"
+        ),
+        "prestart_shell_failure": {
+            "classification": "failed_before_route_start",
+            "chemistry_interpreter_started": False,
+            "not_a_route_retry": True,
+        },
+        "full_manifest_post_exit_stable": True,
+    }
+    write_json_new(root / "result.json", terminal)
+    write_json_new(assisted_root / "manifest.json", manifest(assisted_root))
+    write_json_new(direct_root / "manifest.json", manifest(direct_root))
+    final_manifest = manifest(root)
+    write_json_new(root / "file_manifest.json", final_manifest)
+    if manifest(root) != final_manifest:
+        raise BenchmarkError("post-exit durable manifest is not stable")
+    return 0
 
 
 def finalize(args: argparse.Namespace) -> int:
@@ -795,6 +1121,15 @@ def parser() -> argparse.ArgumentParser:
     complete.add_argument("--root", required=True)
     complete.add_argument("--assisted-elapsed", required=True)
     complete.add_argument("--pyscf-only-elapsed", required=True)
+    partial = sub.add_parser("finalize-partial")
+    partial.add_argument("--root", required=True)
+    partial.add_argument("--assisted-elapsed", required=True)
+    partial.add_argument("--pyscf-only-elapsed", required=True)
+    partial.add_argument("--pyscf-only-exit-status", required=True, type=int)
+    partial.add_argument("--neutral-trajectory", required=True)
+    partial.add_argument("--geometry-review-helper", required=True)
+    partial.add_argument("--assisted-cation-xyz", required=True)
+    partial.add_argument("--pyscf-only-cation-xyz", required=True)
     return result
 
 
@@ -808,6 +1143,8 @@ def main() -> int:
         return run_pyscf_worker(args)
     if args.command == "finalize":
         return finalize(args)
+    if args.command == "finalize-partial":
+        return finalize_partial(args)
     raise BenchmarkError("unknown command")
 
 

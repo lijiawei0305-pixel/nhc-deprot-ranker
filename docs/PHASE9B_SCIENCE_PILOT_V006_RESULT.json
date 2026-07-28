@@ -1,0 +1,291 @@
+{
+  "schema_version": "nhc-phase9b-science-pilot-v006-public-result-v1",
+  "science_pilot_only": true,
+  "production_accepted": false,
+  "production_label_inserted": false,
+  "candidate": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+  "single_candidate": true,
+  "single_run_paired_benchmark": true,
+  "second_candidate": false,
+  "batch": false,
+  "retry": false,
+  "route_order": [
+    "AIMNet2-assisted",
+    "60-second idle",
+    "PySCF-only"
+  ],
+  "endpoint_identity": {
+    "cation": {
+      "charge": 1,
+      "multiplicity": 1,
+      "spin": 0,
+      "atom_count": 26,
+      "electron_count": 160,
+      "frozen_initial_sha256": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286"
+    },
+    "neutral": {
+      "charge": 0,
+      "multiplicity": 1,
+      "spin": 0,
+      "atom_count": 25,
+      "electron_count": 160,
+      "frozen_initial_sha256": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8"
+    }
+  },
+  "atom_map": {
+    "C2": 14,
+    "N1": 8,
+    "N3": 15,
+    "cation_acidic_proton": "H23-C14"
+  },
+  "route_definitions": {
+    "assisted": "frozen initial XYZ -> AIMNet2 LBFGS -> exact-byte handoff -> frozen PySCF final single points -> electronic label",
+    "pyscf_only": "same frozen initial XYZ -> frozen PySCF/geomeTRIC geometry optimization -> frozen PySCF final single points -> electronic label",
+    "speedup_definition": "PySCF-only wall / AIMNet2-assisted wall"
+  },
+  "protocol": {
+    "phase": "gas",
+    "mean_field": "RKS",
+    "functional": "B3LYP",
+    "dispersion": "D3(BJ)",
+    "dispersion_owner_setting": "mf.disp=d3bj",
+    "basis": "def2-SVP",
+    "grid_level": 3,
+    "scf_conv_tol": 1e-09,
+    "standard_max_cycles": 100,
+    "soscf_policy": "once_only_after_typed_scf_nonconvergence",
+    "soscf_max_cycles": 200,
+    "initial_guess": "minao",
+    "no_dm0": true,
+    "geometry_optimizer": "geomeTRIC",
+    "maximum_geometry_steps": 100,
+    "threads": 4,
+    "cpu_affinity": [0, 1, 2, 3],
+    "max_memory_mb": 12000
+  },
+  "environment": {
+    "python": "3.11.15",
+    "pyscf": "2.13.1",
+    "pyscf_dispersion": "1.5.0",
+    "geometric": "1.1.1",
+    "gpupyscf_executable_sha256": "24a07a0a383fd666309acf92ad4e913dd372b3f2d4592d60f1f2f0ca7138fc61",
+    "mlff_executable_sha256": "18e2dc8fc76d5ad05d5a56ca0c02444545e7812b4972be9a896e0d0b8e3f3a0c",
+    "hostname_digest": "3a9a2411ee8ad6b5fdccfc35f1f704fa1f5d1a69c15f6dc8b19796ffc4489ec6",
+    "boot_id_digest": "2e67ba042d07222632821c3af5d77bf7e31d34ad90aba26ff9d7106a071ba4e0",
+    "cpu_model": "Intel(R) Xeon(R) Platinum 8173M CPU @ 2.00GHz",
+    "selected_gpu_model": "Tesla V100-SXM2-32GB",
+    "selected_gpu_uuid_digest": "f86f05a7040b69aef30f65bd6c5de0456d234917223304a4c0f95781af3a21d4",
+    "selected_gpu_memory_used_before_assisted_mb": 5,
+    "selected_gpu_memory_used_before_pyscf_only_mb": 5,
+    "gpu_utilization": "unavailable"
+  },
+  "assisted": {
+    "status": "PASS",
+    "authoritative_end_to_end_wall_seconds": 235.9,
+    "aimnet2": {
+      "model": "aimnet2_wb97m_d3_0.pt",
+      "weight_sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28",
+      "model_load_seconds": 9.97523625427857,
+      "total_wall_seconds": 36.70309229195118,
+      "allocated_gpu_wall_seconds": 36.70309229195118,
+      "base_model_load_count": 1,
+      "endpoint_wrapper_count": 2,
+      "base_model_forward_calls": "unmeasured",
+      "cation": {
+        "wall_seconds": 23.70298559218645,
+        "optimization_steps": 54,
+        "calculator_invocations": 56,
+        "initial_fmax_ev_per_angstrom": 2.6004734797483597,
+        "final_fmax_ev_per_angstrom": 0.04510544565505229,
+        "final_xyz_sha256": "ea796a5c81504184382b965d57c588c74968a09de8942148d3d9cbadf70a7774"
+      },
+      "neutral": {
+        "wall_seconds": 2.891521142795682,
+        "optimization_steps": 64,
+        "calculator_invocations": 66,
+        "initial_fmax_ev_per_angstrom": 5.767974394835604,
+        "final_fmax_ev_per_angstrom": 0.04427546713848526,
+        "final_xyz_sha256": "c40ca77bce9d8c8deefc2357bf2633fb4c0981ce9d4bd23aceb342d40646bc93",
+        "production_10_degree_gate": "failed_unchanged",
+        "science_review": "SAME_BASIN_LIKELY"
+      }
+    },
+    "pyscf": {
+      "total_worker_wall_seconds": 192.05287880823016,
+      "cation": {
+        "scf_converged": true,
+        "scf_cycles": 12,
+        "wall_seconds": 68.01147510996088,
+        "process_user_cpu_seconds": 244.78012700000002,
+        "process_system_cpu_seconds": 9.120857,
+        "energy_hartree": -1407.5280546795138,
+        "d3_contribution_hartree": -0.05010632135688259
+      },
+      "neutral": {
+        "scf_converged": true,
+        "scf_cycles": 12,
+        "wall_seconds": 123.87467707507312,
+        "process_user_cpu_seconds": 460.769176,
+        "process_system_cpu_seconds": 6.916631999999998,
+        "energy_hartree": -1407.1374187623978,
+        "d3_contribution_hartree": -0.04812221393523744
+      }
+    },
+    "route_overhead_seconds": 7.1440288998186645,
+    "deprotonation_electronic_kcal_per_mol": 238.847738874978
+  },
+  "pyscf_only": {
+    "status": "TIMEOUT",
+    "exit_status": 124,
+    "deadline_seconds": 7200,
+    "observed_wall_seconds": 7190.06,
+    "cation": {
+      "geometry_optimization_converged": true,
+      "geometry_steps": 28,
+      "geometry_steps_definition": "observed D3 gradient-hook evaluations",
+      "geometry_wall_seconds": 3777.9750267160125,
+      "d3_energy_calls": 28,
+      "d3_gradient_calls": 28,
+      "cumulative_scf_cycles": "unavailable_not_exposed_by_frozen_backend",
+      "final_single_point_converged": true,
+      "final_single_point_scf_cycles": 12,
+      "final_single_point_wall_seconds": 129.35026876302436,
+      "endpoint_total_wall_seconds": 3907.3320033419877,
+      "process_user_cpu_seconds": 14583.39472,
+      "process_system_cpu_seconds": 284.412286,
+      "energy_hartree": -1407.531777257272,
+      "d3_contribution_hartree": -0.050175655196454186,
+      "final_xyz_sha256": "c9b55ecfb031a1be453917ddf6fc10634b2e839c445360d08eb457190f6277cd"
+    },
+    "neutral": {
+      "geometry_optimization_converged": false,
+      "status": "timeout_during_geometry_optimization",
+      "last_completed_geometric_step": 17,
+      "last_observed_energy_hartree": -1407.1447765721,
+      "last_observed_gradient_rms": 0.0006766,
+      "last_observed_gradient_maximum": 0.001861,
+      "wrapper_call_counts": "unavailable_process_terminated_before_receipt",
+      "final_geometry": "unavailable",
+      "final_single_point": "not_run"
+    },
+    "deprotonation_electronic_kcal_per_mol": "unavailable_pyscf_only_timeout"
+  },
+  "timing_comparison": {
+    "assisted_total_seconds": 235.9,
+    "pyscf_only_observed_seconds": 7190.06,
+    "minimum_time_saved_seconds": 6954.160000000001,
+    "minimum_percent_time_saved_lower_bound": 96.71908162101569,
+    "minimum_speedup_lower_bound": 30.479270877490464,
+    "exact_speedup": "unavailable_pyscf_only_route_incomplete",
+    "cation_geometry_plus_final_single_point": {
+      "assisted_seconds_excluding_shared_model_load_and_route_overhead": 91.71446070214733,
+      "pyscf_only_seconds": 3907.3320033419877,
+      "time_saved_seconds": 3815.6175426398404,
+      "speedup_ratio_pyscf_only_over_assisted": 42.60322716208813
+    },
+    "neutral": "unavailable_pyscf_only_timeout"
+  },
+  "energy_comparison": {
+    "cation": {
+      "assisted_hartree": -1407.5280546795138,
+      "pyscf_only_hartree": -1407.531777257272,
+      "assisted_minus_pyscf_only_hartree": 0.0037225777582534647,
+      "assisted_minus_pyscf_only_kcal_per_mol": 2.335952811005731
+    },
+    "neutral": "unavailable_pyscf_only_timeout",
+    "pyscf_only_label": "unavailable_pyscf_only_timeout",
+    "label_delta": "unavailable_pyscf_only_timeout"
+  },
+  "geometry_comparison": {
+    "cation": {
+      "atom_order_equal": true,
+      "connectivity_equal": true,
+      "aligned_rmsd_angstrom": 0.25087109680465247,
+      "maximum_displacement_angstrom": 0.5821391594315922,
+      "maximum_displacement_atom_index": 18,
+      "c2_n1_assisted_angstrom": 1.33212211156085,
+      "c2_n1_pyscf_only_angstrom": 1.3409837519854908,
+      "c2_n3_assisted_angstrom": 1.3251909025960047,
+      "c2_n3_pyscf_only_angstrom": 1.3347153327467338,
+      "n1_c2_n3_assisted_degrees": 108.92935822454056,
+      "n1_c2_n3_pyscf_only_degrees": 108.96877406966269,
+      "ring_rms_out_of_plane_assisted_angstrom": 0.0047265233394110755,
+      "ring_rms_out_of_plane_pyscf_only_angstrom": 0.0032868041343865214,
+      "no_atom_rematching": true
+    },
+    "neutral": "unavailable_pyscf_only_timeout_before_final_geometry"
+  },
+  "v005_fixed_single_point_diagnostic": {
+    "raw_geometry_pyscf_single_point_total_seconds": 187.71701,
+    "aimnet2_optimization_seconds": 26.588,
+    "assisted_pyscf_single_point_total_seconds": 199.996248,
+    "assisted_end_to_end_seconds": 226.584248,
+    "assisted_slower_by_seconds": 38.867238,
+    "assisted_over_raw_single_point_ratio": 1.207052,
+    "not_a_geometry_optimization_speedup_baseline": true
+  },
+  "evidence": {
+    "benchmark_config_sha256": "1290d6cc5a4d1b454606efac4dea738b73cc6a3b7d5ff273c9bb30147e843208",
+    "before_assisted_snapshot_sha256": "ffd90a9a99eb23252cd5c5495a5accfb6920f4e3e8cc45f48814e3f9c998bf38",
+    "before_pyscf_only_snapshot_sha256": "a3a7ef83d203ea6842f6e68e96ce7f150c27f31abf5b26bc8985c68959900749",
+    "timing_definition_sha256": "394d68e47e413690c78373680368b27dac6249cdf49c22039625b43cf4a82085",
+    "assisted_result_sha256": "f192ea3c57e6a963f7ce362e2898b1f8ba347bf4f5222ac04fb601964e5f052f",
+    "pyscf_only_partial_result_sha256": "623b47cb8cff76a2d382ca94bc781163a5dc48b03c101f91530a863dfe2b6ee1",
+    "pyscf_only_cation_result_sha256": "1e9c94e2e4ed834ccb26d012774d744c6d211c4c16efc382cd83d25bfdfe0b06",
+    "neutral_stderr_sha256": "4109a65fc370c433e3d3c290201bb51a0461893ec77bde63b4fbb098fb36ed23",
+    "neutral_partial_trajectory_sha256": "d3198840edb4c4aa69178608730f49a9834bf1b37174dd74de1917bb3620dc32",
+    "route_timing_sha256": "81d888c2ef5d1b207e099a1ed368cb744980efd4324f583a8f028d5a7cbb762f",
+    "geometry_comparison_sha256": "c6601f4305277f51b16fd1746a64565e51fba46cae880ac3c69bed9deceac6f6",
+    "private_terminal_sha256": "4426e111c7e8a450390f5b8525dcb20088770045b150cf6ee5dc05e2423198bb",
+    "private_final_manifest_sha256": "1178c12377cb5516f62a43286313508a939d6535eee0e473244aaeae35e3258a",
+    "assisted_manifest_sha256": "50abc4e0c02bd8d558baf2b25bec79d400bf4f0d756a210bbdabe0faba40ddef",
+    "pyscf_only_manifest_sha256": "831cc37a8c21e198f496eb748574a847d6bdf4b02d32b1bec73b51336a302bf8",
+    "full_manifest_post_exit_stable": true,
+    "ephemeral_checkpoint_created": true,
+    "ephemeral_files_excluded_from_durable_manifest": true,
+    "evidence_grade": "non-production"
+  },
+  "source": {
+    "benchmark_execution_source_sha256": "06294c8bca0381e48526d39e635a93183443c0f86ff8a5d29e86e99819055a58",
+    "partial_finalizer_source_sha256": "231ab710502b9e1103d96ba29db901301a7c5b0a838399876471da5c860ffedd",
+    "publication_source_sha256": "a8c259eab6c2593b7d4585a55c54e7d33fde08fd528dc7b1ffc6ac28493dad54",
+    "aimnet2_pilot_sha256": "2e1ebd0621c904aa1c58aeb90ccf5b56d562043b31ace0e0d6a4a4ce0e13f70d",
+    "v004_single_point_engine_sha256": "40029ba06bdf7109ab96ea1172c39af1445d1f7ca655dddefabe707bc1c69a73",
+    "geometry_review_sha256": "659021fbd5981906ca563810f62cb096347bd94c9facb5f7f55c129868c4d97f",
+    "two_endpoint_backend_sha256": "44e16576ae37e52ff7b0d399a1b11d3932a9baa19b6a4aae8c603c8e29f9d977",
+    "test_sha256": "b50af747b12e0b30b68301acbc4d41a08b5e08439a75f34455ef297a8b692069"
+  },
+  "historical_results": {
+    "v001": {
+      "terminal": "INCONCLUSIVE",
+      "private_result_sha256": "769e64a20f5035866e2b17895746440c79c06d8b1758a46dff8540cbe5281915",
+      "unchanged": true
+    },
+    "v002": {
+      "terminal": "FAIL under frozen 10-degree gate",
+      "private_result_sha256": "b1362a3b1df7ef7ba276bac0c91fd8002fd27123eca37d84a82b937edacd7071",
+      "unchanged": true
+    },
+    "v004": {
+      "terminal": "PASS, science_pilot_only",
+      "private_result_sha256": "dbb0a66fa937e97a19c947d69d409db9323702ba58666865482db80a76c0621c",
+      "unchanged": true
+    },
+    "v005": {
+      "terminal": "PASS, science_pilot_only",
+      "unchanged": true
+    }
+  },
+  "production_runner_unchanged": true,
+  "runner_v9_unchanged": true,
+  "production_10_degree_gate_unchanged": true,
+  "production_permit_generated": false,
+  "production_permit_consumed": false,
+  "public_execution_gates_false": 11,
+  "production_label_count": 71,
+  "new_production_labels": 0,
+  "scientific_scope": "frozen-protocol gas-phase electronic energies; not Gibbs free energy, pKa, solution acidity, experimental deprotonation enthalpy, or production acceptance",
+  "final_outcome": "PARTIAL_PASS",
+  "final_conclusion": "PARTIAL_PASS — PySCF-only路线未在冻结预算内完成，已获得AIMNet2-assisted相对时间优势的保守下界",
+  "next_step": "只审查PySCF-only路线最后完成步骤和累计计算负担，决定是否值得单独延长同一候选的PySCF-only预算；不得自动延长或重跑。"
+}

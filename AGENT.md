@@ -583,3 +583,35 @@ dig +trace domain
   第二候选做同样的小规模 science-pilot 复现；必须另行授权后才能执行。
 - Portable evidence 已落盘于 `docs/PHASE9B_SCIENCE_PILOT_V005_RESULT.json`，
   完整报告见 `docs/PHASE9B_SCIENCE_PILOT_V005_REPORT.md`。
+
+## 32. Phase 9B science pilot v006 — paired end-to-end timing benchmark
+
+- v006 仍是单候选、单次、`science_pilot_only` benchmark。Route A 从冻结 initial
+  XYZ 依次执行 AIMNet2 LBFGS 与两端 PySCF final single point；Route B 从相同 bytes
+  执行 PySCF/geomeTRIC geometry optimization 与 final single point。两条路线未并发，
+  中间使用预注册 60 秒 idle；没有 retry、第二候选或 batch。
+- Route A 完整结束，权威 end-to-end wall 为 `235.90 s`；AIMNet2 总 wall
+  `36.703092 s`，PySCF worker wall `192.052879 s`，pilot-only 脱质子电子能仍为
+  `238.847738874978 kcal/mol`。
+- Route B cation 完成 28 次 observed D3 gradient-hook evaluations，geometry wall
+  `3777.975027 s`，final single point `129.350269 s`、12 SCF cycles，最终能量
+  `-1407.531777257272 Eh`。Neutral 在 geomeTRIC Step 17 触及预注册 `7190 s`
+  hard timeout；未产生 neutral final geometry、final single point 或 label，也未延长或重跑。
+- 因此终态为 `PARTIAL_PASS`，不是完整精确 speedup：PySCF-only 完成时间
+  `>7190.06 s`，相对 Route A 的保守 speedup 下界为 `>30.479271x`，最少节省
+  `6954.16 s`、`>96.719082%`。Cation 完整 compute 比较为
+  `3907.332003 / 91.714461 = 42.603227x`，该 endpoint 数字不包含 Route A shared
+  model-load/route overhead，主要 route bound 包含全部端到端开销。
+- PySCF-only neutral 未完成，因此不存在其最终能量、完整路线 label、label delta 或
+  neutral geometry comparison；任何缺失计数均写为 `unavailable`，没有从 wall time
+  估算 CPU 或 GPU utilization。
+- Runtime checkpoint/partial trajectory 与 durable evidence 已分层；退出后 final
+  manifest 独立重算稳定，`full_manifest_post_exit_stable=true`，evidence grade 仍为
+  non-production。
+- Production runner/v9、10° gate、Item 11 blocked 状态和 Item 12 未开始状态不变；
+  没有 production permit 或 label insertion。11 个 public execution gates 持续 false，
+  生产标签仍为 71。
+- Portable evidence 位于 `docs/PHASE9B_SCIENCE_PILOT_V006_RESULT.json`，完整报告见
+  `docs/PHASE9B_SCIENCE_PILOT_V006_REPORT.md`。唯一后续动作只能是审查本次
+  PySCF-only 最后步骤与累计负担，再决定是否值得另行授权延长同一候选预算；不得
+  自动延长、重跑、启动第二候选或 batch。

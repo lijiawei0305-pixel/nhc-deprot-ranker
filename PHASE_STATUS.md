@@ -464,9 +464,30 @@ The portable result and full comparison are in
 `docs/PHASE9B_SCIENCE_PILOT_V005_RESULT.json` and
 `docs/PHASE9B_SCIENCE_PILOT_V005_REPORT.md`.
 
+Science pilot v006 performed the separately authorized one-candidate,
+single-run end-to-end timing comparison. The complete AIMNet2-assisted route
+took `235.90 s`. The PySCF-only cation completed its frozen geomeTRIC
+optimization and final single point in `3907.332003 s`, but the neutral was
+still in geometry optimization at Step 17 when the one-shot route reached its
+`7190 s` hard deadline. The process exited with timeout status 124; it was not
+extended, restarted, or retried, and it produced no neutral final geometry,
+final single point, complete PySCF-only label, or label delta.
+
+V006 is therefore `PARTIAL_PASS`: the PySCF-only completion time is greater
+than the observed `7190.06 s`, giving a conservative AIMNet2-assisted speedup
+lower bound greater than `30.479271x`, minimum saved time `6954.16 s`, and
+minimum percent saving greater than `96.719082%` for this single candidate and
+resource configuration. These are lower bounds, not an exact completed-route
+ratio or a population claim. The post-exit durable manifest is stable and the
+raw timeout/partial trajectory evidence is retained outside production.
+Details are in `docs/PHASE9B_SCIENCE_PILOT_V006_RESULT.json` and
+`docs/PHASE9B_SCIENCE_PILOT_V006_REPORT.md`.
+
 No Postflight source was implemented, no v9 leaf moved, and no v10 was created.
 Item 12/12 rehearsal cannot start. Runner remediation was the Item 11 closeout
 next action, but the later science-pilot priority explicitly paused that track.
-The current only permissible next work, under separate authorization, is the
-decision whether this same small science-pilot comparison is worth reproducing
-for a second candidate; v005 did not start a second candidate or batch.
+The current only permissible next work, under separate authorization, is to
+review the timed-out PySCF-only neutral's last completed step and accumulated
+compute burden, then decide whether a budget extension for this same candidate
+is worthwhile. V006 did not extend or rerun it and did not start a second
+candidate or batch.
