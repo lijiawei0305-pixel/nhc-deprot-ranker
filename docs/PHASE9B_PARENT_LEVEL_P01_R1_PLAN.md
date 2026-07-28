@@ -24,3 +24,14 @@ Only after `protocol_lock.json` exists may Group A and Group B run sequentially
 on the same CPU list, thread count, memory and parent protocol.  There is no
 retry, rescue method, second candidate, batch, production permit, gate change or
 production label insertion.
+
+## Terminal forward link
+
+The resource and grid stages completed: 27 physical threads on CPU list
+`0,2-27` were selected, grid 4 converged with finite energy/gradient/D3, and
+`protocol_lock.json` froze grid 4. The one Group A attempt then stopped before
+the first AIMNet2 trajectory frame because NVRTC rejected the length of its
+private temporary directory. The no-retry rule prevented a short-path rerun,
+and Group B did not start. The final P01-R1 state is `INCONCLUSIVE`; see
+`PHASE9B_PARENT_LEVEL_P01_R1_RESULT.json` and
+`PHASE9B_PARENT_LEVEL_P01_R1_REPORT.md`.

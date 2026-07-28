@@ -640,3 +640,27 @@ dig +trace domain
   `docs/PHASE9B_PARENT_LEVEL_P01_REPORT.md`。唯一允许的下一动作是另行决定是否为
   同一fixed geometry的level-4 grid/gradient audit授权更大明确预算或更多CPU；在audit
   闭合前不得启动Group A、Group B、extension、第二候选或production。
+
+## 34. Phase 9B Parent-Level P01-R1 — grid pass, paired bootstrap terminal
+
+- 服务器发现为112 logical CPU / 56 physical core，无scheduler allocation、cgroup
+  CPU quota或独占节点证明。共享节点策略只使用socket 0并避开观察到的活动core，最终
+  `ALLOWED_CPU_LIST=0,2-27`、27 physical threads、64,000 MB；54-thread SMT校准
+  慢5.28%，因此不使用SMT。
+- fixed cation geometry的grid-3重新收敛并持久化density；grid-4从该exact `dm0`
+  独立达到`conv_tol=1e-9`，结果为`E=-1409.4738305457154 Eh`、2 cycles、
+  679168 grid points、finite analytic gradient、D3=`-0.04286372842069901 Eh`。
+  grid-4已冻结，protocol identity为
+  `227c22a527e567bc4de873ab743fe9f493779eccbb1a698d2913c87695ebf87a`。
+- 唯一Group A attempt在第一个AIMNet2 cation trajectory frame前停止：Warp/NVRTC
+  拒绝过长的private `TMPDIR`绝对路径。模型加载一次、未进入PySCF；这是环境/路径
+  阻塞，不是模型、候选、内存、grid或parent method科学失败。
+- 严格遵守no-retry；没有缩短路径重跑，固定60秒idle和Group B均未启动。因此没有
+  paired energies、labels、time comparison、speedup或lower bound。
+- P01-R1终态为`INCONCLUSIVE`。没有xTB/GFN/低等级救援、未授权CPU、第二候选、
+  batch、production permit/accepted/label insertion；11个public gates仍false，
+  生产标签仍71。
+- Portable evidence见`docs/PHASE9B_PARENT_LEVEL_P01_R1_RESULT.json`和
+  `docs/PHASE9B_PARENT_LEVEL_P01_R1_REPORT.md`。唯一后续动作是另行修复NVRTC
+  临时路径长度阻塞并决定是否授权一个新的Group A attempt；不得自动retry或启动
+  Group B。

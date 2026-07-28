@@ -1,6 +1,6 @@
 # Phase Status
 
-Updated: 2026-07-28
+Updated: 2026-07-29
 
 | Phase | Status | Gate |
 | --- | --- | --- |
@@ -36,6 +36,7 @@ Updated: 2026-07-28
 | Phase 9B science pilot v005 — frozen-initial PySCF single-point control | `PASS`, `science_pilot_only`; not production accepted | 2026-07-28; same candidate's frozen initial geometries compared with retained v004 assisted results; no AIMNet2 rerun, geometry optimization, permit, production label or gate change |
 | Phase 9B science pilot v006 — paired end-to-end timing | `PARTIAL_PASS`, `science_pilot_only`; not production accepted | 2026-07-28; assisted route complete; PySCF-only neutral timed out at 7190 s; speedup is a lower bound only |
 | Phase 9B Parent-Level Benchmark P01 | `INCONCLUSIVE` at mandatory protocol audit | 2026-07-28; static parent-method mapping established; grid-4 SCF timed out at 7190 s; Group A, Group B and extension not started |
+| Phase 9B Parent-Level P01-R1 | `INCONCLUSIVE`; grid audit passed, paired benchmark stopped in Group A environment bootstrap | 2026-07-29; grid 4 frozen on 27 safe physical cores; NVRTC rejected an overlong private temp path before the first AIMNet2 frame; no retry or Group B |
 
 ## Current completed work
 
@@ -502,16 +503,31 @@ started; no parent-level route energy, label, geometry comparison or speedup was
 created.  See `docs/PHASE9B_PARENT_LEVEL_P01_PROTOCOL_AUDIT.json` and
 `docs/PHASE9B_PARENT_LEVEL_P01_REPORT.md`.
 
-The only permissible next action under a separate authorization is to decide
-whether to continue this same fixed-geometry level-4 grid/gradient audit with a
-larger explicit budget or more CPU resources.  Formal Group A/Group B chemistry,
-an extension cohort, a second candidate and production remain prohibited until
-that audit closes.
+P01-R1 then discovered 112 logical CPUs / 56 physical cores on a shared node,
+selected 27 safe socket-0 physical cores (`0,2-27`) after the 54-thread SMT
+variant was 5.28% slower, and set PySCF memory to 64,000 MB. The full grid-4
+audit converged in two cycles from the bound grid-3 density at
+`-1409.4738305457154 Eh`, with finite analytic gradient and D3. Grid 4 was
+frozen under protocol identity
+`227c22a527e567bc4de873ab743fe9f493779eccbb1a698d2913c87695ebf87a`.
+
+The only authorized Group A attempt then stopped before its first AIMNet2
+trajectory frame because NVRTC rejected the overlong private `TMPDIR` path.
+This was an environment/path failure, not a model, molecule, memory, grid or
+parent-method failure. No parent-level Group A PySCF calculation started; the
+no-retry rule was honored and Group B did not start. P01-R1 is therefore
+`INCONCLUSIVE`; see `docs/PHASE9B_PARENT_LEVEL_P01_R1_RESULT.json` and
+`docs/PHASE9B_PARENT_LEVEL_P01_R1_REPORT.md`.
+
+The only permissible next action under a separate authorization is to fix the
+single NVRTC temporary-path-length blocker and decide whether to authorize one
+new Group A attempt. Grid 4 is already frozen; P01-R1 did not retry, start Group
+B, an extension cohort, a second candidate or production.
 
 No Postflight source was implemented, no v9 leaf moved, and no v10 was created.
 Item 12/12 rehearsal cannot start. Runner remediation was the Item 11 closeout
 next action, but the later science-pilot priority explicitly paused that track.
 The current only permissible next work, under separate authorization, is to
-decide whether to continue the same fixed-geometry P01 level-4 grid/gradient
-audit with a larger explicit budget or more CPU resources.  P01 did not start
-Group A, Group B, an extension cohort, a second candidate or production.
+fix the single NVRTC temporary-path-length blocker and decide whether to allow
+one new Group A attempt. P01-R1 did not retry or start Group B, an extension
+cohort, a second candidate or production.
