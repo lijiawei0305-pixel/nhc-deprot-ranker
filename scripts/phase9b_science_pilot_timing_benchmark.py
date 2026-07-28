@@ -17,6 +17,7 @@ import math
 import os
 import resource
 import stat
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -171,6 +172,95 @@ def timing_comparison(assisted: float, pyscf_only: float) -> dict[str, float]:
         "speedup_ratio_pyscf_only_over_assisted": pyscf_only / assisted,
         "percent_time_saved": saved / pyscf_only * 100.0,
     }
+
+
+def system_snapshot(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve(strict=True)
+    if args.label not in {"before_assisted", "before_pyscf_only"}:
+        raise BenchmarkError("snapshot label is not pre-registered")
+    hostname_digest = sha256_bytes(os.uname().nodename.encode())
+    cpu_model = "unavailable"
+    for line in Path("/proc/cpuinfo").read_text().splitlines():
+        if line.startswith("model name"):
+            cpu_model = line.split(":", 1)[1].strip()
+            break
+    memory = "unavailable"
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        if line.startswith("MemAvailable:"):
+            memory = line.split(":", 1)[1].strip()
+            break
+    gpu = subprocess.run(
+        [
+            "nvidia-smi",
+            "--query-gpu=index,uuid,name,memory.used,memory.total",
+            "--format=csv,noheader,nounits",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    ).stdout.splitlines()
+    process_summary = subprocess.run(
+        ["ps", "-eo", "comm="],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    ).stdout.splitlines()
+    executable_identities = {}
+    for name, value in {
+        "mlff": args.mlff_python,
+        "gpupyscf": args.gpupyscf_python,
+    }.items():
+        raw = read_regular(Path(value).resolve(strict=True))
+        executable_identities[name] = {"bytes": len(raw), "sha256": sha256_bytes(raw)}
+    snapshot = {
+        "schema_version": SCHEMA,
+        "science_pilot_only": True,
+        "label": args.label,
+        "hostname_digest": hostname_digest,
+        "boot_id_digest": sha256_bytes(Path("/proc/sys/kernel/random/boot_id").read_bytes()),
+        "cpu_model": cpu_model,
+        "available_memory": memory,
+        "load_average": list(os.getloadavg()),
+        "active_process_name_counts": {
+            name: process_summary.count(name) for name in sorted(set(process_summary))
+        },
+        "gpu_observations_private_runtime": gpu,
+        "selected_gpu_index": args.gpu_index,
+        "selected_gpu_uuid": args.gpu_uuid,
+        "interpreter_identities": executable_identities,
+        "monotonic_ns": time.monotonic_ns(),
+    }
+    write_json_new(root / f"system_snapshot_{args.label}.json", snapshot)
+    if args.label == "before_assisted":
+        write_json_new(
+            root / "benchmark_config.json",
+            {
+                "schema_version": SCHEMA,
+                "science_pilot_only": True,
+                "candidate": CANDIDATE,
+                "route_order": ["AIMNet2-assisted", "60-second idle", "PySCF-only"],
+                "route_attempts": 1,
+                "route_deadline_seconds": 7200,
+                "idle_seconds": 60,
+                "second_candidate": False,
+                "batch": False,
+                "retry": False,
+            },
+        )
+        write_json_new(
+            root / "timing_definition.json",
+            {
+                "schema_version": SCHEMA,
+                "clock": "CLOCK_MONOTONIC",
+                "authoritative_route_wall": "external GNU time around each complete route",
+                "speedup_definition": "PySCF-only time / AIMNet2-assisted time",
+                "idle_excluded": True,
+                "startup_handoff_parsing_and_evidence_included": True,
+            },
+        )
+    return 0
 
 
 def _rusage() -> tuple[float, float, int | str]:
@@ -558,6 +648,13 @@ def finalize(args: argparse.Namespace) -> int:
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     sub = result.add_subparsers(dest="command", required=True)
+    snapshot = sub.add_parser("snapshot")
+    snapshot.add_argument("--root", required=True)
+    snapshot.add_argument("--label", required=True)
+    snapshot.add_argument("--mlff-python", required=True)
+    snapshot.add_argument("--gpupyscf-python", required=True)
+    snapshot.add_argument("--gpu-index", required=True, type=int)
+    snapshot.add_argument("--gpu-uuid", required=True)
     worker = sub.add_parser("pyscf-worker")
     worker.add_argument("--route", choices=("assisted", "pyscf_only"), required=True)
     worker.add_argument("--root", required=True)
@@ -577,6 +674,8 @@ def parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = parser().parse_args()
+    if args.command == "snapshot":
+        return system_snapshot(args)
     if args.command == "pyscf-worker":
         return run_pyscf_worker(args)
     if args.command == "finalize":
