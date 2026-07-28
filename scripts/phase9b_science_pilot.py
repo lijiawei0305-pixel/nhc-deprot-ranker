@@ -747,6 +747,8 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
             "model_load_count": int(getattr(base_model, "load_count", 0)),
             "endpoint_wrapper_count": wrapper_count,
             "base_model_forward_calls": "unmeasured",
+            "model_load_seconds": model_seconds,
+            "total_wall_seconds": time.monotonic() - a1_started,
         }
         _write_json_new(root / "aimnet2" / "summary.json", failure_summary)
         _write_json_new(
