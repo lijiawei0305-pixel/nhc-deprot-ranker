@@ -135,6 +135,10 @@ class ProtocolMismatchError(DirectComparisonError):
     """Direct and assisted single-point protocol projections differ."""
 
 
+class ScientificResultError(DirectComparisonError):
+    """The frozen PySCF protocol produced an invalid scientific result."""
+
+
 def sha256_bytes(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
@@ -311,6 +315,12 @@ def validate_endpoint_start(*, endpoint: str, completed: tuple[str, ...]) -> Non
     expected = ENDPOINTS[len(completed)] if len(completed) < len(ENDPOINTS) else None
     if endpoint != expected or completed != ENDPOINTS[: len(completed)]:
         raise DirectComparisonError("direct endpoints are not executing exactly once in order")
+
+
+def classify_runtime_failure(*, v004: Any, two_endpoint: Any, exc: BaseException) -> str:
+    if isinstance(exc, (DirectHandoffError, ProtocolMismatchError, ScientificResultError)):
+        return "FAIL"
+    return cast(str, v004._failure_outcome(two_endpoint, exc))
 
 
 def validate_and_copy_input(
@@ -985,7 +995,7 @@ def execute(args: argparse.Namespace) -> int:
             if interpreter_after != interpreter_before:
                 raise DirectComparisonError(f"{endpoint} interpreter identity drifted")
             if result.converged is not True or not math.isfinite(result.energy_hartree):
-                raise DirectComparisonError(f"{endpoint} did not produce a finite converged energy")
+                raise ScientificResultError(f"{endpoint} did not produce a finite converged energy")
             payload = {
                 "schema_version": "nhc-phase9b-science-pilot-direct-endpoint-result-v005",
                 "shared_science_result_schema": "nhc-phase9b-science-pilot-endpoint-result-v004",
@@ -1048,7 +1058,7 @@ def execute(args: argparse.Namespace) -> int:
             energies[endpoint] = result.energy_hartree
     except BaseException as exc:
         traceback.print_exc()
-        outcome = v004._failure_outcome(two_endpoint, exc)
+        outcome = classify_runtime_failure(v004=v004, two_endpoint=two_endpoint, exc=exc)
         endpoint_root = root / "pyscf" / active_endpoint
         failure_payload = {
             "schema_version": "nhc-phase9b-science-pilot-direct-endpoint-result-v005",
@@ -1309,7 +1319,14 @@ def main() -> int:
                             "comparison": None,
                             "final_outcome": (
                                 "FAIL"
-                                if isinstance(exc, (DirectHandoffError, ProtocolMismatchError))
+                                if isinstance(
+                                    exc,
+                                    (
+                                        DirectHandoffError,
+                                        ProtocolMismatchError,
+                                        ScientificResultError,
+                                    ),
+                                )
                                 else "INCONCLUSIVE"
                             ),
                             "failure": {

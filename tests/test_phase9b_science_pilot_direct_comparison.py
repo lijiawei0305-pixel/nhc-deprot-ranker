@@ -138,6 +138,35 @@ def test_cation_must_complete_before_neutral_and_label_requires_both() -> None:
         direct.validate_endpoint_start(endpoint="cation", completed=("cation",))
 
 
+def test_handoff_and_protocol_failures_are_fail_not_environment_inconclusive() -> None:
+    direct = _load_direct()
+    fallback = SimpleNamespace(_failure_outcome=lambda _module, _exc: "INCONCLUSIVE")
+    assert (
+        direct.classify_runtime_failure(
+            v004=fallback,
+            two_endpoint=object(),
+            exc=direct.DirectHandoffError("changed bytes"),
+        )
+        == "FAIL"
+    )
+    assert (
+        direct.classify_runtime_failure(
+            v004=fallback,
+            two_endpoint=object(),
+            exc=direct.ProtocolMismatchError("changed protocol"),
+        )
+        == "FAIL"
+    )
+    assert (
+        direct.classify_runtime_failure(
+            v004=fallback,
+            two_endpoint=object(),
+            exc=RuntimeError("environment unavailable"),
+        )
+        == "INCONCLUSIVE"
+    )
+
+
 @pytest.mark.parametrize(
     ("endpoint", "elements"),
     [
