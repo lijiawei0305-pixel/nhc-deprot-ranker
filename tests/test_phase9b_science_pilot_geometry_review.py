@@ -45,6 +45,67 @@ def test_angle_and_kabsch_preserve_frozen_order() -> None:
     assert review.angle_degrees(reference, 0, 1, 2) == pytest.approx(90.0)
 
 
+@pytest.mark.parametrize(
+    ("signed_degrees", "expected_deviation"),
+    [
+        (0.0, 0.0),
+        (0.1, 0.1),
+        (-0.1, 0.1),
+        (179.9, 0.1),
+        (-179.9, 0.1),
+        (180.0, 0.0),
+        (-180.0, 0.0),
+        (30.0, 30.0),
+        (-30.0, 30.0),
+        (31.0, 31.0),
+        (-31.0, 31.0),
+        (90.0, 90.0),
+        (-90.0, 90.0),
+    ],
+)
+def test_signed_dihedral_planarity_convention(
+    signed_degrees: float, expected_deviation: float
+) -> None:
+    review = _load_review()
+
+    observed = review.planarity_deviation_degrees(signed_degrees)
+
+    assert observed == pytest.approx(expected_deviation)
+    assert review.planarity_deviation_degrees(-signed_degrees) == pytest.approx(observed)
+
+
+def test_planar_and_puckered_ring_torsions_agree_with_best_fit_plane() -> None:
+    review = _load_review()
+    ring = (8, 14, 15, 2, 3)
+    elements = tuple("N" if index in (8, 15) else "C" for index in range(16))
+    planar = np.zeros((16, 3), dtype=float)
+    polygon = np.asarray(
+        [
+            [math.cos(2 * math.pi * index / 5), math.sin(2 * math.pi * index / 5), 0.0]
+            for index in range(5)
+        ]
+    )
+    for atom, point in zip(ring, polygon, strict=True):
+        planar[atom] = point
+    puckered = planar.copy()
+    puckered[14, 2] = 1.5
+
+    planar_payload = review.ring_payload(elements, planar, ring)
+    puckered_payload = review.ring_payload(elements, puckered, ring)
+
+    assert planar_payload["maximum_planarity_deviation_deg"] < 1.0e-12
+    assert planar_payload["plane"]["max_out_of_plane_angstrom"] < 1.0e-12
+    assert puckered_payload["maximum_planarity_deviation_deg"] > 30.0
+    assert puckered_payload["plane"]["max_out_of_plane_angstrom"] > 0.1
+    for item in planar_payload["dihedrals"]:
+        assert set(item) == {
+            "indices",
+            "raw_signed_dihedral_deg",
+            "normalized_signed_dihedral_deg",
+            "planarity_deviation_deg",
+        }
+
+
 def test_connectivity_and_mapped_five_membered_ring() -> None:
     review = _load_review()
     ring = frozenset({(8, 14), (14, 15), (2, 15), (2, 3), (3, 8)})
@@ -155,3 +216,11 @@ def test_public_review_fails_closed_before_stage_b() -> None:
     assert payload["stage_b"]["pyscf"] == "not_run"
     assert payload["production_10_degree_gate"]["modified"] is False
     assert payload["v002_terminal_unchanged"] is True
+
+
+def test_v004_review_uses_a_new_output_identity() -> None:
+    review = _load_review()
+
+    assert review.REVIEW_ATTEMPT == "science_pilot_lbn_v002_geometry_review_v004"
+    assert review.REVIEW_OUTPUT_NAME == "review_v004"
+    assert review.MAX_RING_DIHEDRAL_DEGREES == 30.0

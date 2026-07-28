@@ -26,7 +26,9 @@ from numpy.typing import NDArray
 
 CANDIDATE: Final = "LBNPGYISTSLAHY-UHFFFAOYSA-N"
 V002_ROOT_NAME: Final = "science_pilot_lbn_v002"
-REVIEW_SCHEMA: Final = "nhc-phase9b-science-pilot-geometry-review-v1"
+REVIEW_OUTPUT_NAME: Final = "review_v004"
+REVIEW_ATTEMPT: Final = "science_pilot_lbn_v002_geometry_review_v004"
+REVIEW_SCHEMA: Final = "nhc-phase9b-science-pilot-geometry-review-v2"
 CLASSIFICATIONS: Final = (
     "SAME_BASIN_LIKELY",
     "DIFFERENT_BASIN_OR_INVALID",
@@ -219,7 +221,11 @@ def write_new(path: Path, raw: bytes) -> dict[str, object]:
     reread = path.read_bytes()
     if reread != raw:
         raise ReviewError(f"review evidence reread mismatch: {path.name}")
-    return {"relative_path": f"review/{path.name}", "bytes": len(raw), "sha256": _sha256(raw)}
+    return {
+        "relative_path": f"{path.parent.name}/{path.name}",
+        "bytes": len(raw),
+        "sha256": _sha256(raw),
+    }
 
 
 def parse_xyz(raw: bytes) -> Geometry:
@@ -294,6 +300,23 @@ def dihedral_degrees(points: NDArray[np.float64], indices: Sequence[int]) -> flo
 
 def circular_delta_degrees(final: float, initial: float) -> float:
     return abs((final - initial + 180.0) % 360.0 - 180.0)
+
+
+def normalize_signed_dihedral_degrees(phi_degrees: float) -> float:
+    """Normalize a signed torsion to [-180, 180], retaining exact endpoints."""
+
+    normalized = (phi_degrees + 180.0) % 360.0 - 180.0
+    if math.isclose(normalized, -180.0, abs_tol=1.0e-12) and phi_degrees > 0.0:
+        return 180.0
+    return normalized
+
+
+def planarity_deviation_degrees(phi_degrees: float) -> float:
+    """Distance from a torsion to the planar set {0, +180, -180} degrees."""
+
+    normalized = normalize_signed_dihedral_degrees(phi_degrees)
+    absolute = abs(normalized)
+    return min(absolute, abs(180.0 - absolute))
 
 
 def infer_connectivity(
@@ -427,8 +450,15 @@ def ring_payload(
             next_atom,
             ring[(offset + 2) % len(ring)],
         ]
+        raw_dihedral = dihedral_degrees(points, quadruple)
+        normalized_dihedral = normalize_signed_dihedral_degrees(raw_dihedral)
         dihedrals_payload.append(
-            {"indices": quadruple, "degrees": dihedral_degrees(points, quadruple)}
+            {
+                "indices": quadruple,
+                "raw_signed_dihedral_deg": raw_dihedral,
+                "normalized_signed_dihedral_deg": normalized_dihedral,
+                "planarity_deviation_deg": planarity_deviation_degrees(raw_dihedral),
+            }
         )
     plane = best_fit_plane(points[np.asarray(ring, dtype=int)])
     other_ring_atoms = [index for index in ring if index != C2]
@@ -444,8 +474,11 @@ def ring_payload(
         ),
         "plane": plane,
         "dihedrals": dihedrals_payload,
-        "max_abs_dihedral_degrees": max(
-            abs(_number(item["degrees"])) for item in dihedrals_payload
+        "maximum_raw_absolute_signed_dihedral_deg": max(
+            abs(_number(item["raw_signed_dihedral_deg"])) for item in dihedrals_payload
+        ),
+        "maximum_planarity_deviation_deg": max(
+            _number(item["planarity_deviation_deg"]) for item in dihedrals_payload
         ),
         "c2_height_above_other_ring_plane_angstrom": c2_height,
         "c2_two_coordinate_pyramidalization_directly_defined": False,
@@ -609,7 +642,7 @@ def _structure_local_metrics(
 def review_geometry(root: Path) -> tuple[dict[str, object], dict[str, bytes]]:
     if root.name != V002_ROOT_NAME:
         raise ReviewError("v002 root logical name drifted")
-    review_root = root / "review"
+    review_root = root / REVIEW_OUTPUT_NAME
     if review_root.exists() or review_root.is_symlink():
         raise ReviewError("review output already exists")
 
@@ -726,7 +759,9 @@ def review_geometry(root: Path) -> tuple[dict[str, object], dict[str, bytes]]:
     final_c2_height = abs(_number(final_ring_payload["c2_height_above_other_ring_plane_angstrom"]))
     final_ring_rms_oop = _number(final_ring_plane["rms_out_of_plane_angstrom"])
     final_ring_max_oop = _number(final_ring_plane["max_out_of_plane_angstrom"])
-    final_max_ring_dihedral = _number(final_ring_payload["max_abs_dihedral_degrees"])
+    final_max_ring_planarity_deviation = _number(
+        final_ring_payload["maximum_planarity_deviation_deg"]
+    )
 
     fluorine_distances = [
         {
@@ -815,7 +850,7 @@ def review_geometry(root: Path) -> tuple[dict[str, object], dict[str, bytes]]:
         final_ring_rms_oop <= MAX_RING_RMS_OOP_ANGSTROM
         and final_ring_max_oop <= MAX_RING_OOP_ANGSTROM
         and final_c2_height <= MAX_C2_HEIGHT_ANGSTROM
-        and final_max_ring_dihedral <= MAX_RING_DIHEDRAL_DEGREES
+        and final_max_ring_planarity_deviation <= MAX_RING_DIHEDRAL_DEGREES
         and normal_angle <= MAX_RING_NORMAL_CHANGE_DEGREES
     )
     no_substituent_flip = maximum_ring_sidechain_delta < SUBSTITUENT_FLIP_DEGREES
@@ -949,6 +984,7 @@ def review_geometry(root: Path) -> tuple[dict[str, object], dict[str, bytes]]:
     review_result: dict[str, object] = {
         "schema_version": REVIEW_SCHEMA,
         "science_pilot_only": True,
+        "review_attempt": REVIEW_ATTEMPT,
         "candidate": CANDIDATE,
         "classification": classification,
         "classification_contract": list(CLASSIFICATIONS),
@@ -1017,7 +1053,7 @@ def review_geometry(root: Path) -> tuple[dict[str, object], dict[str, bytes]]:
 
 def execute_review(root: Path) -> dict[str, object]:
     result, output_bytes = review_geometry(root)
-    review_root = root / "review"
+    review_root = root / REVIEW_OUTPUT_NAME
     _make_new_directory(review_root)
     receipts: dict[str, object] = {}
     for name in (
