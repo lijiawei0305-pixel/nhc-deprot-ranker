@@ -356,6 +356,122 @@ def _endpoint_payload(module: Any, result: Any, metrics: dict[str, object]) -> d
     }
 
 
+def _clean_environment() -> dict[str, str]:
+    environment = dict(os.environ)
+    for name in ("PYTHONHOME", "PYTHONPATH", "PYTHONSTARTUP"):
+        environment.pop(name, None)
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    return environment
+
+
+def assisted_controller(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve(strict=True)
+    v002 = Path(args.aimnet_root).resolve(strict=True)
+    repo = Path(args.repo).resolve(strict=True)
+    script = Path(__file__).resolve(strict=True)
+    environment = _clean_environment()
+    aimnet_stdout = (root / "aimnet_driver_stdout").open("xb", buffering=0)
+    aimnet_stderr = (root / "aimnet_driver_stderr").open("xb", buffering=0)
+    try:
+        aimnet = subprocess.run(
+            [
+                args.mlff_python,
+                "-I",
+                "-B",
+                str(repo / "scripts/phase9b_science_pilot.py"),
+                "aimnet2",
+                "--pilot-root",
+                str(v002),
+                "--source-root",
+                str(repo / "src"),
+                "--source-commit",
+                args.source_commit,
+                "--weight",
+                args.weight,
+                "--physical-gpu-index",
+                str(args.gpu_index),
+                "--physical-gpu-uuid",
+                args.gpu_uuid,
+            ],
+            env=environment,
+            stdin=subprocess.DEVNULL,
+            stdout=aimnet_stdout,
+            stderr=aimnet_stderr,
+            timeout=1000,
+            check=False,
+        )
+    finally:
+        aimnet_stdout.close()
+        aimnet_stderr.close()
+    if aimnet.returncode == 0:
+        raise BenchmarkError("AIMNet2 unexpectedly passed the unchanged production gate")
+    for endpoint in ENDPOINTS:
+        raw = read_regular(v002 / "aimnet2" / endpoint / "final.xyz")
+        if sha256_bytes(raw) != ASSISTED_SHA256[endpoint]:
+            raise BenchmarkError("new AIMNet2 output needs a fresh read-only review")
+    with (
+        (root / "review_stdout").open("xb") as stdout,
+        (root / "review_stderr").open("xb") as stderr,
+    ):
+        subprocess.run(
+            [
+                args.gpupyscf_python,
+                "-I",
+                "-B",
+                str(repo / "scripts/phase9b_science_pilot_geometry_review.py"),
+                "--pilot-root",
+                str(v002),
+            ],
+            env=environment,
+            stdin=subprocess.DEVNULL,
+            stdout=stdout,
+            stderr=stderr,
+            timeout=120,
+            check=True,
+        )
+    with (
+        (root / "pyscf_driver_stdout").open("xb") as stdout,
+        (root / "pyscf_driver_stderr").open("xb") as stderr,
+    ):
+        subprocess.run(
+            [
+                "taskset",
+                "-c",
+                "0-3",
+                args.gpupyscf_python,
+                "-I",
+                "-B",
+                str(script),
+                "pyscf-worker",
+                "--route",
+                "assisted",
+                "--root",
+                str(root),
+                "--source-root",
+                str(repo / "src"),
+                "--pilot-helper",
+                str(repo / "scripts/phase9b_science_pilot.py"),
+                "--v004-helper",
+                str(repo / "scripts/phase9b_science_pilot_pyscf_continuation.py"),
+                "--cation-input",
+                str(v002 / "aimnet2/cation/final.xyz"),
+                "--neutral-input",
+                str(v002 / "aimnet2/neutral/final.xyz"),
+                "--aimnet-summary",
+                str(v002 / "aimnet2/summary.json"),
+                "--review-result",
+                str(v002 / "review_v004/review_result.json"),
+            ],
+            env=environment,
+            stdin=subprocess.DEVNULL,
+            stdout=stdout,
+            stderr=stderr,
+            timeout=ROUTE_LIMIT_SECONDS,
+            check=True,
+        )
+    return 0
+
+
 def run_pyscf_worker(args: argparse.Namespace) -> int:
     started = time.monotonic()
     deadline = started + ROUTE_LIMIT_SECONDS
@@ -655,6 +771,16 @@ def parser() -> argparse.ArgumentParser:
     snapshot.add_argument("--gpupyscf-python", required=True)
     snapshot.add_argument("--gpu-index", required=True, type=int)
     snapshot.add_argument("--gpu-uuid", required=True)
+    assisted = sub.add_parser("assisted-controller")
+    assisted.add_argument("--root", required=True)
+    assisted.add_argument("--aimnet-root", required=True)
+    assisted.add_argument("--repo", required=True)
+    assisted.add_argument("--source-commit", required=True)
+    assisted.add_argument("--mlff-python", required=True)
+    assisted.add_argument("--gpupyscf-python", required=True)
+    assisted.add_argument("--weight", required=True)
+    assisted.add_argument("--gpu-index", required=True, type=int)
+    assisted.add_argument("--gpu-uuid", required=True)
     worker = sub.add_parser("pyscf-worker")
     worker.add_argument("--route", choices=("assisted", "pyscf_only"), required=True)
     worker.add_argument("--root", required=True)
@@ -676,6 +802,8 @@ def main() -> int:
     args = parser().parse_args()
     if args.command == "snapshot":
         return system_snapshot(args)
+    if args.command == "assisted-controller":
+        return assisted_controller(args)
     if args.command == "pyscf-worker":
         return run_pyscf_worker(args)
     if args.command == "finalize":
