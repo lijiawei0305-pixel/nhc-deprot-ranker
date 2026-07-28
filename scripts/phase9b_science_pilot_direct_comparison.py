@@ -806,8 +806,8 @@ def execute(args: argparse.Namespace) -> int:
     )
     review_raw, review_payload = read_bound_json(
         v004=v004,
-        root=v002_root,
-        relative_path="review_v004/review_result.json",
+        root=v004_root,
+        relative_path="driver/review_result.json",
         expected_sha256=REVIEW_RESULT_SHA256,
     )
     if review_payload.get("classification") != "SAME_BASIN_LIKELY":
@@ -1109,7 +1109,7 @@ def execute(args: argparse.Namespace) -> int:
         raise DirectComparisonError("v004 assisted evidence drifted during direct comparison")
     if bootstrap_read(review_source) != review_source_raw:
         raise DirectComparisonError("geometry review source drifted during direct comparison")
-    review_after, _ = v004.read_regular_file(v002_root / "review_v004" / "review_result.json")
+    review_after, _ = v004.read_regular_file(v004_root / "driver" / "review_result.json")
     if review_after != review_raw:
         raise DirectComparisonError("geometry review result drifted during direct comparison")
     for endpoint in ENDPOINTS:

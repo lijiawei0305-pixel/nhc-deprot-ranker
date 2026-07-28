@@ -504,6 +504,7 @@ def test_retained_v002_and_v004_private_bytes_are_unchanged_when_present() -> No
         v002_root / "aimnet2/cation/final.xyz": direct.ASSISTED_INPUT_SHA256["cation"],
         v002_root / "aimnet2/neutral/final.xyz": direct.ASSISTED_INPUT_SHA256["neutral"],
         v004_root / "result.json": direct.V004_RESULT_SHA256,
+        v004_root / "driver/review_result.json": direct.REVIEW_RESULT_SHA256,
         v004_root / "pyscf/cation/endpoint_result.json": direct.V004_ENDPOINT_SHA256["cation"],
         v004_root / "pyscf/neutral/endpoint_result.json": direct.V004_ENDPOINT_SHA256["neutral"],
         v004_root / "pyscf/cation/run_config.json": direct.V004_RUN_CONFIG_SHA256["cation"],
