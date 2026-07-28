@@ -176,6 +176,19 @@ def test_pilot_source_is_outside_v9_runner_closure() -> None:
     assert "tests/test_phase9b_science_pilot.py" not in encoded
 
 
+def test_public_pilot_result_is_nonproduction_and_inconclusive() -> None:
+    result = json.loads((ROOT / "docs/PHASE9B_SCIENCE_PILOT_RESULT.json").read_text())
+
+    assert result["science_pilot_only"] is True
+    assert result["final_outcome"] == "INCONCLUSIVE"
+    assert result["reason_code"] == "CATION_PROTON_HOST_VALIDATOR_IMPLEMENTATION_DEFECT"
+    assert result["production_accepted"] is False
+    assert result["labels_produced"] == 0
+    assert result["production_label_count"] == 71
+    assert result["pyscf"]["cation"]["status"] == "not_started"
+    assert result["pyscf"]["neutral"]["status"] == "not_started"
+
+
 def test_production_source_gates_remain_closed() -> None:
     sys.path.insert(0, str(ROOT / "src"))
     from nhc_deprot_ranker.quantum import phase9b_aimnet2_runtime, two_endpoint

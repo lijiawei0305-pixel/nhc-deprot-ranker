@@ -1,0 +1,127 @@
+{
+  "aimnet2": {
+    "base_model_forward_calls": "unmeasured",
+    "base_model_load_count": 1,
+    "cation": {
+      "calculator_invocations": 56,
+      "charge": 1,
+      "computation_status": "converged",
+      "final_energy_ev": -38353.81999675751,
+      "final_max_force_ev_per_angstrom": 0.04510544565505229,
+      "final_xyz_bytes": 1181,
+      "final_xyz_sha256": "ea796a5c81504184382b965d57c588c74968a09de8942148d3d9cbadf70a7774",
+      "initial_energy_ev": -38353.04313401915,
+      "initial_max_force_ev_per_angstrom": 2.6004734797483597,
+      "multiplicity": 1,
+      "optimization_steps": 54,
+      "structure": {
+        "atom_count_preserved": true,
+        "atom_order_preserved": true,
+        "c2_n1_bond_change_angstrom": 0.008796125210505101,
+        "c2_n3_bond_change_angstrom": 0.014209323925179707,
+        "connectivity_preserved": true,
+        "final_acidic_proton_host_index": 14,
+        "initial_acidic_proton_host_index": 14,
+        "max_abs_coordinate_angstrom": 4.4012037786,
+        "max_single_atom_displacement_angstrom": 0.480060888171444,
+        "minimum_pair_distance_angstrom": 1.0730030644227015,
+        "proton_host_index_preserved": true,
+        "ring_angle_change_degrees": 1.4731580525062213,
+        "total_rmsd_angstrom": 0.2211948939874775
+      },
+      "trajectory_frames": 55,
+      "trajectory_sha256": "0ebacfff83f069d5d3990c5585864901e639b8795095c0c3e7e4ae5d11a96580",
+      "validator": {
+        "message": "the cation lost its acidic proton during preoptimization",
+        "observed_source_defect": "the runtime checks for a proton hosted by N1 or N3 instead of requiring the frozen original heavy-atom host C2",
+        "status": "rejected_by_incorrect_host_predicate"
+      },
+      "wall_seconds": 23.570130247157067
+    },
+    "endpoint_wrapper_count": 1,
+    "environment": {
+      "aimnet": "0.2.0",
+      "ase": "3.29.0",
+      "cuda": "12.8",
+      "gpu": "Tesla V100-SXM2-32GB",
+      "gpu_architecture": "sm_70",
+      "python": "3.11.15",
+      "torch_metadata": "2.8.0",
+      "torch_runtime": "2.8.0+cu128"
+    },
+    "neutral": {
+      "charge": 0,
+      "multiplicity": 1,
+      "status": "not_started_after_cation_validator_rejection"
+    },
+    "weight": {
+      "bytes": 8836941,
+      "filename": "aimnet2_wb97m_d3_0.pt",
+      "path": "<AIMNET_CACHE_ROOT>/aimnet2_wb97m_d3_0.pt",
+      "sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28"
+    }
+  },
+  "candidate": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+  "deprotonation": {
+    "definition": "gas_phase_electronic_energy_only",
+    "electronic_difference_kcal_per_mol": null,
+    "formula": "((E_neutral_PySCF - E_cation_PySCF) * 627.509474) - 6.28",
+    "unit": "kcal/mol",
+    "value": null
+  },
+  "evidence": {
+    "cation_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cation_stdout_sha256": "2ea65bb8d5f40e5be8bd1b5d37922e3e2da91bd132453f506091459b7d688250",
+    "pilot_script_sha256": "fcacb5e998133f4ad9ac8da0a8b76675a2eddd51d8bf2e305e3bdeb70fa10e81",
+    "private_result_sha256": "769e64a20f5035866e2b17895746440c79c06d8b1758a46dff8540cbe5281915",
+    "retained_private_root": "<REMOTE_PROJECT_ROOT>/data/runs/science_pilot_lbn_v001"
+  },
+  "final_outcome": "INCONCLUSIVE",
+  "handoff": {
+    "status": "not_run"
+  },
+  "inputs": {
+    "atom_map": {
+      "C2_carbene": 14,
+      "N1": 8,
+      "N3": 15
+    },
+    "cation": {
+      "atom_count": 26,
+      "bytes": 1075,
+      "charge": 1,
+      "multiplicity": 1,
+      "sha256": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286"
+    },
+    "electron_count_each": 160,
+    "neutral": {
+      "atom_count": 25,
+      "bytes": 1036,
+      "charge": 0,
+      "multiplicity": 1,
+      "sha256": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8"
+    }
+  },
+  "labels_produced": 0,
+  "pilot_source_commit": "bb65d4c1a25849a59c73645b7584f95b24b84056",
+  "production_accepted": false,
+  "production_label_count": 71,
+  "pyscf": {
+    "cation": {
+      "status": "not_started"
+    },
+    "environment_probe": {
+      "geometric": "1.1.1",
+      "pyscf": "2.13.1",
+      "pyscf_dispersion": "1.5.0",
+      "python": "3.11.15"
+    },
+    "neutral": {
+      "status": "not_started"
+    }
+  },
+  "reason_code": "CATION_PROTON_HOST_VALIDATOR_IMPLEMENTATION_DEFECT",
+  "schema_version": "nhc-phase9b-science-pilot-public-result-v1",
+  "science_pilot_only": true,
+  "starting_git_commit": "a1dd199b49f3730aa28c73fa3411381002f8b12b"
+}
