@@ -75,3 +75,13 @@ It copies each retained v002 final XYZ as raw bytes, proves source/copy/parser
 byte equality, and runs cation then neutral single points using the repository
 frozen method. There is no retry, parameter substitution, second candidate,
 production acceptance, or label-table write.
+
+## Retained Stage A terminal
+
+The one-shot execution of commit `16968e549bebde0f69b7cdfe91a0505344fc4c47`
+ended `INCONCLUSIVE`. Its signed ring dihedrals use a convention in which a
+planar ring is near plus or minus 180 degrees, but the executed adjudicator
+compared their absolute values with 30 degrees. The resulting planarity boolean
+is invalid even though the independently recorded best-fit-plane metrics show
+the final ring became more planar. The raw review was retained without
+overwrite or rerun, and Stage B did not start.

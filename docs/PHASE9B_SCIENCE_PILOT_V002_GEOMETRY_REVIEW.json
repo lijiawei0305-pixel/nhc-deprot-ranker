@@ -1,0 +1,196 @@
+{
+  "candidate": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+  "cation_common_atom_comparison": {
+    "acidic_proton_removed_atom_index": 23,
+    "element_sequence_equal": true,
+    "final_common_atom_aligned_rmsd_angstrom": 1.4946449609004424,
+    "final_ring_only_aligned_rmsd_angstrom": 0.036535,
+    "initial_common_atom_aligned_rmsd_angstrom": 1.5868189739270182,
+    "initial_ring_only_aligned_rmsd_angstrom": 0.098694
+  },
+  "classification": "INCONCLUSIVE",
+  "classification_reason": {
+    "code": "RING_DIHEDRAL_CONVENTION_MISMATCH",
+    "details": "The executed adjudicator compared absolute signed ring dihedrals with 30 degrees even though planar torsions under its convention are near plus or minus 180 degrees. The resulting ring_plane_continuity=false is not reliable different-basin evidence.",
+    "executed_raw_classification": "DIFFERENT_BASIN_OR_INVALID"
+  },
+  "connectivity": {
+    "added_bonds": [],
+    "c2_neighbors_final": [
+      8,
+      15
+    ],
+    "c2_neighbors_initial": [
+      8,
+      15
+    ],
+    "connected_components_final": 1,
+    "connected_components_initial": 1,
+    "criterion": "v002 covalent radii multiplied by 1.30",
+    "final_bond_count": 25,
+    "initial_bond_count": 25,
+    "removed_bonds": []
+  },
+  "evidence": {
+    "cation_final_sha256": "ea796a5c81504184382b965d57c588c74968a09de8942148d3d9cbadf70a7774",
+    "executed_review_result_sha256": "0fb4432f3523d4896d3604586d23579e6fdfafe9989114cb1468e49cbd92e5d4",
+    "file_manifest_sha256": "1093f63ddebc76b1efa1159fc532682fa9b18b35e41f5e7a096d6957e96cbc69",
+    "neutral_final_sha256": "c40ca77bce9d8c8deefc2357bf2633fb4c0981ce9d4bd23aceb342d40646bc93",
+    "neutral_geometry_metrics_sha256": "15718a0ab7fc3aa851fa91ec6ed2f9cf7f12355f841b763186948d931ca146e4",
+    "neutral_initial_sha256": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8",
+    "review_source_commit": "16968e549bebde0f69b7cdfe91a0505344fc4c47",
+    "review_source_sha256": "4c7a8e43d0bf61a5da6c5f7ca6a62c720389d9042b8c2c6cb99732c8298dfc3e",
+    "ring_local_geometry_sha256": "14563f779ce359600d703fdbc44eb3c3b0f43e25494d12d564b198e6faca5445",
+    "stage_a_terminal_sha256": "5b7b4341c45d64e0f9c7d013ce27df4633d4d64fa9112519ca28c945116f93b3",
+    "v002_result_sha256": "b1362a3b1df7ef7ba276bac0c91fd8002fd27123eca37d84a82b937edacd7071"
+  },
+  "file_identity": {
+    "all_atom_orders_preserved": true,
+    "all_coordinates_finite": true,
+    "all_non_symlink": true,
+    "all_read_identities_stable": true,
+    "all_regular_single_link_files": true,
+    "cation_atom_count": 26,
+    "neutral_atom_count": 25,
+    "neutral_cation_h23_absent": true
+  },
+  "global_geometry": {
+    "aligned_rmsd_angstrom": 0.6045917518869108,
+    "max_abs_coordinate_final_angstrom": 4.3735134877,
+    "max_aligned_displacement_angstrom": 1.1702383727459496,
+    "max_displacement_atom_index": 13,
+    "max_displacement_element": "F",
+    "minimum_nonbonded_final_angstrom": 1.7691732847012072,
+    "minimum_pair_final_angstrom": 1.0816246769185622,
+    "nonring_subset_rmsd_after_global_alignment_angstrom": 0.5799007549180533,
+    "ring_only_aligned_rmsd_angstrom": 0.11035841275137327,
+    "ring_subset_rmsd_after_global_alignment_angstrom": 0.6946339971742724
+  },
+  "production_10_degree_gate": {
+    "candidate_specific_basis": false,
+    "first_commit": "dfcc14d4962f1cc975bd9c23ab27b8f77f96ebde",
+    "first_file": "src/nhc_deprot_ranker/preparation/phase9b_preopt.py",
+    "literature_basis": false,
+    "modified": false,
+    "physical_basin_boundary_proven": false,
+    "status": "source_preregistered_engineering_heuristic_mutation_frozen"
+  },
+  "ring": {
+    "atom_indices_cycle": [
+      8,
+      14,
+      15,
+      2,
+      3
+    ],
+    "bonds": [
+      {
+        "absolute_delta_angstrom": 0.0914807374483122,
+        "final_angstrom": 1.3627103527561353,
+        "indices": [
+          8,
+          14
+        ],
+        "initial_angstrom": 1.4541910902044475
+      },
+      {
+        "absolute_delta_angstrom": 0.09729257571701377,
+        "final_angstrom": 1.3552079385431361,
+        "indices": [
+          14,
+          15
+        ],
+        "initial_angstrom": 1.45250051426015
+      },
+      {
+        "absolute_delta_angstrom": 0.02969808679412811,
+        "final_angstrom": 1.3860315514143822,
+        "indices": [
+          15,
+          2
+        ],
+        "initial_angstrom": 1.4157296382085103
+      },
+      {
+        "absolute_delta_angstrom": 0.003910571833747767,
+        "final_angstrom": 1.3572222788704,
+        "indices": [
+          2,
+          3
+        ],
+        "initial_angstrom": 1.3611328507041478
+      },
+      {
+        "absolute_delta_angstrom": 0.05633386397777107,
+        "final_angstrom": 1.3802213874950011,
+        "indices": [
+          3,
+          8
+        ],
+        "initial_angstrom": 1.4365552514727722
+      }
+    ],
+    "c2_height_above_other_ring_plane_final_angstrom": 0.012483051800045181,
+    "c2_height_above_other_ring_plane_initial_angstrom": 0.07075955901896896,
+    "final_angle_sum_degrees": 539.9916425201475,
+    "final_max_out_of_plane_angstrom": 0.004896304642502226,
+    "final_max_planarity_dihedral_deviation_degrees": 0.9331972819375949,
+    "final_rms_out_of_plane_angstrom": 0.0035638296232896696,
+    "initial_angle_sum_degrees": 539.757684094001,
+    "initial_max_out_of_plane_angstrom": 0.028964254701478842,
+    "initial_max_planarity_dihedral_deviation_degrees": 5.088288667058777,
+    "initial_rms_out_of_plane_angstrom": 0.020469164327467104,
+    "interior_angles": [
+      {
+        "atom_index": 8,
+        "delta_degrees": 12.696943334449102,
+        "final_degrees": 112.83374238259401,
+        "initial_degrees": 100.13679904814491
+      },
+      {
+        "atom_index": 14,
+        "delta_degrees": -12.366075263315324,
+        "final_degrees": 102.4625327913104,
+        "initial_degrees": 114.82860805462572
+      },
+      {
+        "atom_index": 15,
+        "delta_degrees": 12.782701265832202,
+        "final_degrees": 112.72156275948336,
+        "initial_degrees": 99.93886149365116
+      },
+      {
+        "atom_index": 2,
+        "delta_degrees": -7.436779525816931,
+        "final_degrees": 106.03616383564984,
+        "initial_degrees": 113.47294336146678
+      },
+      {
+        "atom_index": 3,
+        "delta_degrees": -5.442831385002549,
+        "final_degrees": 105.93764075110985,
+        "initial_degrees": 111.3804721361124
+      }
+    ],
+    "plane_normal_angle_degrees": 17.204197369868627
+  },
+  "schema_version": "nhc-phase9b-science-pilot-v002-geometry-review-public-v1",
+  "science_pilot_only": true,
+  "sidechain": {
+    "closest_fluorine_final_distance_to_reaction_centre_angstrom": 2.7569836505930825,
+    "largest_heavy_dihedral_change_degrees": 45.330671048293425,
+    "largest_ring_sidechain_dihedral_change_degrees": 44.33036426755416,
+    "new_abnormal_nonbonded_contact": false,
+    "obvious_substituent_flip": false
+  },
+  "stage_b": {
+    "continuation_root_created": false,
+    "handoff": "not_run",
+    "pyscf": "not_run",
+    "reason": "Stage A was INCONCLUSIVE",
+    "stage_b_started": false
+  },
+  "v001_unchanged": true,
+  "v002_terminal_status": "FAIL",
+  "v002_terminal_unchanged": true
+}

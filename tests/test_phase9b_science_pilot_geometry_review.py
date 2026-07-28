@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import json
 import math
 import sys
 from pathlib import Path
@@ -141,3 +142,16 @@ def test_review_source_has_no_compute_or_geometry_optimizer_imports() -> None:
         {"aimnet", "ase", "torch", "pyscf", "geometric", "rdkit", "xtb"}
     )
     assert "subprocess" not in imported_roots
+
+
+def test_public_review_fails_closed_before_stage_b() -> None:
+    payload = json.loads(
+        (ROOT / "docs/PHASE9B_SCIENCE_PILOT_V002_GEOMETRY_REVIEW.json").read_text()
+    )
+
+    assert payload["classification"] == "INCONCLUSIVE"
+    assert payload["classification_reason"]["code"] == ("RING_DIHEDRAL_CONVENTION_MISMATCH")
+    assert payload["stage_b"]["stage_b_started"] is False
+    assert payload["stage_b"]["pyscf"] == "not_run"
+    assert payload["production_10_degree_gate"]["modified"] is False
+    assert payload["v002_terminal_unchanged"] is True
