@@ -141,6 +141,10 @@ element order and graph. The cation/neutral final ring-only RMSD is small
 difference is concentrated in flexible fluorinated side chains. AIMNet2 total
 energies were not compared across charge/atom-count endpoints.
 
+The `0.036535 Å` value uses an independent Kabsch fit of the five mapped ring
+atoms. It is intentionally different from taking the ring subset after fitting
+all 25 common atoms; the two alignment bases are not interchangeable.
+
 ## Review of the 10-degree gate
 
 The 10-degree limit first appeared in commit

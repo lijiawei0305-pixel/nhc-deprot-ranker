@@ -6,7 +6,8 @@
     "final_common_atom_aligned_rmsd_angstrom": 1.4946449609004424,
     "final_ring_only_aligned_rmsd_angstrom": 0.036535,
     "initial_common_atom_aligned_rmsd_angstrom": 1.5868189739270182,
-    "initial_ring_only_aligned_rmsd_angstrom": 0.098694
+    "initial_ring_only_aligned_rmsd_angstrom": 0.098694,
+    "ring_only_alignment_basis": "independent Kabsch fit of the five mapped ring atoms"
   },
   "classification": "INCONCLUSIVE",
   "classification_reason": {
