@@ -33,6 +33,7 @@ Updated: 2026-07-28
 | Phase 9B-U4 — symlink-aware metrology / v004 | Failed before environment creation; retained | Q4 reached conda evidence then returned `CONDA_EXPLICIT_FAILED` for all six; v004 resources never created |
 | Phase 9B-U5 — metadata-native metrology / v005 | Failed before environment creation; retained | One Q5 SSH failed in remote helper bootstrap before all object captures; no v005 resource was created |
 | Phase 9B science pilot v004 — corrected geometry + PySCF single points | `PASS`, `science_pilot_only`; not production accepted | 2026-07-28; same candidate and retained v002 AIMNet2 XYZ; exact-byte cation/neutral PySCF single points converged; no production label or gate change |
+| Phase 9B science pilot v005 — frozen-initial PySCF single-point control | `PASS`, `science_pilot_only`; not production accepted | 2026-07-28; same candidate's frozen initial geometries compared with retained v004 assisted results; no AIMNet2 rerun, geometry optimization, permit, production label or gate change |
 
 ## Current completed work
 
@@ -449,9 +450,23 @@ into the production table and is not equivalent to the production residual-
 optimization protocol. Details are in
 `docs/PHASE9B_SCIENCE_PILOT_V004_REPORT.md`.
 
+Science pilot v005 then used the same candidate's frozen initial cation and
+neutral geometries for the same final-SCF-only PySCF single-point protocol and
+compared them with the retained v004 AIMNet2-assisted evidence. Both direct
+standard SCFs converged in 12 cycles: cation
+`-1407.5048562130542 Eh` in `67.530844 s`, and neutral
+`-1407.07173196134 Eh` in `120.186166 s`. The direct pilot-only electronic
+value is `265.5095713697973 kcal/mol`; the retained assisted value is
+`238.8477388721244 kcal/mol`, so signed assisted-minus-direct delta is
+`-26.66183249767289 kcal/mol`. This was not an AIMNet2 rerun or PySCF geometry
+optimization and used no production permit or production-label insertion.
+The portable result and full comparison are in
+`docs/PHASE9B_SCIENCE_PILOT_V005_RESULT.json` and
+`docs/PHASE9B_SCIENCE_PILOT_V005_REPORT.md`.
+
 No Postflight source was implemented, no v9 leaf moved, and no v10 was created.
 Item 12/12 rehearsal cannot start. Runner remediation was the Item 11 closeout
 next action, but the later science-pilot priority explicitly paused that track.
 The current only permissible next work, under separate authorization, is the
-same candidate's original-frozen-geometry cation/neutral PySCF single-point
-control; no second candidate or batch is allowed.
+decision whether this same small science-pilot comparison is worth reproducing
+for a second candidate; v005 did not start a second candidate or batch.

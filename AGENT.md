@@ -563,3 +563,23 @@ dig +trace domain
   `production_accepted=false`、未写生产标签、标签数仍 71、11 gates 仍 false。
 - 若获得新授权，唯一最小下一步是同一候选原始冻结几何的 cation/neutral PySCF
   single-point 对照，只比较 SCF convergence、cycles 和 wall；不得启动第二候选或 batch。
+
+## 31. Phase 9B science pilot v005 — frozen-initial single-point control
+
+- v005 是同一候选 `LBNPGYISTSLAHY-UHFFFAOYSA-N` 的独立
+  `science_pilot_only` 对照：以冻结 initial cation/neutral XYZ 运行与 v004 相同的
+  PySCF final-SCF-only single-point protocol，并只读绑定 v004 AIMNet2-assisted 结果。
+- Direct cation 为 `-1407.5048562130542 Eh`、12 SCF cycles、`67.530844 s`；
+  direct neutral 为 `-1407.07173196134 Eh`、12 SCF cycles、`120.186166 s`。
+  Direct pilot-only 脱质子电子能为 `265.5095713697973 kcal/mol`。
+- Retained v004 assisted 值仍为 `238.8477388721244 kcal/mol`；signed
+  assisted-minus-direct delta 为 `-26.66183249767289 kcal/mol`。这是固定几何
+  single-point 对照，不是 PySCF geometry-optimization speedup 证明。
+- v001、v002 和 v004 历史结果不变；没有重跑或加载 AIMNet2，没有 PySCF geometry
+  optimization，没有 production permit、production acceptance 或 production label
+  insertion。Item 11 仍为 `blocked_by_v9_evidence_gap`，Item 12 未开始，11 个 public
+  execution gates 仍为 false，生产标签仍为 71。
+- 本轮没有启动第二候选或 batch。唯一下一步仅是根据同候选对照结果决定是否值得对
+  第二候选做同样的小规模 science-pilot 复现；必须另行授权后才能执行。
+- Portable evidence 已落盘于 `docs/PHASE9B_SCIENCE_PILOT_V005_RESULT.json`，
+  完整报告见 `docs/PHASE9B_SCIENCE_PILOT_V005_REPORT.md`。
