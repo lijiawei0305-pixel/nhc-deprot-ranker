@@ -1,0 +1,90 @@
+{
+  "aimnet2_rerun": false,
+  "candidate": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+  "deprotonation": {
+    "aimnet2_energy_used": false,
+    "cation_energy_hartree": -1407.5280546795084,
+    "conversion_factor_kcal_per_hartree": 627.509474,
+    "definition": "gas_phase_electronic_energy_only",
+    "electronic_difference_kcal_per_mol": 245.1277388721244,
+    "formula": "((E_neutral_PySCF - E_cation_PySCF) * 627.509474) - 6.28",
+    "gas_proton_constant_kcal_per_mol": -6.28,
+    "hartree_difference": 0.3906359171114673,
+    "lower_is_better": true,
+    "neutral_energy_hartree": -1407.137418762397,
+    "subtracted_proton_correction_magnitude_kcal_per_mol": 6.28,
+    "value_kcal_per_mol": 238.8477388721244
+  },
+  "endpoints": {
+    "cation": {
+      "charge": 1,
+      "d3_contribution_hartree": -0.05010632135688259,
+      "energy_hartree": -1407.5280546795084,
+      "input_bytes": 1181,
+      "input_sha256": "ea796a5c81504184382b965d57c588c74968a09de8942148d3d9cbadf70a7774",
+      "multiplicity": 1,
+      "result_sha256": "1e881fbf50bc963ab3d23c1fa6942c5ea16d6f63eae9aed5f37b745bd43f1eb0",
+      "scf_converged": true,
+      "scf_cycles": 12,
+      "spin": 0,
+      "strategy": "standard",
+      "wall_seconds": 76.15011653210968
+    },
+    "neutral": {
+      "charge": 0,
+      "d3_contribution_hartree": -0.04812221393523744,
+      "energy_hartree": -1407.137418762397,
+      "input_bytes": 1133,
+      "input_sha256": "c40ca77bce9d8c8deefc2357bf2633fb4c0981ce9d4bd23aceb342d40646bc93",
+      "multiplicity": 1,
+      "result_sha256": "8e17664f5cadae807ac4f6bba672112f8c5fcaa014e28b98ce3b6cbe00060880",
+      "scf_converged": true,
+      "scf_cycles": 12,
+      "spin": 0,
+      "strategy": "standard",
+      "wall_seconds": 123.84613075200468
+    }
+  },
+  "evidence": {
+    "cation_handoff_sha256": "40d14b1e802edabd44d38601ba116d79d022ae707524360138d28e2dd871a112",
+    "file_manifest_sha256": "0df46f7817795da40bb4bea67f587c0e0d118bf53c3948885e89a7e31a857c8f",
+    "geometry_review_binding_sha256": "59194071b0f1b9199869bbe9e53b53521f62259009928168bdfd11f81432350e",
+    "manifest_post_exit_audit": {
+      "declared_files": 20,
+      "manifest_stable_post_exit": false,
+      "missing_ephemeral_pyscf_chkfiles": 2,
+      "required_science_evidence_complete": true,
+      "stable_declared_files_verified": 18
+    },
+    "neutral_handoff_sha256": "c228fa88d7a08018ba4b7dfa7dbd0f510328a3ce2f4cd611610b20ca13258915",
+    "private_result_sha256": "dbb0a66fa937e97a19c947d69d409db9323702ba58666865482db80a76c0621c",
+    "review_result_sha256": "f8f5cd80f117edc8ce061f901f797bce23b6934dc6ded6d1c8a52871b533f86e"
+  },
+  "final_outcome": "PASS",
+  "full_manifest_post_exit_stable": false,
+  "handoff_status": "PASS",
+  "interpreter": {
+    "executable_sha256": "24a07a0a383fd666309acf92ad4e913dd372b3f2d4592d60f1f2f0ca7138fc61",
+    "geometric": "1.1.1",
+    "launcher_kind": "symlink_to_same_environment",
+    "pyscf": "2.13.1",
+    "pyscf_dispersion": "1.5.0",
+    "python": "3.11.15"
+  },
+  "production_10_degree_gate_unchanged": true,
+  "production_accepted": false,
+  "production_label_inserted": false,
+  "production_label_count": 71,
+  "public_execution_gates_false": 11,
+  "required_science_evidence_complete": true,
+  "schema_version": "nhc-phase9b-science-pilot-v004-public-result-v1",
+  "science_pilot_only": true,
+  "scientific_feasibility": "PASS",
+  "source_commit": "e2bc8413aa929a343b9ca6ed7d29792828a1d67c",
+  "source_sha256": "40029ba06bdf7109ab96ea1172c39af1445d1f7ca655dddefabe707bc1c69a73",
+  "total_wall_seconds": 200.47594723384827,
+  "v001_unchanged": true,
+  "v002_frozen_evidence_bytes_unchanged": true,
+  "v002_terminal": "FAIL under frozen 10-degree gate",
+  "v002_terminal_unchanged": true
+}

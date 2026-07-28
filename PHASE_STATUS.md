@@ -1,6 +1,6 @@
 # Phase Status
 
-Updated: 2026-07-27
+Updated: 2026-07-28
 
 | Phase | Status | Gate |
 | --- | --- | --- |
@@ -32,6 +32,7 @@ Updated: 2026-07-27
 | Phase 9B-U3 — qualified metrology / v003 | Failed before environment creation; retained | 2026-07-27; helper rejected normal Conda Python symlinks as invalid; v003 resources never created |
 | Phase 9B-U4 — symlink-aware metrology / v004 | Failed before environment creation; retained | Q4 reached conda evidence then returned `CONDA_EXPLICIT_FAILED` for all six; v004 resources never created |
 | Phase 9B-U5 — metadata-native metrology / v005 | Failed before environment creation; retained | One Q5 SSH failed in remote helper bootstrap before all object captures; no v005 resource was created |
+| Phase 9B science pilot v004 — corrected geometry + PySCF single points | `PASS`, `science_pilot_only`; not production accepted | 2026-07-28; same candidate and retained v002 AIMNet2 XYZ; exact-byte cation/neutral PySCF single points converged; no production label or gate change |
 
 ## Current completed work
 
@@ -438,7 +439,19 @@ direct-v003 authority chain. The full matrix and gap
 classification are in `docs/PHASE9B_ITEM11_WRITER_READER_MATRIX.md` and
 `docs/PHASE9B_ITEM11_EVIDENCE_GAP_REPORT.md`.
 
+An independently authorized, non-production science pilot does not alter those
+control-plane states. v004 corrected the review-only signed-dihedral convention,
+classified the retained neutral v002 geometry `SAME_BASIN_LIKELY`, and ran one
+cation then one neutral PySCF final-SCF single point on the exact retained AIMNet2
+XYZ bytes. Both standard SCFs converged in 12 cycles. The resulting pilot-only
+gas-phase electronic value is `238.8477388721244 kcal/mol`; it was not inserted
+into the production table and is not equivalent to the production residual-
+optimization protocol. Details are in
+`docs/PHASE9B_SCIENCE_PILOT_V004_REPORT.md`.
+
 No Postflight source was implemented, no v9 leaf moved, and no v10 was created.
-Item 12/12 rehearsal cannot start. The only allowed next work is a separately
-authorized runner-remediation design that permits superseding v9 before
-execution and then requires a fresh evidence-sufficiency audit.
+Item 12/12 rehearsal cannot start. Runner remediation was the Item 11 closeout
+next action, but the later science-pilot priority explicitly paused that track.
+The current only permissible next work, under separate authorization, is the
+same candidate's original-frozen-geometry cation/neutral PySCF single-point
+control; no second candidate or batch is allowed.

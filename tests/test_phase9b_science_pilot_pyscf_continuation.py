@@ -260,3 +260,21 @@ def test_continuation_has_no_optimizer_or_production_acceptance_path() -> None:
     assert '"production_accepted": False' in source
     assert '"production_label_inserted": False' in source
     assert '"aimnet2_rerun": False' in source
+
+
+def test_public_v004_result_is_pilot_only_and_formula_closed() -> None:
+    payload = json.loads((ROOT / "docs/PHASE9B_SCIENCE_PILOT_V004_RESULT.json").read_text())
+
+    assert payload["final_outcome"] == "PASS"
+    assert payload["science_pilot_only"] is True
+    assert payload["production_accepted"] is False
+    assert payload["production_label_inserted"] is False
+    assert payload["production_label_count"] == 71
+    assert payload["public_execution_gates_false"] == 11
+    assert payload["required_science_evidence_complete"] is True
+    assert payload["full_manifest_post_exit_stable"] is False
+    assert payload["deprotonation"]["aimnet2_energy_used"] is False
+    assert payload["deprotonation"]["gas_proton_constant_kcal_per_mol"] == -6.28
+    assert payload["deprotonation"]["value_kcal_per_mol"] == pytest.approx(
+        238.8477388721244, abs=1.0e-12
+    )

@@ -541,7 +541,25 @@ dig +trace domain
 - runner v9 五个 leaf、dependency edge、deployment inventory、composite、paired v3
   request/manifest/resources 都必须保持不变；不得在 Item 11 内修 writer、生成 v10、
   弱化 Postflight 或用日志/mtime/remote bool补证。
-- Item 11 不 complete，Item 12 不得开始。下一项唯一允许工作是另行授权的
-  runner-remediation design：允许在执行前 supersede v9、补齐 durable writers 与
-  direct authority，再一次性冻结新 source/generation，并重新做 Evidence Sufficiency
-  Audit。11 个 public gates 持续 false，生产标签保持 71。
+- Item 11 不 complete，Item 12 不得开始。runner-remediation design 是当时的
+  closeout next action；后续 science-pilot 高优先级授权已暂停该支线。当前 next action
+  以第30节为准。11 个 public gates 持续 false，生产标签保持 71。
+
+## 30. Phase 9B science pilot v004 — non-production 科学可行性结果
+
+- 该 pilot 是独立的 `science_pilot_only` 实验，不是 Phase 9B campaign、permit、
+  deploy、Postflight 或 production accepted run；不改变 Item 11 的 blocked 状态。
+- v001 保持 `INCONCLUSIVE`；v002 冻结 result/input/final XYZ bytes 与
+  `FAIL under frozen 10-degree gate` 终态不变；新增 review evidence 不构成改判。
+  production 10° gate 未修改，AIMNet2 未重跑。
+- v004 只修正几何 review 的 signed-dihedral convention：到 `{0°, ±180°}` 的
+  最大距离从 initial `5.088289°` 变为 final `0.933197°`，与 best-fit-plane
+  结果一致；Stage A 为 `SAME_BASIN_LIKELY`，不是严格 basin 证明。
+- 同一候选的 cation(+1, singlet, 26 atoms) 与 neutral(0, singlet, 25 atoms)
+  exact-byte handoff 均通过。PySCF 2.13.1 的 B3LYP-D3(BJ)/def2-SVP final-SCF-only
+  single points 均用 standard strategy 在 12 cycles 收敛；未调用 geomeTRIC。
+- pilot-only 冻结公式值为 `238.8477388721244 kcal/mol`。该值不是 Gibbs、pKa、
+  溶液酸度或实验焓，也不是 production residual-optimization label；
+  `production_accepted=false`、未写生产标签、标签数仍 71、11 gates 仍 false。
+- 若获得新授权，唯一最小下一步是同一候选原始冻结几何的 cation/neutral PySCF
+  single-point 对照，只比较 SCF convergence、cycles 和 wall；不得启动第二候选或 batch。
