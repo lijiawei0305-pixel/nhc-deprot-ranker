@@ -28,7 +28,7 @@ or rerun. v002 remains **FAIL under the unchanged production 10-degree gate**.
 | Review source commit | `16968e549bebde0f69b7cdfe91a0505344fc4c47` |
 | Review source SHA256 | `4c7a8e43...dfc3e` |
 | v001 result SHA256 | `769e64a2...1915` |
-| v002 result SHA256 | `b1362a3...07071` |
+| v002 result SHA256 | `b1362a3...d7071` |
 | v002 terminal | `FAIL` under frozen 10-degree gate |
 | Review execution | local, read-only geometry analysis; no SSH |
 
