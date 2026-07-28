@@ -16,6 +16,7 @@ def _load_pilot() -> Any:
     spec = importlib.util.spec_from_file_location("phase9b_science_pilot", SCRIPT)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -24,6 +25,7 @@ def test_science_pilot_freezes_candidate_formula_and_single_pair() -> None:
     pilot = _load_pilot()
 
     assert pilot.PILOT_KIND == "science_pilot_only"
+    assert pilot.PILOT_RUN_NAME == "science_pilot_lbn_v002"
     assert pilot.CANDIDATE == "LBNPGYISTSLAHY-UHFFFAOYSA-N"
     assert pilot.ENDPOINTS == ("cation", "neutral")
     assert pilot.CHARGES == {"cation": 1, "neutral": 0}
@@ -35,6 +37,49 @@ def test_science_pilot_freezes_candidate_formula_and_single_pair() -> None:
     observed = (neutral - cation) * pilot.HARTREE_TO_KCAL_MOL + pilot.GAS_PROTON_KCAL_MOL
     assert observed == pytest.approx(621.229474, abs=1.0e-12)
     assert pilot.LABEL_FORMULA == ("((E_neutral_PySCF - E_cation_PySCF) * 627.509474) - 6.28")
+
+
+def test_proton_host_identity_preserved() -> None:
+    pilot = _load_pilot()
+    elements = ["C"] * 24
+    elements[8] = "N"
+    elements[15] = "N"
+    elements[23] = "H"
+    frozen = tuple(elements)
+    initial_bonds = frozenset({(14, 23)})
+
+    preserved = pilot.validate_proton_host_identity(
+        elements_before=frozen,
+        bonds_before=initial_bonds,
+        elements_after=frozen,
+        bonds_after=frozenset({(14, 23)}),
+        proton_atom_index=23,
+        expected_initial_host_atom_index=14,
+    )
+    migrated_to_n = pilot.validate_proton_host_identity(
+        elements_before=frozen,
+        bonds_before=initial_bonds,
+        elements_after=frozen,
+        bonds_after=frozenset({(8, 23)}),
+        proton_atom_index=23,
+        expected_initial_host_atom_index=14,
+    )
+    migrated_elsewhere = pilot.validate_proton_host_identity(
+        elements_before=frozen,
+        bonds_before=initial_bonds,
+        elements_after=frozen,
+        bonds_after=frozenset({(9, 23)}),
+        proton_atom_index=23,
+        expected_initial_host_atom_index=14,
+    )
+
+    assert preserved.initial_host_atom_index == 14
+    assert preserved.final_host_atom_index == 14
+    assert preserved.preserved is True
+    assert migrated_to_n.final_host_atom_index == 8
+    assert migrated_to_n.preserved is False
+    assert migrated_elsewhere.final_host_atom_index == 9
+    assert migrated_elsewhere.preserved is False
 
 
 def test_science_pilot_identity_matches_frozen_generation() -> None:
@@ -106,7 +151,7 @@ def test_handoff_must_match_durable_aimnet_receipt() -> None:
 
 def test_main_persists_inconclusive_setup_failure(tmp_path: Path) -> None:
     pilot = _load_pilot()
-    root = tmp_path / "science_pilot_lbn_v001"
+    root = tmp_path / "science_pilot_lbn_v002"
     root.mkdir()
 
     with pytest.raises(pilot.PilotError, match="source root"):
@@ -132,7 +177,7 @@ def test_main_classifies_exact_handoff_failure_as_fail(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pilot = _load_pilot()
-    root = tmp_path / "science_pilot_lbn_v001"
+    root = tmp_path / "science_pilot_lbn_v002"
     root.mkdir()
 
     def fail_handoff(_args: object) -> int:

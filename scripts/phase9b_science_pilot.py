@@ -22,13 +22,14 @@ import sys
 import time
 import traceback
 from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Final, cast
 
 CANDIDATE: Final = "LBNPGYISTSLAHY-UHFFFAOYSA-N"
 PILOT_KIND: Final = "science_pilot_only"
-PILOT_SCHEMA: Final = "nhc-phase9b-science-pilot-v1"
+PILOT_SCHEMA: Final = "nhc-phase9b-science-pilot-v2"
+PILOT_RUN_NAME: Final = "science_pilot_lbn_v002"
 
 ENDPOINTS: Final = ("cation", "neutral")
 CHARGES: Final = {"cation": 1, "neutral": 0}
@@ -40,6 +41,7 @@ INPUT_SHA256: Final = {
 }
 INPUT_BYTES: Final = {"cation": 1075, "neutral": 1036}
 ATOM_MAP: Final = {"C2_carbene": 14, "N1": 8, "N3": 15}
+ACIDIC_PROTON_INDEX: Final = 23
 ELECTRON_COUNT: Final = 160
 
 WEIGHT_FILENAME: Final = "aimnet2_wb97m_d3_0.pt"
@@ -75,6 +77,35 @@ class InconclusiveFailure(PilotError):
 
 class HandoffFailure(ScientificFailure):
     """The AIMNet2-to-PySCF byte or chemical identity was not preserved."""
+
+
+@dataclass(frozen=True, slots=True)
+class ProtonHostIdentity:
+    """Index-bound identity of the one frozen cation acidic proton."""
+
+    proton_atom_index: int
+    initial_host_atom_index: int
+    final_host_atom_index: int | None
+    preserved: bool
+
+
+@dataclass(frozen=True, slots=True)
+class PilotStructuralValidation:
+    """Pilot-only structure gates with no hard-coded chemical host assumption."""
+
+    total_rmsd_angstrom: float
+    max_single_atom_displacement_angstrom: float
+    c2_n1_bond_change_angstrom: float
+    c2_n3_bond_change_angstrom: float
+    ring_angle_change_degrees: float
+    atom_count_preserved: bool
+    atom_order_preserved: bool
+    connectivity_preserved: bool
+    proton_host_index_preserved: bool
+    acidic_proton_index: int | None
+    initial_host_atom_index: int | None
+    final_host_atom_index: int | None
+    all_gates_passed: bool
 
 
 def _canonical_json_bytes(payload: object) -> bytes:
@@ -258,6 +289,163 @@ def _minimum_pair_distance(points: Sequence[Sequence[float]]) -> float:
     return min(distances)
 
 
+def _distance(points: Sequence[Sequence[float]], left: int, right: int) -> float:
+    return math.sqrt(sum((points[left][axis] - points[right][axis]) ** 2 for axis in range(3)))
+
+
+def _angle_degrees(points: Sequence[Sequence[float]], left: int, centre: int, right: int) -> float:
+    first = [points[left][axis] - points[centre][axis] for axis in range(3)]
+    second = [points[right][axis] - points[centre][axis] for axis in range(3)]
+    first_norm = math.sqrt(sum(value * value for value in first))
+    second_norm = math.sqrt(sum(value * value for value in second))
+    if first_norm == 0.0 or second_norm == 0.0:
+        raise PilotError("structure contains a degenerate mapped angle")
+    cosine = sum(first[axis] * second[axis] for axis in range(3)) / (first_norm * second_norm)
+    return math.degrees(math.acos(max(-1.0, min(1.0, cosine))))
+
+
+def _bonded_neighbors(bonds: frozenset[tuple[int, int]], atom_index: int) -> tuple[int, ...]:
+    return tuple(
+        sorted(
+            right if left == atom_index else left
+            for left, right in bonds
+            if left == atom_index or right == atom_index
+        )
+    )
+
+
+def validate_proton_host_identity(
+    *,
+    elements_before: Sequence[str],
+    bonds_before: frozenset[tuple[int, int]],
+    elements_after: Sequence[str],
+    bonds_after: frozenset[tuple[int, int]],
+    proton_atom_index: int,
+    expected_initial_host_atom_index: int,
+) -> ProtonHostIdentity:
+    """Require the frozen proton to remain on its observed original atom index."""
+
+    if (
+        proton_atom_index >= len(elements_before)
+        or proton_atom_index >= len(elements_after)
+        or elements_before[proton_atom_index] != "H"
+        or elements_after[proton_atom_index] != "H"
+    ):
+        raise PilotError("the frozen acidic proton index is not hydrogen")
+    initial_hosts = tuple(
+        index
+        for index in _bonded_neighbors(bonds_before, proton_atom_index)
+        if elements_before[index] != "H"
+    )
+    if initial_hosts != (expected_initial_host_atom_index,):
+        raise PilotError("the frozen input acidic proton host identity drifted")
+    final_hosts = tuple(
+        index
+        for index in _bonded_neighbors(bonds_after, proton_atom_index)
+        if elements_after[index] != "H"
+    )
+    final_host = final_hosts[0] if len(final_hosts) == 1 else None
+    return ProtonHostIdentity(
+        proton_atom_index=proton_atom_index,
+        initial_host_atom_index=initial_hosts[0],
+        final_host_atom_index=final_host,
+        preserved=final_hosts == initial_hosts,
+    )
+
+
+def _validate_pilot_structure(
+    *,
+    runtime: Any,
+    endpoint: str,
+    elements_before: Sequence[str],
+    before: Sequence[Sequence[float]],
+    elements_after: Sequence[str],
+    after: Sequence[Sequence[float]],
+) -> PilotStructuralValidation:
+    """Apply the frozen gates while deriving proton identity from the input graph."""
+
+    atom_count_preserved = len(elements_before) == len(elements_after)
+    atom_order_preserved = tuple(elements_before) == tuple(elements_after)
+    if not atom_count_preserved or not atom_order_preserved:
+        raise PilotError("atom count or element order changed during preoptimization")
+    c2, n1, n3 = ATOM_MAP["C2_carbene"], ATOM_MAP["N1"], ATOM_MAP["N3"]
+    if elements_before[c2] != "C" or elements_before[n1] != "N" or elements_before[n3] != "N":
+        raise PilotError("the frozen C2/N1/N3 atom map drifted")
+
+    squared = sum(
+        sum((after[index][axis] - before[index][axis]) ** 2 for axis in range(3))
+        for index in range(len(before))
+    )
+    total_rmsd = math.sqrt(squared / len(before))
+    max_displacement = max(
+        _distance((before[index], after[index]), 0, 1) for index in range(len(before))
+    )
+    c2_n1_change = abs(_distance(after, c2, n1) - _distance(before, c2, n1))
+    c2_n3_change = abs(_distance(after, c2, n3) - _distance(before, c2, n3))
+    ring_angle_change = abs(_angle_degrees(after, n1, c2, n3) - _angle_degrees(before, n1, c2, n3))
+
+    bonds_before = runtime.infer_connectivity(elements_before, before)
+    bonds_after = runtime.infer_connectivity(elements_after, after)
+    connectivity_preserved = bonds_before == bonds_after
+    all_proton_hosts_preserved = runtime._proton_hosts(
+        elements_before, bonds_before
+    ) == runtime._proton_hosts(elements_after, bonds_after)
+
+    acidic_proton_index: int | None = None
+    initial_host_atom_index: int | None = None
+    final_host_atom_index: int | None = None
+    if endpoint == "cation":
+        identity = validate_proton_host_identity(
+            elements_before=elements_before,
+            bonds_before=bonds_before,
+            elements_after=elements_after,
+            bonds_after=bonds_after,
+            proton_atom_index=ACIDIC_PROTON_INDEX,
+            expected_initial_host_atom_index=c2,
+        )
+        acidic_proton_index = identity.proton_atom_index
+        initial_host_atom_index = identity.initial_host_atom_index
+        final_host_atom_index = identity.final_host_atom_index
+        proton_host_index_preserved = identity.preserved and all_proton_hosts_preserved
+    elif endpoint == "neutral":
+        initial_c2_hydrogens = tuple(
+            index for index in _bonded_neighbors(bonds_before, c2) if elements_before[index] == "H"
+        )
+        final_c2_hydrogens = tuple(
+            index for index in _bonded_neighbors(bonds_after, c2) if elements_after[index] == "H"
+        )
+        proton_host_index_preserved = (
+            not initial_c2_hydrogens and not final_c2_hydrogens and all_proton_hosts_preserved
+        )
+    else:
+        raise PilotError("unknown AIMNet2 endpoint")
+
+    passed = (
+        total_rmsd <= runtime.MAX_TOTAL_RMSD_ANGSTROM
+        and max_displacement <= runtime.MAX_SINGLE_ATOM_DISPLACEMENT_ANGSTROM
+        and c2_n1_change <= runtime.MAX_C2_N_BOND_CHANGE_ANGSTROM
+        and c2_n3_change <= runtime.MAX_C2_N_BOND_CHANGE_ANGSTROM
+        and ring_angle_change <= runtime.MAX_RING_ANGLE_CHANGE_DEGREES
+        and connectivity_preserved
+        and proton_host_index_preserved
+    )
+    return PilotStructuralValidation(
+        total_rmsd_angstrom=total_rmsd,
+        max_single_atom_displacement_angstrom=max_displacement,
+        c2_n1_bond_change_angstrom=c2_n1_change,
+        c2_n3_bond_change_angstrom=c2_n3_change,
+        ring_angle_change_degrees=ring_angle_change,
+        atom_count_preserved=atom_count_preserved,
+        atom_order_preserved=atom_order_preserved,
+        connectivity_preserved=connectivity_preserved,
+        proton_host_index_preserved=proton_host_index_preserved,
+        acidic_proton_index=acidic_proton_index,
+        initial_host_atom_index=initial_host_atom_index,
+        final_host_atom_index=final_host_atom_index,
+        all_gates_passed=passed,
+    )
+
+
 def _validate_frozen_endpoint(
     endpoint: str,
     raw: bytes,
@@ -367,7 +555,7 @@ def _gpu_observation(physical_index: int, expected_uuid: str) -> dict[str, objec
 
 def _aimnet2_command(args: argparse.Namespace) -> int:
     root = Path(args.pilot_root).resolve(strict=True)
-    if root.name != "science_pilot_lbn_v001":
+    if root.name != PILOT_RUN_NAME:
         raise PilotError("pilot root logical identity drifted")
     _add_source_root(Path(args.source_root))
 
@@ -491,7 +679,8 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
                 comment=f"science_pilot_only {CANDIDATE} {endpoint} AIMNet2 final",
             )
             final_receipt = _write_new(endpoint_root / "final.xyz", final_raw)
-            structure = runtime.validate_structure(
+            structure = _validate_pilot_structure(
+                runtime=runtime,
                 endpoint=endpoint,
                 elements_before=elements,
                 before=coordinates,
@@ -550,7 +739,7 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
         failure = _failure_payload(f"aimnet2_{endpoint}", exc)
         outcome_name = "FAIL" if isinstance(exc, ScientificFailure) else "INCONCLUSIVE"
         failure_summary = {
-            "schema_version": "nhc-phase9b-science-pilot-aimnet2-v1",
+            "schema_version": "nhc-phase9b-science-pilot-aimnet2-v2",
             "status": "failed",
             "candidate": CANDIDATE,
             "failure": failure,
@@ -586,7 +775,7 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
     torch = importlib.import_module("torch")
 
     summary = {
-        "schema_version": "nhc-phase9b-science-pilot-aimnet2-v1",
+        "schema_version": "nhc-phase9b-science-pilot-aimnet2-v2",
         "science_pilot_only": True,
         "status": "success",
         "candidate": CANDIDATE,
@@ -799,9 +988,60 @@ def _pyscf_failure_outcome(module: Any, exc: BaseException) -> str:
     return "INCONCLUSIVE"
 
 
+def _run_pyscf_endpoint_without_retry(
+    *, module: Any, backend: Any, endpoint: Any, deadline: float
+) -> tuple[Any, Any, dict[str, object]]:
+    """Run the frozen standard protocol once; v002 authorizes no SOSCF retry."""
+
+    optimization = module._call_optimize(
+        backend=backend,
+        endpoint=endpoint,
+        strategy="standard",
+        deadline=deadline,
+    )
+    final_scf = module._call_scf(
+        backend=backend,
+        endpoint=endpoint,
+        geometry=optimization.geometry,
+        strategy="standard",
+        deadline=deadline,
+    )
+    record: dict[str, object] = {
+        "charge": endpoint.charge,
+        "multiplicity": endpoint.multiplicity,
+        "electron_count": endpoint.electron_count,
+        "input_xyz_path": endpoint.xyz_relative_path,
+        "input_xyz_sha256": endpoint.xyz_sha256,
+        "retry": {
+            "authorized": False,
+            "attempts": 1,
+            "soscf_consumed": False,
+        },
+        "optimization": {
+            "optimizer": "geomeTRIC",
+            "geometry_converged": True,
+            "scf_converged": True,
+            "selected_strategy": "standard",
+            "last_energy_hartree": optimization.last_energy_hartree,
+            "attempts": [{"strategy": "standard", "converged": True}],
+            "runtime": module._runtime_evidence_payload(optimization.runtime),
+            "dispersion": module._optimization_dispersion_payload(optimization.dispersion),
+        },
+        "final_scf": {
+            "converged": True,
+            "selected_strategy": "standard",
+            "energy_hartree": final_scf.energy_hartree,
+            "attempts": [{"strategy": "standard", "converged": True}],
+            "runtime": module._runtime_evidence_payload(final_scf.runtime),
+            "dispersion": module._final_dispersion_payload(final_scf.dispersion),
+        },
+    }
+    return optimization, final_scf, record
+
+
 def _pyscf_command(args: argparse.Namespace) -> int:
     root = Path(args.pilot_root).resolve(strict=True)
-    if root.name != "science_pilot_lbn_v001":
+    if root.name != PILOT_RUN_NAME:
         raise PilotError("pilot root logical identity drifted")
     _add_source_root(Path(args.source_root))
     from importlib import metadata
@@ -847,6 +1087,19 @@ def _pyscf_command(args: argparse.Namespace) -> int:
         )
         if observed_elements != initial_elements or len(geometry.atoms) != ATOM_COUNTS[endpoint]:
             raise HandoffFailure(f"{endpoint} handoff atom order drifted")
+        handoff_record = cast(dict[str, object], handoffs[endpoint])
+        handoff_record.update(
+            {
+                "atom_count": len(observed_elements),
+                "atom_order_preserved": True,
+                "element_order_sha256": _sha256(" ".join(observed_elements).encode("utf-8")),
+                "parser_input_sha256": _sha256(raw),
+                "parser_input_byte_count": len(raw),
+                "disk_equals_parser": True,
+                "charge": CHARGES[endpoint],
+                "multiplicity": MULTIPLICITIES[endpoint],
+            }
+        )
         electrons = two_endpoint._electron_count_for_geometry(geometry, charge=CHARGES[endpoint])
         if electrons != ELECTRON_COUNT:
             raise HandoffFailure(f"{endpoint} handoff electron count drifted")
@@ -873,7 +1126,8 @@ def _pyscf_command(args: argparse.Namespace) -> int:
                 _capture_fds(endpoint_root / "stdout", endpoint_root / "stderr"),
                 _working_directory(endpoint_root),
             ):
-                optimization, final_scf, record = two_endpoint._run_endpoint(
+                optimization, final_scf, record = _run_pyscf_endpoint_without_retry(
+                    module=two_endpoint,
                     backend=backend,
                     endpoint=cast(Any, requests[endpoint]),
                     deadline=deadline,
@@ -925,7 +1179,7 @@ def _pyscf_command(args: argparse.Namespace) -> int:
         }
         outcome = _pyscf_failure_outcome(two_endpoint, exc)
         failure_summary = {
-            "schema_version": "nhc-phase9b-science-pilot-pyscf-v1",
+            "schema_version": "nhc-phase9b-science-pilot-pyscf-v2",
             "status": "failed",
             "candidate": CANDIDATE,
             "failure": failure,
@@ -967,7 +1221,7 @@ def _pyscf_command(args: argparse.Namespace) -> int:
     if not math.isfinite(electronic_difference) or not math.isfinite(value):
         raise PilotError("deprotonation formula produced a non-finite value")
     summary: dict[str, object] = {
-        "schema_version": "nhc-phase9b-science-pilot-pyscf-v1",
+        "schema_version": "nhc-phase9b-science-pilot-pyscf-v2",
         "science_pilot_only": True,
         "status": "success",
         "candidate": CANDIDATE,
