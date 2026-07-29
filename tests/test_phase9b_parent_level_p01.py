@@ -125,6 +125,56 @@ def test_frozen_endpoint_identity() -> None:
     }
 
 
+def test_parent_worker_accepts_explicit_frozen_candidate_identity() -> None:
+    args = benchmark.parser().parse_args(
+        [
+            "parent-worker",
+            "--route",
+            "pure_pyscf",
+            "--route-limit-seconds",
+            "86400",
+            "--threads",
+            "28",
+            "--cpu-list",
+            "28-55",
+            "--max-memory-mb",
+            "64000",
+            "--candidate",
+            "QXHIEGFUWOLQIJ-UHFFFAOYSA-N",
+            "--electron-count",
+            "120",
+            "--cation-atom-count",
+            "22",
+            "--neutral-atom-count",
+            "21",
+            "--cation-sha256",
+            "a" * 64,
+            "--neutral-sha256",
+            "b" * 64,
+            "--root",
+            "/tmp/root",
+            "--source-root",
+            "/tmp/src",
+            "--pilot-helper",
+            "/tmp/pilot.py",
+            "--sp-helper",
+            "/tmp/sp.py",
+            "--v006-helper",
+            "/tmp/v006.py",
+            "--cation-input",
+            "/tmp/cation.xyz",
+            "--neutral-input",
+            "/tmp/neutral.xyz",
+        ]
+    )
+    assert args.candidate == "QXHIEGFUWOLQIJ-UHFFFAOYSA-N"
+    assert args.electron_count == 120
+    assert args.cation_atom_count == 22
+    assert args.neutral_atom_count == 21
+    assert args.cation_sha256 == "a" * 64
+    assert args.neutral_sha256 == "b" * 64
+
+
 def test_no_disallowed_rescue_program_or_batch_framework() -> None:
     source = (AUDIT_PATH.read_text() + BENCHMARK_PATH.read_text()).lower()
     forbidden = ("x" + "tb", "g" + "fn", "sub" + "mit", "sl" + "urm")

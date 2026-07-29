@@ -184,16 +184,27 @@ def _validate_short_temp_environment(environment: dict[str, str]) -> None:
 
 
 def _request(
-    module: Any, helper: Any, endpoint: str, path: Path, route: str
+    module: Any,
+    helper: Any,
+    endpoint: str,
+    path: Path,
+    route: str,
+    *,
+    expected_sha256: str,
+    expected_atom_count: int,
+    expected_electron_count: int,
 ) -> tuple[Any, dict[str, object]]:
     raw = helper.read_regular(path)
-    if route == "pure_pyscf" and sha256_bytes(raw) != INPUT_SHA256[endpoint]:
+    if route == "pure_pyscf" and sha256_bytes(raw) != expected_sha256:
         raise BenchmarkError(f"{endpoint} frozen input bytes drifted")
     geometry = module._parse_xyz(raw, label=f"P01 {route} {endpoint}")
     elements = tuple(atom.element for atom in geometry.atoms)
-    if len(elements) != ATOM_COUNTS[endpoint]:
+    if len(elements) != expected_atom_count:
         raise BenchmarkError(f"{endpoint} atom count drifted")
-    if module._electron_count_for_geometry(geometry, charge=CHARGES[endpoint]) != ELECTRONS:
+    if (
+        module._electron_count_for_geometry(geometry, charge=CHARGES[endpoint])
+        != expected_electron_count
+    ):
         raise BenchmarkError(f"{endpoint} electron count drifted")
     request = module.EndpointRequest(
         name=cast(Any, endpoint),
@@ -202,7 +213,7 @@ def _request(
         xyz_sha256=sha256_bytes(raw),
         charge=CHARGES[endpoint],
         multiplicity=MULTIPLICITIES[endpoint],
-        electron_count=ELECTRONS,
+        electron_count=expected_electron_count,
         geometry=geometry,
     )
     return request, {
@@ -215,14 +226,19 @@ def _request(
         "multiplicity": MULTIPLICITIES[endpoint],
         "spin": 0,
         "atom_count": len(elements),
-        "electron_count": ELECTRONS,
+        "electron_count": expected_electron_count,
         "exact_bytes": True,
         "units": "Angstrom",
     }
 
 
 def build_parent_backend(
-    *, pilot: Any, module: Any, threads: int = 4, memory_mb: int = 12000
+    *,
+    pilot: Any,
+    module: Any,
+    threads: int = 4,
+    memory_mb: int = 12000,
+    expected_electron_count: int = ELECTRONS,
 ) -> Any:
     """Adapt the audited pilot backend without changing production source."""
 
@@ -266,7 +282,7 @@ def build_parent_backend(
             if multiplicity != 1 or charge not in {0, 1}:
                 raise BenchmarkError("parent backend endpoint identity drifted")
             electron_count = module._electron_count_for_geometry(geometry, charge=charge)
-            if electron_count != ELECTRONS:
+            if electron_count != expected_electron_count:
                 raise BenchmarkError("parent backend electron count drifted")
             atom_spec = [(atom.element, (atom.x, atom.y, atom.z)) for atom in geometry.atoms]
             molecule = modules.gto.M(
@@ -426,7 +442,16 @@ def parent_worker(args: argparse.Namespace) -> int:
             / f"{endpoint}_{'aimnet2_final' if args.route == 'assisted' else 'initial'}.xyz"
         )
         helper.write_new(destination, raw)
-        request, handoff = _request(two_endpoint, helper, endpoint, destination, args.route)
+        request, handoff = _request(
+            two_endpoint,
+            helper,
+            endpoint,
+            destination,
+            args.route,
+            expected_sha256=getattr(args, f"{endpoint}_sha256"),
+            expected_atom_count=getattr(args, f"{endpoint}_atom_count"),
+            expected_electron_count=args.electron_count,
+        )
         requests[endpoint] = request
         handoffs[endpoint] = handoff
         helper.write_json_new(root / "handoff" / f"{endpoint}.json", handoff)
@@ -436,6 +461,7 @@ def parent_worker(args: argparse.Namespace) -> int:
         module=two_endpoint,
         threads=args.threads,
         memory_mb=args.max_memory_mb,
+        expected_electron_count=args.electron_count,
     )
     energies: dict[str, float] = {}
     endpoint_results: dict[str, object] = {}
@@ -495,13 +521,13 @@ def parent_worker(args: argparse.Namespace) -> int:
         metrics = cast(dict[str, object], backend.pilot_metrics.get(endpoint, {}))
         payload: dict[str, object] = {
             "schema_version": SCHEMA,
-            "candidate": CANDIDATE,
+            "candidate": args.candidate,
             "endpoint": endpoint,
             "route": args.route,
             "charge": CHARGES[endpoint],
             "multiplicity": 1,
             "spin": 0,
-            "electron_count": ELECTRONS,
+            "electron_count": args.electron_count,
             "protocol": protocol(
                 threads=args.threads,
                 cpu_affinity=cpu_list,
@@ -550,10 +576,10 @@ def parent_worker(args: argparse.Namespace) -> int:
         "science_pilot_only": True,
         "production_accepted": False,
         "production_label_inserted": False,
-        "candidate": CANDIDATE,
+        "candidate": args.candidate,
         "route": args.route,
         "single_candidate": True,
-        "second_pure_pyscf_candidate": False,
+        "second_pure_pyscf_candidate": args.candidate != CANDIDATE,
         "batch": False,
         "retry": False,
         "protocol": protocol(
@@ -788,6 +814,12 @@ def parser() -> argparse.ArgumentParser:
     worker.add_argument("--threads", type=int, required=True)
     worker.add_argument("--cpu-list", required=True)
     worker.add_argument("--max-memory-mb", type=int, required=True)
+    worker.add_argument("--candidate", default=CANDIDATE)
+    worker.add_argument("--electron-count", type=int, default=ELECTRONS)
+    worker.add_argument("--cation-atom-count", type=int, default=ATOM_COUNTS["cation"])
+    worker.add_argument("--neutral-atom-count", type=int, default=ATOM_COUNTS["neutral"])
+    worker.add_argument("--cation-sha256", default=INPUT_SHA256["cation"])
+    worker.add_argument("--neutral-sha256", default=INPUT_SHA256["neutral"])
     for name in (
         "root",
         "source-root",
