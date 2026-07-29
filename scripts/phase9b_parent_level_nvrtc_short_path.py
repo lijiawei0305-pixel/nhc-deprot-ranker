@@ -45,6 +45,7 @@ MINIMUM_AVAILABLE_BYTES: Final = 5_000_000_000
 MAXIMUM_ROOT_LENGTH: Final = 40
 WEIGHT_SHA256: Final = "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28"
 INPUT_SHA256: Final = "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286"
+ELEMENT_ORDER_SHA256: Final = "eb7439bedb2ecbc38e2a1dd214b5f4ed08c1cb775a88fe853bcc60ad23d13f4a"
 
 
 class RecoveryError(RuntimeError):
@@ -110,8 +111,10 @@ def validate_short_root(
 
 
 def create_short_root(
-    candidates: Sequence[Path] = (Path("/dev/shm"), Path("/tmp")),
+    candidates: Sequence[Path] = (Path("/dev/shm"), Path("/tmp")), *, prefix: str = "p01r2."
 ) -> tuple[Path, dict[str, object]]:
+    if prefix not in {"p01r2.", "p01r3."}:
+        raise RecoveryError("unregistered short-root prefix")
     failures: list[str] = []
     for candidate in candidates:
         try:
@@ -121,7 +124,7 @@ def create_short_root(
             filesystem = os.statvfs(candidate)
             if filesystem.f_bavail * filesystem.f_frsize < MINIMUM_AVAILABLE_BYTES:
                 raise RecoveryError("candidate has insufficient free space")
-            created = Path(tempfile.mkdtemp(prefix="p01r2.", dir=candidate))
+            created = Path(tempfile.mkdtemp(prefix=prefix, dir=candidate))
             created.chmod(0o700)
             evidence = validate_short_root(created)
             evidence["selected_parent"] = candidate.as_posix()
@@ -208,7 +211,10 @@ def child_environment_probe(environment: dict[str, str], python: Path) -> dict[s
 
 def safe_cleanup_root(path: Path) -> bool:
     text = path.as_posix()
-    valid_prefix = text.startswith("/dev/shm/p01r2.") or text.startswith("/tmp/p01r2.")
+    valid_prefix = any(
+        text.startswith(prefix)
+        for prefix in ("/dev/shm/p01r2.", "/tmp/p01r2.", "/dev/shm/p01r3.", "/tmp/p01r3.")
+    )
     if not text or not valid_prefix or text in {"/", "/tmp", "/dev/shm"}:
         return False
     try:
@@ -244,6 +250,39 @@ def _load(path: Path, name: str) -> Any:
     return module
 
 
+def evaluate_bound_smoke(
+    *, runtime: Any, base: Any, elements: Sequence[str], coordinates: Sequence[Sequence[float]]
+) -> dict[str, object]:
+    if len(elements) != 26 or len(coordinates) != 26:
+        raise RecoveryError("corrected smoke requires exactly 26 atoms")
+    if any(len(row) != 3 for row in coordinates):
+        raise RecoveryError("corrected smoke coordinates are not 26x3")
+    order_digest = hashlib.sha256(" ".join(elements).encode()).hexdigest()
+    if order_digest != ELEMENT_ORDER_SHA256:
+        raise RecoveryError("corrected smoke element order drifted")
+    calculator = base.calculator_for(charge=1, multiplicity=1)
+    atoms = cast(Any, calculator).new_atoms(elements=elements, coordinates=coordinates)
+    energy, forces = runtime.read_energy_and_forces(atoms, atom_count=len(elements))
+    if len(forces) != 26 or any(len(row) != 3 for row in forces):
+        raise RecoveryError("corrected smoke forces are not 26x3")
+    maximum_force = runtime.max_force(forces)
+    if not math.isfinite(energy) or not math.isfinite(maximum_force):
+        raise RecoveryError("AIMNet2 smoke returned non-finite values")
+    return {
+        "calculator": calculator,
+        "energy_ev": energy,
+        "forces": forces,
+        "max_force_ev_per_angstrom": maximum_force,
+        "element_count": len(elements),
+        "coordinate_rows": len(coordinates),
+        "coordinate_columns": 3,
+        "element_order_sha256": order_digest,
+        "charge": 1,
+        "multiplicity": 1,
+        "spin": 0,
+    }
+
+
 def smoke(args: argparse.Namespace) -> int:
     evidence_root = Path(args.evidence_root).resolve(strict=True)
     source_root = Path(args.source_root).resolve(strict=True)
@@ -263,13 +302,11 @@ def smoke(args: argparse.Namespace) -> int:
 
     started = time.monotonic()
     base = runtime._construct_base_model_after_authorization(weight_path=weight, device="cuda:0")
-    calculator = base.calculator_for(charge=1, multiplicity=1)
-    atoms = cast(Any, calculator).new_atoms(elements=elements, coordinates=coordinates)
-    energy, forces = runtime.read_energy_and_forces(atoms, atom_count=len(elements))
+    evaluation = evaluate_bound_smoke(
+        runtime=runtime, base=base, elements=elements, coordinates=coordinates
+    )
     elapsed = time.monotonic() - started
-    maximum_force = runtime.max_force(forces)
-    if not math.isfinite(energy) or not math.isfinite(maximum_force):
-        raise RecoveryError("AIMNet2 smoke returned non-finite values")
+    calculator = cast(Any, evaluation["calculator"])
     result = {
         "schema_version": SCHEMA,
         "science_pilot_only": True,
@@ -280,10 +317,20 @@ def smoke(args: argparse.Namespace) -> int:
         "model_load_count": int(base.load_count),
         "endpoint_wrapper_count": 1,
         "calculator_invocations": cast(Any, calculator).evaluation_counts()[2],
+        "cuda_evaluation_reached": True,
         "energy_finite": True,
+        "energy_ev": evaluation["energy_ev"],
         "forces_finite": True,
-        "max_force_ev_per_angstrom": maximum_force,
-        "nvrtc_result": "PASS",
+        "forces_shape": [26, 3],
+        "max_force_ev_per_angstrom": evaluation["max_force_ev_per_angstrom"],
+        "parsed_element_count": evaluation["element_count"],
+        "coordinate_rows": evaluation["coordinate_rows"],
+        "coordinate_columns": evaluation["coordinate_columns"],
+        "element_order_sha256": evaluation["element_order_sha256"],
+        "charge": evaluation["charge"],
+        "multiplicity": evaluation["multiplicity"],
+        "spin": evaluation["spin"],
+        "nvrtc_result": "PASS_CUDA_KERNEL_EXECUTED",
         "gpu": gpu,
         "environment": environment_evidence,
         "input_sha256": INPUT_SHA256,

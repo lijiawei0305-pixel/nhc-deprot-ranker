@@ -94,11 +94,105 @@ def test_paired_environment_is_os_copy_and_validated(
 def test_smoke_contract_has_no_optimizer_or_label() -> None:
     source = HELPER.read_text()
     smoke = source[source.index("def smoke(") : source.index("def parser(")]
-    assert "calculator).new_atoms(elements=elements, coordinates=coordinates)" in smoke
-    assert "runtime.read_energy_and_forces(atoms, atom_count=len(elements))" in smoke
+    assert "evaluate_bound_smoke(" in smoke
     assert 'optimizer_started": False' in smoke
     assert 'production_label_created": False' in smoke
     assert ".optimize(" not in smoke
+
+
+def test_corrected_smoke_binds_26_frozen_elements_before_runtime() -> None:
+    class FakeCalculator:
+        def __init__(self) -> None:
+            self.bound: tuple[tuple[str, ...], tuple[tuple[float, ...], ...]] | None = None
+
+        def new_atoms(self, *, elements, coordinates):
+            self.bound = (tuple(elements), tuple(tuple(row) for row in coordinates))
+            return self.bound
+
+    class FakeBase:
+        def __init__(self) -> None:
+            self.calculator = FakeCalculator()
+
+        def calculator_for(self, *, charge: int, multiplicity: int):
+            assert (charge, multiplicity) == (1, 1)
+            return self.calculator
+
+    class FakeRuntime:
+        @staticmethod
+        def read_energy_and_forces(atoms, *, atom_count: int):
+            assert atom_count == 26
+            assert atoms[0]
+            return -1.0, [[0.0, 0.0, 0.0] for _ in range(26)]
+
+        @staticmethod
+        def max_force(forces) -> float:
+            assert len(forces) == 26
+            return 0.0
+
+    pilot = _load(PILOT, "p01_r3_pilot_parser_test")
+    frozen_order = [
+        "N",
+        "C",
+        "C",
+        "C",
+        "C",
+        "F",
+        "F",
+        "F",
+        "N",
+        "C",
+        "C",
+        "F",
+        "F",
+        "F",
+        "C",
+        "N",
+        "C",
+        "C",
+        "F",
+        "F",
+        "F",
+        "H",
+        "H",
+        "H",
+        "H",
+        "H",
+    ]
+    raw = (
+        "26\nfrozen-order parser test\n"
+        + "".join(f"{element} {index}.0 0.0 0.0\n" for index, element in enumerate(frozen_order))
+    ).encode()
+    elements, coordinates = pilot._parse_xyz_minimal(raw)
+    base = FakeBase()
+    result = r2.evaluate_bound_smoke(
+        runtime=FakeRuntime(), base=base, elements=elements, coordinates=coordinates
+    )
+    assert len(elements) == len(coordinates) == 26
+    assert all(len(row) == 3 for row in coordinates)
+    assert base.calculator.bound == (elements, coordinates)
+    assert result["element_order_sha256"] == r2.ELEMENT_ORDER_SHA256
+
+
+def test_empty_element_binding_is_rejected_before_runtime() -> None:
+    class NeverRuntime:
+        def __getattr__(self, name):
+            raise AssertionError(name)
+
+    with pytest.raises(r2.RecoveryError, match="exactly 26 atoms"):
+        r2.evaluate_bound_smoke(runtime=NeverRuntime(), base=object(), elements=(), coordinates=())
+
+
+def test_p01r3_cleanup_prefix_is_registered(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert '"/dev/shm/p01r3."' in HELPER.read_text()
+    root = tmp_path / "p01r3.x"
+    root.mkdir(mode=0o700)
+    root.chmod(0o700)
+    monkeypatch.setattr(r2, "MAXIMUM_ROOT_LENGTH", 4096)
+    monkeypatch.setattr(r2, "safe_cleanup_root", lambda path: path == root)
+    result = r2.cleanup_short_root(root)
+    assert result["temporary_directory_cleaned"] is True
 
 
 def test_formal_timing_does_not_include_smoke() -> None:
