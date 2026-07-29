@@ -59,6 +59,22 @@ MIN_PAIR_DISTANCE_ANGSTROM: Final = 0.20
 FILE_MODE: Final = 0o600
 DIRECTORY_MODE: Final = 0o700
 MAX_EVIDENCE_BYTES: Final = 64 << 20
+P01R4_SHORT_CACHE_MODE: Final = "NHC_P01R4_SHORT_CACHE_MODE"
+P01R4_SHORT_CACHE_AUDIT: Final = "NHC_P01R4_SHORT_CACHE_AUDIT"
+P01R4_SHORT_CACHE_ROOT: Final = "NHC_P01R2_SHORT_TMP_ROOT"
+P01R4_CACHE_VARIABLES: Final = (
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+    "CUDA_CACHE_PATH",
+    "TORCH_EXTENSIONS_DIR",
+    "TORCHINDUCTOR_CACHE_DIR",
+    "TRITON_CACHE_DIR",
+    "XDG_CACHE_HOME",
+    "NUMBA_CACHE_DIR",
+    "TORCH_HOME",
+    "HF_HOME",
+)
 
 ATOMIC_NUMBERS: Final = {"H": 1, "C": 6, "N": 7, "F": 9}
 
@@ -188,6 +204,71 @@ def _read_regular_file(path: Path) -> bytes:
         return b"".join(chunks)
     finally:
         os.close(descriptor)
+
+
+def _validate_p01r4_short_cache_environment(
+    environ: Mapping[str, str],
+    *,
+    allowed_parents: Sequence[Path] = (Path("/dev/shm"), Path("/tmp")),
+    maximum_root_length: int = 40,
+) -> Path | None:
+    mode = environ.get(P01R4_SHORT_CACHE_MODE)
+    if mode is None:
+        return None
+    if mode != "1":
+        raise PilotError("P01-R4 short-cache mode was not explicitly enabled")
+    root_text = environ.get(P01R4_SHORT_CACHE_ROOT)
+    audit_text = environ.get(P01R4_SHORT_CACHE_AUDIT)
+    if not root_text or not audit_text:
+        raise PilotError("P01-R4 short-cache root or audit binding is absent")
+    logical_root = Path(root_text)
+    if not logical_root.is_absolute() or len(logical_root.as_posix()) > maximum_root_length:
+        raise PilotError("P01-R4 short-cache root is not a short absolute path")
+    if logical_root in {Path("/"), Path("/tmp"), Path("/dev/shm")}:
+        raise PilotError("P01-R4 short-cache root is a broad directory")
+    if not logical_root.name.startswith("p01r4."):
+        raise PilotError("P01-R4 short-cache root was not created with its registered prefix")
+    root = logical_root.resolve(strict=True)
+    allowed = {parent.resolve(strict=True) for parent in allowed_parents}
+    if root.parent not in allowed:
+        raise PilotError("P01-R4 short-cache root is outside its registered parent")
+    observed = logical_root.lstat()
+    if (
+        not stat.S_ISDIR(observed.st_mode)
+        or logical_root.is_symlink()
+        or observed.st_uid != os.getuid()
+        or stat.S_IMODE(observed.st_mode) != DIRECTORY_MODE
+        or not os.access(root, os.W_OK)
+    ):
+        raise PilotError("P01-R4 short-cache root owner, mode, type, or access drifted")
+    audit = json.loads(_read_regular_file(Path(audit_text)))
+    if (
+        audit.get("root") != logical_root.as_posix()
+        or audit.get("resolved_root") != root.as_posix()
+        or audit.get("created_by_mkdtemp") is not True
+    ):
+        raise PilotError("P01-R4 short-cache audit does not bind the effective root")
+    for name in P01R4_CACHE_VARIABLES:
+        value = environ.get(name)
+        if not value:
+            raise PilotError(f"P01-R4 short-cache variable is absent: {name}")
+        logical_child = Path(value)
+        if not logical_child.is_absolute() or logical_child.is_symlink():
+            raise PilotError(f"P01-R4 short-cache variable is unsafe: {name}")
+        child = logical_child.resolve(strict=True)
+        try:
+            child.relative_to(root)
+        except ValueError as exc:
+            raise PilotError(f"P01-R4 short-cache variable escaped its root: {name}") from exc
+        child_stat = logical_child.lstat()
+        if (
+            not stat.S_ISDIR(child_stat.st_mode)
+            or child_stat.st_uid != os.getuid()
+            or stat.S_IMODE(child_stat.st_mode) != DIRECTORY_MODE
+            or not os.access(child, os.W_OK)
+        ):
+            raise PilotError(f"P01-R4 short-cache child owner, mode, or access drifted: {name}")
+    return root
 
 
 @contextlib.contextmanager
@@ -569,44 +650,13 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
         "PYTHONDONTWRITEBYTECODE": "1",
     }.items():
         os.environ[name] = value
-    short_root_text = os.environ.get("NHC_P01R2_SHORT_TMP_ROOT")
+    audited_short_root = _validate_p01r4_short_cache_environment(os.environ)
+    short_root_text = os.environ.get(P01R4_SHORT_CACHE_ROOT)
     if short_root_text:
         short_root = Path(short_root_text).resolve(strict=True)
+        if audited_short_root is None or audited_short_root != short_root:
+            raise PilotError("P01-R4 audited short-cache mode is required for a short root")
         effective_cache_root = short_root
-        for name in (
-            "TMPDIR",
-            "TMP",
-            "TEMP",
-            "CUDA_CACHE_PATH",
-            "TORCH_EXTENSIONS_DIR",
-            "TRITON_CACHE_DIR",
-            "XDG_CACHE_HOME",
-            "NUMBA_CACHE_DIR",
-        ):
-            value = os.environ.get(name)
-            if not value:
-                raise PilotError(f"P01-R2 short-path variable is absent: {name}")
-            destination = Path(value).resolve(strict=True)
-            try:
-                destination.relative_to(short_root)
-            except ValueError as exc:
-                raise PilotError(f"P01-R2 short-path variable escaped its root: {name}") from exc
-            observed = destination.lstat()
-            if (
-                not stat.S_ISDIR(observed.st_mode)
-                or destination.is_symlink()
-                or observed.st_uid != os.getuid()
-                or stat.S_IMODE(observed.st_mode) != DIRECTORY_MODE
-            ):
-                raise PilotError(f"P01-R2 short-path variable is unsafe: {name}")
-        for name, relative in {
-            "TORCHINDUCTOR_CACHE_DIR": "torchinductor",
-            "TORCH_HOME": "torch-home",
-            "HF_HOME": "hf-home",
-        }.items():
-            destination = short_root / relative
-            _make_directory(destination)
-            os.environ[name] = str(destination)
     else:
         for name in (
             "TORCHINDUCTOR_CACHE_DIR",

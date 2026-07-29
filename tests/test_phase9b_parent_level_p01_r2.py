@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import sys
 from pathlib import Path
@@ -195,6 +196,87 @@ def test_p01r3_cleanup_prefix_is_registered(
     assert result["temporary_directory_cleaned"] is True
 
 
+def _audited_short_environment(tmp_path: Path):
+    pilot = _load(PILOT, "p01_r4_short_cache_fixture")
+    root = tmp_path / "p01r4.test"
+    root.mkdir(mode=0o700)
+    root.chmod(0o700)
+    environment = dict(os.environ)
+    environment[pilot.P01R4_SHORT_CACHE_MODE] = "1"
+    environment[pilot.P01R4_SHORT_CACHE_ROOT] = root.as_posix()
+    for index, name in enumerate(pilot.P01R4_CACHE_VARIABLES):
+        child = root / f"cache-{index}"
+        child.mkdir(mode=0o700)
+        child.chmod(0o700)
+        environment[name] = child.as_posix()
+    audit = tmp_path / "audit.json"
+    audit.write_text(
+        json.dumps(
+            {
+                "root": root.as_posix(),
+                "resolved_root": root.resolve().as_posix(),
+                "created_by_mkdtemp": True,
+            }
+        )
+    )
+    environment[pilot.P01R4_SHORT_CACHE_AUDIT] = audit.as_posix()
+    return pilot, root, environment
+
+
+def test_default_mode_keeps_historical_attempt_root_behavior() -> None:
+    pilot = _load(PILOT, "p01_r4_default_mode_test")
+    assert pilot._validate_p01r4_short_cache_environment({}) is None
+
+
+def test_short_cache_requires_explicit_mode_and_effective_root(tmp_path: Path) -> None:
+    pilot = _load(PILOT, "p01_r4_explicit_mode_test")
+    with pytest.raises(pilot.PilotError, match="explicitly enabled"):
+        pilot._validate_p01r4_short_cache_environment(
+            {pilot.P01R4_SHORT_CACHE_MODE: "true"}, allowed_parents=(tmp_path,)
+        )
+    with pytest.raises(pilot.PilotError, match="root or audit"):
+        pilot._validate_p01r4_short_cache_environment(
+            {pilot.P01R4_SHORT_CACHE_MODE: "1"}, allowed_parents=(tmp_path,)
+        )
+
+
+def test_audited_short_cache_integration_and_torchinductor_guard(tmp_path: Path) -> None:
+    pilot, root, environment = _audited_short_environment(tmp_path)
+    assert (
+        pilot._validate_p01r4_short_cache_environment(
+            environment, allowed_parents=(tmp_path,), maximum_root_length=4096
+        )
+        == root.resolve()
+    )
+    outside = tmp_path / "outside"
+    outside.mkdir(mode=0o700)
+    escaped = dict(environment)
+    escaped["TORCHINDUCTOR_CACHE_DIR"] = outside.as_posix()
+    with pytest.raises(pilot.PilotError, match="TORCHINDUCTOR_CACHE_DIR"):
+        pilot._validate_p01r4_short_cache_environment(
+            escaped, allowed_parents=(tmp_path,), maximum_root_length=4096
+        )
+
+
+def test_prefix_collision_and_symlink_escape_are_rejected(tmp_path: Path) -> None:
+    pilot, _root, environment = _audited_short_environment(tmp_path)
+    collision = tmp_path / "p01r4.test2"
+    collision.mkdir(mode=0o700)
+    escaped = dict(environment)
+    escaped["TMPDIR"] = collision.as_posix()
+    with pytest.raises(pilot.PilotError, match="TMPDIR"):
+        pilot._validate_p01r4_short_cache_environment(
+            escaped, allowed_parents=(tmp_path,), maximum_root_length=4096
+        )
+    link = Path(environment["TMPDIR"])
+    link.rmdir()
+    link.symlink_to(Path(environment["TMP"]), target_is_directory=True)
+    with pytest.raises(pilot.PilotError, match="TMPDIR"):
+        pilot._validate_p01r4_short_cache_environment(
+            environment, allowed_parents=(tmp_path,), maximum_root_length=4096
+        )
+
+
 def test_formal_timing_does_not_include_smoke() -> None:
     source = PAIRED.read_text()
     assert "parent-worker" in source
@@ -212,7 +294,7 @@ def test_group_b_remains_conditional_and_resources_match() -> None:
 
 def test_opt_in_short_path_does_not_change_default_pilot() -> None:
     source = PILOT.read_text()
-    assert 'os.environ.get("NHC_P01R2_SHORT_TMP_ROOT")' in source
+    assert "_validate_p01r4_short_cache_environment(os.environ)" in source
     assert "else:" in source[source.index("short_root_text") : source.index("gpu =")]
     assert "effective_cache_root = cache_root" in source
     assert "effective_cache_root = short_root" in source

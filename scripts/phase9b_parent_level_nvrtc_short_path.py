@@ -27,9 +27,12 @@ REQUIRED_TEMP_VARIABLES: Final = (
     "TEMP",
     "CUDA_CACHE_PATH",
     "TORCH_EXTENSIONS_DIR",
+    "TORCHINDUCTOR_CACHE_DIR",
     "TRITON_CACHE_DIR",
     "XDG_CACHE_HOME",
     "NUMBA_CACHE_DIR",
+    "TORCH_HOME",
+    "HF_HOME",
 )
 SUBDIRECTORIES: Final = {
     "TMPDIR": "tmp",
@@ -37,9 +40,12 @@ SUBDIRECTORIES: Final = {
     "TEMP": "tmp",
     "CUDA_CACHE_PATH": "cuda",
     "TORCH_EXTENSIONS_DIR": "torch",
+    "TORCHINDUCTOR_CACHE_DIR": "torchinductor",
     "TRITON_CACHE_DIR": "triton",
     "XDG_CACHE_HOME": "xdg",
     "NUMBA_CACHE_DIR": "numba",
+    "TORCH_HOME": "torch-home",
+    "HF_HOME": "hf-home",
 }
 MINIMUM_AVAILABLE_BYTES: Final = 5_000_000_000
 MAXIMUM_ROOT_LENGTH: Final = 40
@@ -113,7 +119,7 @@ def validate_short_root(
 def create_short_root(
     candidates: Sequence[Path] = (Path("/dev/shm"), Path("/tmp")), *, prefix: str = "p01r2."
 ) -> tuple[Path, dict[str, object]]:
-    if prefix not in {"p01r2.", "p01r3."}:
+    if prefix not in {"p01r2.", "p01r3.", "p01r4."}:
         raise RecoveryError("unregistered short-root prefix")
     failures: list[str] = []
     for candidate in candidates:
@@ -213,7 +219,14 @@ def safe_cleanup_root(path: Path) -> bool:
     text = path.as_posix()
     valid_prefix = any(
         text.startswith(prefix)
-        for prefix in ("/dev/shm/p01r2.", "/tmp/p01r2.", "/dev/shm/p01r3.", "/tmp/p01r3.")
+        for prefix in (
+            "/dev/shm/p01r2.",
+            "/tmp/p01r2.",
+            "/dev/shm/p01r3.",
+            "/tmp/p01r3.",
+            "/dev/shm/p01r4.",
+            "/tmp/p01r4.",
+        )
     )
     if not text or not valid_prefix or text in {"/", "/tmp", "/dev/shm"}:
         return False

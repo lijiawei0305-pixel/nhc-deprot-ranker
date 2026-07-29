@@ -49,9 +49,12 @@ SHORT_TEMP_VARIABLES: Final = (
     "TEMP",
     "CUDA_CACHE_PATH",
     "TORCH_EXTENSIONS_DIR",
+    "TORCHINDUCTOR_CACHE_DIR",
     "TRITON_CACHE_DIR",
     "XDG_CACHE_HOME",
     "NUMBA_CACHE_DIR",
+    "TORCH_HOME",
+    "HF_HOME",
 )
 SCHEMA: Final = "nhc-phase9b-parent-level-paired-benchmark-p01-v1"
 
