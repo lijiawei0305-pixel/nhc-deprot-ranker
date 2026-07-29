@@ -253,7 +253,7 @@ def smoke(args: argparse.Namespace) -> int:
     raw = Path(args.xyz).resolve(strict=True).read_bytes()
     if sha256_bytes(raw) != INPUT_SHA256:
         raise RecoveryError("frozen cation smoke input drifted")
-    _elements, coordinates = pilot._validate_frozen_endpoint("cation", raw)
+    elements, coordinates = pilot._validate_frozen_endpoint("cation", raw)
     weight = Path(args.weight).resolve(strict=True)
     if sha256_bytes(weight.read_bytes()) != WEIGHT_SHA256:
         raise RecoveryError("AIMNet2 smoke weight drifted")
@@ -264,7 +264,8 @@ def smoke(args: argparse.Namespace) -> int:
     started = time.monotonic()
     base = runtime._construct_base_model_after_authorization(weight_path=weight, device="cuda:0")
     calculator = base.calculator_for(charge=1, multiplicity=1)
-    energy, forces = calculator.energy_and_forces(coordinates)
+    atoms = cast(Any, calculator).new_atoms(elements=elements, coordinates=coordinates)
+    energy, forces = runtime.read_energy_and_forces(atoms, atom_count=len(elements))
     elapsed = time.monotonic() - started
     maximum_force = runtime.max_force(forces)
     if not math.isfinite(energy) or not math.isfinite(maximum_force):

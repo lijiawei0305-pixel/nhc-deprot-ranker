@@ -37,6 +37,7 @@ Updated: 2026-07-29
 | Phase 9B science pilot v006 — paired end-to-end timing | `PARTIAL_PASS`, `science_pilot_only`; not production accepted | 2026-07-28; assisted route complete; PySCF-only neutral timed out at 7190 s; speedup is a lower bound only |
 | Phase 9B Parent-Level Benchmark P01 | `INCONCLUSIVE` at mandatory protocol audit | 2026-07-28; static parent-method mapping established; grid-4 SCF timed out at 7190 s; Group A, Group B and extension not started |
 | Phase 9B Parent-Level P01-R1 | `INCONCLUSIVE`; grid audit passed, paired benchmark stopped in Group A environment bootstrap | 2026-07-29; grid 4 frozen on 27 safe physical cores; NVRTC rejected an overlong private temp path before the first AIMNet2 frame; no retry or Group B |
+| Phase 9B Parent-Level P01-R2 | `INCONCLUSIVE`; short environment passed, one-evaluation smoke driver failed before CUDA evaluation | 2026-07-29; short root propagated and cleaned; formal replacement Group A and Group B not started; no retry |
 
 ## Current completed work
 
@@ -524,10 +525,20 @@ single NVRTC temporary-path-length blocker and decide whether to authorize one
 new Group A attempt. Grid 4 is already frozen; P01-R1 did not retry, start Group
 B, an extension cohort, a second candidate or production.
 
+P01-R2 verified all R1 identities without rerunning CPU or grid work. It created
+and propagated a private 24-character `/dev/shm/p01r2.*` root, but its single
+technical smoke called the endpoint wrapper before binding the frozen element
+sequence. The wrapper rejected an empty atom identity before CUDA/NVRTC
+evaluation. Under the one-smoke/no-retry contract, the corrected helper was not
+executed and formal Group A/Group B did not start. P01-R2 is `INCONCLUSIVE`; see
+`docs/PHASE9B_PARENT_LEVEL_P01_R2_RESULT.json` and
+`docs/PHASE9B_PARENT_LEVEL_P01_R2_REPORT.md`.
+
 No Postflight source was implemented, no v9 leaf moved, and no v10 was created.
 Item 12/12 rehearsal cannot start. Runner remediation was the Item 11 closeout
 next action, but the later science-pilot priority explicitly paused that track.
-The current only permissible next work, under separate authorization, is to
-fix the single NVRTC temporary-path-length blocker and decide whether to allow
-one new Group A attempt. P01-R1 did not retry or start Group B, an extension
-cohort, a second candidate or production.
+The current only permissible next work, under separate authorization, is one
+corrected one-evaluation smoke using the patched element binding. It must not
+automatically start Group A or Group B. P01-R2 did not retry, start a formal
+replacement Group A, Group B, an extension cohort, a second candidate or
+production.

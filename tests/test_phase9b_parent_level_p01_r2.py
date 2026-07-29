@@ -94,7 +94,8 @@ def test_paired_environment_is_os_copy_and_validated(
 def test_smoke_contract_has_no_optimizer_or_label() -> None:
     source = HELPER.read_text()
     smoke = source[source.index("def smoke(") : source.index("def parser(")]
-    assert "calculator.energy_and_forces" in smoke
+    assert "calculator).new_atoms(elements=elements, coordinates=coordinates)" in smoke
+    assert "runtime.read_energy_and_forces(atoms, atom_count=len(elements))" in smoke
     assert 'optimizer_started": False' in smoke
     assert 'production_label_created": False' in smoke
     assert ".optimize(" not in smoke

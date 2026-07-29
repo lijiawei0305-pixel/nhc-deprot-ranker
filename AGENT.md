@@ -664,3 +664,21 @@ dig +trace domain
   `docs/PHASE9B_PARENT_LEVEL_P01_R1_REPORT.md`。唯一后续动作是另行修复NVRTC
   临时路径长度阻塞并决定是否授权一个新的Group A attempt；不得自动retry或启动
   Group B。
+
+## 35. Phase 9B Parent-Level P01-R2 — short path passed, smoke driver terminal
+
+- R1 Grid-4、protocol lock和manifest均按SHA复核且没有重跑。旧139-character
+  `TMPDIR`来源被闭合为science-pilot cache isolation。
+- P01-R2在`/dev/shm`以`mkdtemp`创建24-character private root，owner/mode/
+  non-symlink/available-space验证通过；8个cache/temp变量及`tempfile.gettempdir()`
+  在实际MLFF parent和`python -I -B` child中完全一致。
+- 唯一technical smoke的helper错误地在`new_atoms(elements=...)`之前调用通用
+  `energy_and_forces()`；真实wrapper以empty element binding拒绝，发生在CUDA/NVRTC
+  evaluation之前。无optimizer、trajectory或label。
+- helper已静态修正为先绑定冻结elements再调用shared finite reader，但one-smoke/
+  no-retry合同禁止本轮执行修正版。正式replacement Group A和Group B均未启动。
+- 短根已安全清理，residual files/processes均为0。没有Grid/CPU重跑、xTB/GFN、
+  retry、第三次Group A、第二候选、extension、batch或production动作；11 gates
+  false，production labels仍71。
+- P01-R2终态为`INCONCLUSIVE`。唯一后续动作是另行授权一次修正版one-evaluation
+  smoke；不得自动启动Group A或Group B。
