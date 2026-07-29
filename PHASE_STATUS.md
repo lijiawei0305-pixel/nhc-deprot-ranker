@@ -38,6 +38,7 @@ Updated: 2026-07-29
 | Phase 9B Parent-Level Benchmark P01 | `INCONCLUSIVE` at mandatory protocol audit | 2026-07-28; static parent-method mapping established; grid-4 SCF timed out at 7190 s; Group A, Group B and extension not started |
 | Phase 9B Parent-Level P01-R1 | `INCONCLUSIVE`; grid audit passed, paired benchmark stopped in Group A environment bootstrap | 2026-07-29; grid 4 frozen on 27 safe physical cores; NVRTC rejected an overlong private temp path before the first AIMNet2 frame; no retry or Group B |
 | Phase 9B Parent-Level P01-R2 | `INCONCLUSIVE`; short environment passed, one-evaluation smoke driver failed before CUDA evaluation | 2026-07-29; short root propagated and cleaned; formal replacement Group A and Group B not started; no retry |
+| Phase 9B Parent-Level P01-R3 | `INCONCLUSIVE`; corrected smoke passed, formal Group A failed in cache-root verifier before model load | 2026-07-29; one replacement attempt consumed, no retry or Group B; short root cleaned |
 
 ## Current completed work
 
@@ -534,11 +535,20 @@ executed and formal Group A/Group B did not start. P01-R2 is `INCONCLUSIVE`; see
 `docs/PHASE9B_PARENT_LEVEL_P01_R2_RESULT.json` and
 `docs/PHASE9B_PARENT_LEVEL_P01_R2_REPORT.md`.
 
+P01-R3's corrected smoke parsed and bound 26 atoms, executed the real CUDA
+kernel, and returned finite energy and 26x3 forces without optimizer, trajectory
+or label. The sole formal Group A replacement then stopped before model load:
+the offline-cache verifier still compared the valid short cache paths against
+the long attempt cache root. The verifier was statically corrected but not
+rerun. Group B remained blocked and P01-R3 is `INCONCLUSIVE`; see
+`docs/PHASE9B_PARENT_LEVEL_P01_R3_RESULT.json` and
+`docs/PHASE9B_PARENT_LEVEL_P01_R3_REPORT.md`.
+
 No Postflight source was implemented, no v9 leaf moved, and no v10 was created.
 Item 12/12 rehearsal cannot start. Runner remediation was the Item 11 closeout
 next action, but the later science-pilot priority explicitly paused that track.
 The current only permissible next work, under separate authorization, is one
-corrected one-evaluation smoke using the patched element binding. It must not
-automatically start Group A or Group B. P01-R2 did not retry, start a formal
-replacement Group A, Group B, an extension cohort, a second candidate or
-production.
+new formal Group A attempt using the already-patched effective short-cache-root
+verifier. The corrected smoke must not be repeated and Group B may not start
+unless that future Group A completes. P01-R3 did not retry or start Group B, an
+extension cohort, a second candidate or production.

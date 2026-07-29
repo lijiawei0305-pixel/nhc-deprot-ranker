@@ -561,6 +561,7 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
 
     cache_root = root / "aimnet2" / "cache"
     _make_directory(cache_root)
+    effective_cache_root = cache_root
     for name, value in {
         "HF_HUB_OFFLINE": "1",
         "TRANSFORMERS_OFFLINE": "1",
@@ -571,6 +572,7 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
     short_root_text = os.environ.get("NHC_P01R2_SHORT_TMP_ROOT")
     if short_root_text:
         short_root = Path(short_root_text).resolve(strict=True)
+        effective_cache_root = short_root
         for name in (
             "TMPDIR",
             "TMP",
@@ -636,7 +638,7 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
     ):
         raise PilotError("AIMNet2 weight identity drifted")
     runtime.verify_weight(weight_path)
-    runtime.verify_offline_environment(os.environ, cache_root=cache_root)
+    runtime.verify_offline_environment(os.environ, cache_root=effective_cache_root)
 
     inputs: dict[str, tuple[bytes, tuple[str, ...], tuple[tuple[float, float, float], ...]]] = {}
     for endpoint in ENDPOINTS:

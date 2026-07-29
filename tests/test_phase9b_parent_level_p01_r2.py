@@ -214,6 +214,9 @@ def test_opt_in_short_path_does_not_change_default_pilot() -> None:
     source = PILOT.read_text()
     assert 'os.environ.get("NHC_P01R2_SHORT_TMP_ROOT")' in source
     assert "else:" in source[source.index("short_root_text") : source.index("gpu =")]
+    assert "effective_cache_root = cache_root" in source
+    assert "effective_cache_root = short_root" in source
+    assert "verify_offline_environment(os.environ, cache_root=effective_cache_root)" in source
 
 
 def test_no_rescue_grid_rerun_extension_or_production_authority() -> None:

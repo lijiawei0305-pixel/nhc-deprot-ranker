@@ -682,3 +682,19 @@ dig +trace domain
   false，production labels仍71。
 - P01-R2终态为`INCONCLUSIVE`。唯一后续动作是另行授权一次修正版one-evaluation
   smoke；不得自动启动Group A或Group B。
+
+## 36. Phase 9B Parent-Level P01-R3 — corrected smoke pass, Group A verifier terminal
+
+- R1/R2五项历史SHA复核通过，无CPU/SMT/Grid/D3/method/protocol重跑。
+- corrected smoke从冻结parser取得26 elements与26x3 coordinates，经真实
+  `new_atoms`绑定后执行CUDA kernel；energy/forces finite，model load=1，optimizer/
+  trajectory/label均无。共享reader实测2 calculator invocations并如实保留。
+- 唯一正式replacement Group A在0.465秒、model load和首帧前停止：offline cache
+  verifier仍以长attempt cache root验证已审计的short cache路径。这是environment
+  integration失败，不是science/model/PySCF失败。
+- verifier已静态修正为opt-in时使用short root、默认仍使用历史attempt root，但本轮
+  严格no-retry。Group B未启动；无energies、labels、speedup或accuracy comparison。
+- short root已清理，residual files/processes为0；无额外smoke、retry、第二候选、
+  extension、batch、xTB/GFN或production动作。11 gates false，labels仍71。
+- P01-R3终态`INCONCLUSIVE`。唯一后续动作是另行授权一个使用已修正verifier的正式
+  Group A attempt；不得重复smoke或自动启动Group B。
