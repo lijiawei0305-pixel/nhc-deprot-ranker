@@ -19,6 +19,7 @@ import os
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 import traceback
 from collections.abc import Iterator, Mapping, Sequence
@@ -672,6 +673,22 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
             os.environ[name] = str(destination)
     for forbidden in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "AIMNET2_MODEL"):
         os.environ.pop(forbidden, None)
+
+    if audited_short_root is not None:
+        _write_json_new(
+            root / "aimnet2" / "short_cache_worker_environment.json",
+            {
+                "schema_version": "nhc-phase9b-parent-level-p01-r4-worker-environment-v1",
+                "science_pilot_only": True,
+                "pid": os.getpid(),
+                "working_directory": Path.cwd().as_posix(),
+                "short_root": audited_short_root.as_posix(),
+                "tempfile_gettempdir": tempfile.gettempdir(),
+                "environment": {name: os.environ[name] for name in P01R4_CACHE_VARIABLES},
+                "physical_gpu_index": args.physical_gpu_index,
+                "model_loaded": False,
+            },
+        )
 
     gpu = _gpu_observation(args.physical_gpu_index, args.physical_gpu_uuid)
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.physical_gpu_index)

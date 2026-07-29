@@ -299,6 +299,9 @@ def test_opt_in_short_path_does_not_change_default_pilot() -> None:
     assert "effective_cache_root = cache_root" in source
     assert "effective_cache_root = short_root" in source
     assert "verify_offline_environment(os.environ, cache_root=effective_cache_root)" in source
+    receipt = source.index('"short_cache_worker_environment.json"')
+    model_load = source.index("_construct_base_model_after_authorization")
+    assert receipt < model_load
 
 
 def test_no_rescue_grid_rerun_extension_or_production_authority() -> None:
