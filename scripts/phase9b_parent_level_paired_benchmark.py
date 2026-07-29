@@ -42,6 +42,17 @@ HARTREE_TO_KCAL: Final = 627.509474
 PROTON_CORRECTION: Final = 6.28
 GROUP_A_LIMIT_SECONDS: Final = 21600
 GROUP_B_LIMIT_SECONDS: Final = 86400
+SHORT_TEMP_CONTROL: Final = "NHC_P01R2_SHORT_TMP_ROOT"
+SHORT_TEMP_VARIABLES: Final = (
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+    "CUDA_CACHE_PATH",
+    "TORCH_EXTENSIONS_DIR",
+    "TRITON_CACHE_DIR",
+    "XDG_CACHE_HOME",
+    "NUMBA_CACHE_DIR",
+)
 SCHEMA: Final = "nhc-phase9b-parent-level-paired-benchmark-p01-v1"
 
 
@@ -151,6 +162,22 @@ def _clean_environment() -> dict[str, str]:
     result["HF_HUB_OFFLINE"] = "1"
     result["TRANSFORMERS_OFFLINE"] = "1"
     return result
+
+
+def _validate_short_temp_environment(environment: dict[str, str]) -> None:
+    root_text = environment.get(SHORT_TEMP_CONTROL)
+    if not root_text:
+        return
+    root = Path(root_text).resolve(strict=True)
+    for name in SHORT_TEMP_VARIABLES:
+        value = environment.get(name)
+        if not value:
+            raise BenchmarkError(f"short temporary environment omitted {name}")
+        destination = Path(value).resolve(strict=True)
+        try:
+            destination.relative_to(root)
+        except ValueError as exc:
+            raise BenchmarkError(f"short temporary environment escaped root: {name}") from exc
 
 
 def _request(
@@ -337,7 +364,10 @@ def _configure_parent_resources(
     }
     os.environ.update(environment)
     os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
-    os.environ["TMPDIR"] = str(root / "runtime_tmp")
+    if os.environ.get(SHORT_TEMP_CONTROL):
+        _validate_short_temp_environment(dict(os.environ))
+    else:
+        os.environ["TMPDIR"] = str(root / "runtime_tmp")
     module.COMPUTE_THREADS = threads
     module.PYSCF_MAX_MEMORY_MB = memory_mb
     module.THREAD_ENVIRONMENT = environment
@@ -346,7 +376,8 @@ def _configure_parent_resources(
     linux_os.sched_setaffinity(0, set(cpu_list))
     if tuple(sorted(linux_os.sched_getaffinity(0))) != cpu_list:
         raise BenchmarkError("parent CPU affinity drifted")
-    (root / "runtime_tmp").mkdir(mode=0o700, exist_ok=False)
+    if not os.environ.get(SHORT_TEMP_CONTROL):
+        (root / "runtime_tmp").mkdir(mode=0o700, exist_ok=False)
 
 
 def parent_worker(args: argparse.Namespace) -> int:
@@ -542,6 +573,7 @@ def assisted_controller(args: argparse.Namespace) -> int:
     aimnet_root = Path(args.aimnet_root).resolve(strict=True)
     repo = Path(args.repo).resolve(strict=True)
     environment = _clean_environment()
+    _validate_short_temp_environment(environment)
     with (
         (root / "aimnet_driver_stdout").open("xb", buffering=0) as stdout,
         (root / "aimnet_driver_stderr").open("xb", buffering=0) as stderr,

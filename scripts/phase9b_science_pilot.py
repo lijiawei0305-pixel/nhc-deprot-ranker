@@ -568,18 +568,56 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
         "PYTHONDONTWRITEBYTECODE": "1",
     }.items():
         os.environ[name] = value
-    for name in (
-        "TORCHINDUCTOR_CACHE_DIR",
-        "TRITON_CACHE_DIR",
-        "CUDA_CACHE_PATH",
-        "TORCH_HOME",
-        "XDG_CACHE_HOME",
-        "HF_HOME",
-        "TMPDIR",
-    ):
-        destination = cache_root / name.lower()
-        _make_directory(destination)
-        os.environ[name] = str(destination)
+    short_root_text = os.environ.get("NHC_P01R2_SHORT_TMP_ROOT")
+    if short_root_text:
+        short_root = Path(short_root_text).resolve(strict=True)
+        for name in (
+            "TMPDIR",
+            "TMP",
+            "TEMP",
+            "CUDA_CACHE_PATH",
+            "TORCH_EXTENSIONS_DIR",
+            "TRITON_CACHE_DIR",
+            "XDG_CACHE_HOME",
+            "NUMBA_CACHE_DIR",
+        ):
+            value = os.environ.get(name)
+            if not value:
+                raise PilotError(f"P01-R2 short-path variable is absent: {name}")
+            destination = Path(value).resolve(strict=True)
+            try:
+                destination.relative_to(short_root)
+            except ValueError as exc:
+                raise PilotError(f"P01-R2 short-path variable escaped its root: {name}") from exc
+            observed = destination.lstat()
+            if (
+                not stat.S_ISDIR(observed.st_mode)
+                or destination.is_symlink()
+                or observed.st_uid != os.getuid()
+                or stat.S_IMODE(observed.st_mode) != DIRECTORY_MODE
+            ):
+                raise PilotError(f"P01-R2 short-path variable is unsafe: {name}")
+        for name, relative in {
+            "TORCHINDUCTOR_CACHE_DIR": "torchinductor",
+            "TORCH_HOME": "torch-home",
+            "HF_HOME": "hf-home",
+        }.items():
+            destination = short_root / relative
+            _make_directory(destination)
+            os.environ[name] = str(destination)
+    else:
+        for name in (
+            "TORCHINDUCTOR_CACHE_DIR",
+            "TRITON_CACHE_DIR",
+            "CUDA_CACHE_PATH",
+            "TORCH_HOME",
+            "XDG_CACHE_HOME",
+            "HF_HOME",
+            "TMPDIR",
+        ):
+            destination = cache_root / name.lower()
+            _make_directory(destination)
+            os.environ[name] = str(destination)
     for forbidden in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "AIMNET2_MODEL"):
         os.environ.pop(forbidden, None)
 
