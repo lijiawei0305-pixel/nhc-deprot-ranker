@@ -5,12 +5,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.metadata
 import io
 import json
 import math
 import os
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Final, cast
 
@@ -21,10 +22,13 @@ FRAME_SCHEMA: Final = "phase9b-parent-level-training-frame-v1"
 ENDPOINT_MANIFEST_SCHEMA: Final = "phase9b-parent-level-training-endpoint-v1"
 DATASET_MANIFEST_SCHEMA: Final = "phase9b-parent-level-training-route-v1"
 OUTPUT_SCHEMA: Final = "phase9b-aimnet2-training-dataset-v1"
+D3_PROJECTION_SCHEMA: Final = "phase9b-aimnet2-training-d3-projection-v1"
 PARENT_PROTOCOL_SHA256: Final = "227c22a527e567bc4de873ab743fe9f493779eccbb1a698d2913c87695ebf87a"
 HARTREE_TO_EV: Final = 27.211386245988
 BOHR_TO_ANGSTROM: Final = 0.529177210903
 FORCE_HARTREE_PER_BOHR_TO_EV_PER_ANGSTROM: Final = HARTREE_TO_EV / BOHR_TO_ANGSTROM
+PYSCF_VERSION: Final = "2.13.1"
+PYSCF_DISPERSION_VERSION: Final = "1.5.0"
 ATOMIC_NUMBERS: Final = {
     "H": 1,
     "B": 5,
@@ -45,6 +49,9 @@ ATOMIC_NUMBERS: Final = {
 
 class DatasetAssemblyError(RuntimeError):
     """The parent-level training dataset failed its immutable contract."""
+
+
+D3Projector = Callable[[dict[str, Any]], dict[str, Any]]
 
 
 def canonical_json(value: object) -> bytes:
@@ -195,8 +202,9 @@ def _load_frame(
         "coord": coordinates_bohr * BOHR_TO_ANGSTROM,
         "numbers": numbers,
         "charge": charge,
-        "energy": energy_hartree * HARTREE_TO_EV,
-        "forces": forces_au * FORCE_HARTREE_PER_BOHR_TO_EV_PER_ANGSTROM,
+        "_energy_hartree": energy_hartree,
+        "_gradients_au": gradients_au,
+        "_forces_au": forces_au,
         "candidate": expected_candidate,
         "endpoint": expected_endpoint,
         "frame_index": expected_index,
@@ -204,8 +212,117 @@ def _load_frame(
     return payload, record
 
 
+def _pyscf_d3_projector(frame: dict[str, Any]) -> dict[str, Any]:
+    """Recompute the frozen external D3 term for one immutable P01 frame."""
+
+    try:
+        import pyscf  # type: ignore[import-untyped]
+        from pyscf import gto
+        from pyscf.dispersion import dftd3  # type: ignore[import-untyped]
+    except ImportError as exc:  # pragma: no cover - remote scientific environment only
+        raise DatasetAssemblyError("PySCF D3 projection environment is unavailable") from exc
+    pyscf_version = str(pyscf.__version__)
+    dispersion_version = importlib.metadata.version("pyscf-dispersion")
+    if pyscf_version != PYSCF_VERSION or dispersion_version != PYSCF_DISPERSION_VERSION:
+        raise DatasetAssemblyError("PySCF D3 projection version drifted")
+    elements = cast(list[str], frame["elements"])
+    coordinates = cast(list[list[float]], frame["coordinates_bohr"])
+    molecule = gto.M(
+        atom=list(zip(elements, coordinates, strict=True)),
+        unit="Bohr",
+        basis="def2-TZVPP",
+        charge=int(frame["charge"]),
+        spin=int(frame["spin"]),
+        verbose=0,
+    )
+    if int(molecule.nelectron) != int(frame["electron_count"]):
+        raise DatasetAssemblyError("D3 projection electron count drifted")
+    audit = dftd3.DFTD3Dispersion(molecule, xc="wb97m", version="d3bj", atm=False).get_dispersion(
+        grad=True
+    )
+    return {
+        "energy_hartree": float(audit["energy"]),
+        "gradient_hartree_per_bohr": np.asarray(audit["gradient"], dtype=np.float64),
+        "pyscf_version": pyscf_version,
+        "pyscf_dispersion_version": dispersion_version,
+        "functional": "wb97m",
+        "damping": "d3bj",
+        "atm": False,
+    }
+
+
+def _project_model_target(
+    *,
+    frame: dict[str, Any],
+    record: dict[str, np.ndarray | float | int | str],
+    source_frame_sha256: str,
+    projector: D3Projector,
+) -> tuple[dict[str, np.ndarray | float | int | str], dict[str, Any]]:
+    atom_count = int(frame["atom_count"])
+    projection = projector(frame)
+    d3_energy = float(projection.get("energy_hartree", math.nan))
+    d3_gradient = _finite_matrix(
+        projection.get("gradient_hartree_per_bohr"),
+        rows=atom_count,
+        label="D3 gradient",
+    )
+    if not math.isfinite(d3_energy):
+        raise DatasetAssemblyError("D3 projection energy is non-finite")
+    total_energy = float(record["_energy_hartree"])
+    total_gradient = cast(np.ndarray, record["_gradients_au"])
+    total_forces = cast(np.ndarray, record["_forces_au"])
+    residual_gradient = total_gradient - d3_gradient
+    d3_forces = -d3_gradient
+    residual_forces = total_forces - d3_forces
+    if not np.array_equal(residual_forces, -residual_gradient):
+        raise DatasetAssemblyError("D3-subtracted force/gradient identity drifted")
+    residual_energy = total_energy - d3_energy
+    projected = dict(record)
+    projected.update(
+        {
+            "energy": residual_energy * HARTREE_TO_EV,
+            "forces": residual_forces * FORCE_HARTREE_PER_BOHR_TO_EV_PER_ANGSTROM,
+            "total_energy": total_energy * HARTREE_TO_EV,
+            "total_forces": total_forces * FORCE_HARTREE_PER_BOHR_TO_EV_PER_ANGSTROM,
+            "d3_energy": d3_energy * HARTREE_TO_EV,
+            "d3_forces": d3_forces * FORCE_HARTREE_PER_BOHR_TO_EV_PER_ANGSTROM,
+        }
+    )
+    evidence: dict[str, Any] = {
+        "schema": D3_PROJECTION_SCHEMA,
+        "candidate": frame["candidate"],
+        "endpoint": frame["endpoint"],
+        "frame_index": frame["frame_index"],
+        "source_frame_sha256": source_frame_sha256,
+        "geometry_sha256": frame["geometry_sha256"],
+        "parent_protocol_sha256": PARENT_PROTOCOL_SHA256,
+        "total_energy_hartree": total_energy,
+        "total_gradient_hartree_per_bohr": total_gradient.tolist(),
+        "d3_energy_hartree": d3_energy,
+        "d3_gradient_hartree_per_bohr": d3_gradient.tolist(),
+        "short_range_energy_hartree": residual_energy,
+        "short_range_gradient_hartree_per_bohr": residual_gradient.tolist(),
+        "short_range_forces_hartree_per_bohr": residual_forces.tolist(),
+        "dispersion_identity": {
+            key: value
+            for key, value in projection.items()
+            if key not in {"energy_hartree", "gradient_hartree_per_bohr"}
+        },
+        "external_d3_required_at_inference": True,
+        "production_accepted": False,
+    }
+    evidence["canonical_sha256"] = sha256_bytes(canonical_json(evidence))
+    return projected, evidence
+
+
 def load_candidate_frames(
-    *, candidate: str, split: str, profile: dict[str, Any], runs_root: Path
+    *,
+    candidate: str,
+    split: str,
+    profile: dict[str, Any],
+    runs_root: Path,
+    projection_root: Path,
+    projector: D3Projector,
 ) -> tuple[list[dict[str, np.ndarray | float | int | str]], dict[str, object]]:
     run_root = runs_root / f"autofill_{candidate.lower()}_v001"
     result, _ = _json(run_root / "result.json")
@@ -249,6 +366,7 @@ def load_candidate_frames(
             raise DatasetAssemblyError("endpoint training manifest has no frames")
         expected_atom_count = profile[f"{endpoint}_atom_count"]
         endpoint_geometry_hashes: list[str] = []
+        projection_receipts: list[dict[str, object]] = []
         for index, frame_binding in enumerate(frame_bindings):
             if not isinstance(frame_binding, dict) or frame_binding.get("frame_index") != index:
                 raise DatasetAssemblyError("training frame sequence is not contiguous")
@@ -262,12 +380,30 @@ def load_candidate_frames(
             )
             if frame["atom_count"] != expected_atom_count:
                 raise DatasetAssemblyError("training frame differs from split atom count")
+            record, projection_evidence = _project_model_target(
+                frame=frame,
+                record=record,
+                source_frame_sha256=str(frame_binding.get("sha256")),
+                projector=projector,
+            )
+            projection_receipt = write_new(
+                projection_root / candidate / endpoint / f"frame_{index:04d}.json",
+                canonical_json(projection_evidence),
+            )
+            projection_receipt.update(
+                {
+                    "frame_index": index,
+                    "canonical_sha256": projection_evidence["canonical_sha256"],
+                }
+            )
+            projection_receipts.append(projection_receipt)
             endpoint_geometry_hashes.append(str(frame["geometry_sha256"]))
             records.append(record)
         endpoint_evidence[endpoint] = {
             "manifest_sha256": sha256_bytes(manifest_raw),
             "frame_count": len(frame_bindings),
             "geometry_sha256": endpoint_geometry_hashes,
+            "d3_projections": projection_receipts,
         }
     return records, {
         "candidate": candidate,
@@ -291,6 +427,16 @@ def _npz(records: list[dict[str, np.ndarray | float | int | str]]) -> bytes:
         "forces": np.stack([cast(np.ndarray, record["forces"]) for record in records]).astype(
             np.float32
         ),
+        "total_energy": np.asarray(
+            [record["total_energy"] for record in records], dtype=np.float64
+        ),
+        "total_forces": np.stack(
+            [cast(np.ndarray, record["total_forces"]) for record in records]
+        ).astype(np.float32),
+        "d3_energy": np.asarray([record["d3_energy"] for record in records], dtype=np.float64),
+        "d3_forces": np.stack([cast(np.ndarray, record["d3_forces"]) for record in records]).astype(
+            np.float32
+        ),
         "candidate": np.asarray([record["candidate"] for record in records]),
         "endpoint": np.asarray([record["endpoint"] for record in records]),
         "frame_index": np.asarray([record["frame_index"] for record in records], dtype=np.int64),
@@ -300,9 +446,16 @@ def _npz(records: list[dict[str, np.ndarray | float | int | str]]) -> bytes:
     return buffer.getvalue()
 
 
-def assemble(*, split_path: Path, runs_root: Path, output_root: Path) -> dict[str, object]:
+def assemble(
+    *,
+    split_path: Path,
+    runs_root: Path,
+    output_root: Path,
+    projector: D3Projector | None = None,
+) -> dict[str, object]:
     assignments, profiles, split_sha256 = load_split(split_path)
     output_root.mkdir(mode=0o700, parents=False, exist_ok=False)
+    effective_projector = projector or _pyscf_d3_projector
     grouped: dict[str, dict[int, list[dict[str, np.ndarray | float | int | str]]]] = {
         split: defaultdict(list) for split in ("train", "validation", "final_test")
     }
@@ -314,6 +467,8 @@ def assemble(*, split_path: Path, runs_root: Path, output_root: Path) -> dict[st
             split=split,
             profile=profiles[candidate],
             runs_root=runs_root,
+            projection_root=output_root / "d3_projection",
+            projector=effective_projector,
         )
         for record in records:
             geometry_key = sha256_bytes(
@@ -362,6 +517,10 @@ def assemble(*, split_path: Path, runs_root: Path, output_root: Path) -> dict[st
             "charge": "float32",
             "energy": "float64_before_sae_float32_after_sae",
             "forces": "float32",
+            "total_energy": "float64",
+            "total_forces": "float32",
+            "d3_energy": "float64",
+            "d3_forces": "float32",
         },
         "source_units": {
             "coord": "Bohr",
@@ -376,6 +535,14 @@ def assemble(*, split_path: Path, runs_root: Path, output_root: Path) -> dict[st
         "training_keys": {
             "x": ["coord", "numbers", "charge"],
             "y": ["energy", "forces"],
+        },
+        "target_definition": {
+            "energy": "P01_total_energy_minus_frozen_two_body_D3_BJ",
+            "forces": "P01_total_forces_minus_frozen_two_body_D3_BJ_forces",
+            "external_d3_required_at_inference": True,
+            "d3_functional": "wb97m",
+            "d3_damping": "d3bj",
+            "atm": False,
         },
         "final_test_used_for_training": False,
         "production_accepted": False,

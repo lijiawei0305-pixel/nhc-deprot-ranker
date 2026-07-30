@@ -45,8 +45,17 @@ The audited training projection converts coordinates from Bohr to Angstrom,
 energies from Hartree to eV, and forces from Hartree/Bohr to eV/Angstrom.  These
 are the native input/target units expected by the installed AIMNet2 training
 stack.  The model inputs are `coord`, `numbers`, and molecular `charge`; the
-supervised targets are total `energy` and complete atomic `forces`.  No
+supervised targets are D3-subtracted `energy` and complete atomic `forces`.  No
 unavailable atomic-charge target is fabricated.
+
+The frozen AIMNet2 export applies two-body D3(BJ) outside the neural-network
+core.  Dataset assembly therefore independently recomputes that exact D3
+energy and gradient for every immutable P01 frame with PySCF 2.13.1 and
+`pyscf-dispersion` 1.5.0, then trains on `P01 total - D3`.  The total and D3
+components remain in the NPZ audit projection, while only the short-range
+`energy` and `forces` keys enter the loss.  The fine-tuned export must retain
+the original external D3 parameters; this prevents dispersion from being
+learned once and added a second time at inference.
 
 The NPZ projection stores `coord`, molecular `charge`, and `forces` as
 `float32`, and `numbers` as `int64`, matching the installed model's training

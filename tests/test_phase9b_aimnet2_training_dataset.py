@@ -38,6 +38,10 @@ def test_npz_projection_has_exact_aimnet_keys_and_shapes() -> None:
             "charge": 1,
             "energy": -10.0,
             "forces": np.asarray([[0.1, 0.0, 0.0], [-0.1, 0.0, 0.0]]),
+            "total_energy": -10.5,
+            "total_forces": np.asarray([[0.2, 0.0, 0.0], [-0.2, 0.0, 0.0]]),
+            "d3_energy": -0.5,
+            "d3_forces": np.asarray([[0.1, 0.0, 0.0], [-0.1, 0.0, 0.0]]),
             "candidate": "AAAAAAAAAAAAAA-BBBBBBBBBB-C",
             "endpoint": "cation",
             "frame_index": 0,
@@ -51,6 +55,10 @@ def test_npz_projection_has_exact_aimnet_keys_and_shapes() -> None:
         "charge",
         "energy",
         "forces",
+        "total_energy",
+        "total_forces",
+        "d3_energy",
+        "d3_forces",
         "candidate",
         "endpoint",
         "frame_index",
@@ -64,6 +72,52 @@ def test_npz_projection_has_exact_aimnet_keys_and_shapes() -> None:
     assert archive["charge"].dtype == np.float32
     assert archive["energy"].dtype == np.float64
     assert archive["forces"].dtype == np.float32
+    assert archive["total_energy"].dtype == np.float64
+    assert archive["total_forces"].dtype == np.float32
+    assert archive["d3_energy"].dtype == np.float64
+    assert archive["d3_forces"].dtype == np.float32
+
+
+def test_d3_projection_subtracts_external_dispersion_without_sign_drift() -> None:
+    frame = {
+        "candidate": "AAAAAAAAAAAAAA-BBBBBBBBBB-C",
+        "endpoint": "cation",
+        "frame_index": 0,
+        "atom_count": 2,
+        "geometry_sha256": "a" * 64,
+    }
+    record = {
+        "coord": np.zeros((2, 3)),
+        "numbers": np.asarray([6, 7]),
+        "charge": 1,
+        "_energy_hartree": -10.5,
+        "_gradients_au": np.asarray([[0.2, 0.0, 0.0], [-0.2, 0.0, 0.0]]),
+        "_forces_au": np.asarray([[-0.2, 0.0, 0.0], [0.2, 0.0, 0.0]]),
+        "candidate": frame["candidate"],
+        "endpoint": "cation",
+        "frame_index": 0,
+    }
+
+    def projector(_: object) -> dict[str, object]:
+        return {
+            "energy_hartree": -0.5,
+            "gradient_hartree_per_bohr": [[0.1, 0.0, 0.0], [-0.1, 0.0, 0.0]],
+            "pyscf_version": dataset.PYSCF_VERSION,
+        }
+
+    projected, evidence = dataset._project_model_target(
+        frame=frame,
+        record=record,
+        source_frame_sha256="b" * 64,
+        projector=projector,
+    )
+    assert pytest.approx(-10.0 * dataset.HARTREE_TO_EV) == projected["energy"]
+    assert np.allclose(
+        projected["forces"],
+        np.asarray([[-0.1, 0.0, 0.0], [0.1, 0.0, 0.0]])
+        * dataset.FORCE_HARTREE_PER_BOHR_TO_EV_PER_ANGSTROM,
+    )
+    assert evidence["external_d3_required_at_inference"] is True
 
 
 def test_split_loader_rejects_molecule_overlap(tmp_path: Path) -> None:
