@@ -98,6 +98,49 @@ def test_queue_rejects_nonrigid_candidate(tmp_path: Path) -> None:
         autofill.load_queue(queue)
 
 
+def _queue_with_atom_map(tmp_path: Path) -> Path:
+    queue = _queue(tmp_path)
+    payload = json.loads(queue.read_text())
+    inputs = Path(payload["input_root"])
+    cation = Path(payload["candidates"][0]["cation"]["path"])
+    neutral = Path(payload["candidates"][0]["neutral"]["path"])
+    cation.write_text("4\nfrozen test\nN 0 0 0\nC 1.2 0 0\nN 2.4 0 0\nH 1.2 0 1.0\n")
+    neutral.write_text("3\nfrozen test\nN 0 0 0\nC 1.2 0 0\nN 2.4 0 0\n")
+    atom_map = inputs / "map.json"
+    atom_map.write_text(json.dumps({"C2_carbene": 1, "N1": 0, "N3": 2}))
+    profile = payload["candidates"][0]
+    profile["electron_count"] = 20
+    profile["cation"]["sha256"] = autofill.sha256_bytes(cation.read_bytes())
+    profile["neutral"]["sha256"] = autofill.sha256_bytes(neutral.read_bytes())
+    profile["atom_map"] = {
+        "path": str(atom_map),
+        "sha256": autofill.sha256_bytes(atom_map.read_bytes()),
+        "c2_index": 1,
+        "n1_index": 0,
+        "n3_index": 2,
+        "acidic_hydrogen_index": 3,
+    }
+    queue.write_text(json.dumps(payload))
+    return queue
+
+
+def test_queue_validates_frozen_c2_h_atom_map(tmp_path: Path) -> None:
+    queue = _queue_with_atom_map(tmp_path)
+    assert autofill.load_queue(queue)["candidates"][0]["atom_map"]["c2_index"] == 1
+
+
+def test_queue_rejects_wrong_acidic_hydrogen_host(tmp_path: Path) -> None:
+    queue = _queue_with_atom_map(tmp_path)
+    payload = json.loads(queue.read_text())
+    cation = Path(payload["candidates"][0]["cation"]["path"])
+    cation.write_text("4\nfrozen test\nN 0 0 0\nC 1.2 0 0\nN 2.4 0 0\nH 1.2 0 3.0\n")
+    profile = payload["candidates"][0]
+    profile["cation"]["sha256"] = autofill.sha256_bytes(cation.read_bytes())
+    queue.write_text(json.dumps(payload))
+    with pytest.raises(autofill.AutofillError, match="acidic hydrogen"):
+        autofill.load_queue(queue)
+
+
 def test_watcher_claims_once_only_after_predecessor_terminal(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

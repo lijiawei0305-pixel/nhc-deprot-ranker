@@ -121,7 +121,7 @@ def _parse_xyz(raw: bytes) -> tuple[tuple[str, ...], tuple[tuple[float, float, f
 
 def _profile_endpoint(
     *, profile: dict[str, Any], endpoint: str, charge: int, input_root: Path
-) -> tuple[tuple[str, ...], int]:
+) -> tuple[tuple[str, ...], tuple[tuple[float, float, float], ...], int]:
     evidence = profile[endpoint]
     path = Path(evidence["path"])
     if path.is_symlink():
@@ -134,13 +134,82 @@ def _profile_endpoint(
     raw = read_regular(resolved)
     if sha256_bytes(raw) != evidence["sha256"]:
         raise AutofillError(f"{endpoint} SHA256 mismatch")
-    elements, _ = _parse_xyz(raw)
+    elements, coordinates = _parse_xyz(raw)
     if len(elements) != evidence["atom_count"]:
         raise AutofillError(f"{endpoint} atom count mismatch")
     electrons = sum(ATOMIC_NUMBERS[element] for element in elements) - charge
     if electrons != profile["electron_count"] or electrons % 2:
         raise AutofillError(f"{endpoint} electron identity mismatch")
-    return elements, electrons
+    return elements, coordinates, electrons
+
+
+def _validate_atom_map(
+    *,
+    profile: dict[str, Any],
+    input_root: Path,
+    cation_elements: tuple[str, ...],
+    cation_coordinates: tuple[tuple[float, float, float], ...],
+    neutral_elements: tuple[str, ...],
+) -> None:
+    binding = profile.get("atom_map")
+    if binding is None:
+        return
+    if not isinstance(binding, dict):
+        raise AutofillError("atom-map binding must be an object")
+    expected = {
+        "path",
+        "sha256",
+        "c2_index",
+        "n1_index",
+        "n3_index",
+        "acidic_hydrogen_index",
+    }
+    if set(binding) != expected:
+        raise AutofillError("atom-map binding fields mismatch")
+    path = Path(binding["path"])
+    if path.is_symlink():
+        raise AutofillError("atom-map input is a symlink")
+    resolved = path.resolve(strict=True)
+    try:
+        resolved.relative_to(input_root)
+    except ValueError as exc:
+        raise AutofillError("atom-map input escaped frozen input root") from exc
+    raw = read_regular(resolved)
+    if sha256_bytes(raw) != binding["sha256"]:
+        raise AutofillError("atom-map SHA256 mismatch")
+    payload = json.loads(raw)
+    if not isinstance(payload, dict) or set(payload) != {"C2_carbene", "N1", "N3"}:
+        raise AutofillError("atom-map payload fields mismatch")
+    indexes = {
+        "C2_carbene": binding["c2_index"],
+        "N1": binding["n1_index"],
+        "N3": binding["n3_index"],
+    }
+    if payload != indexes or not all(type(value) is int for value in indexes.values()):
+        raise AutofillError("atom-map index binding mismatch")
+    c2 = indexes["C2_carbene"]
+    n1 = indexes["N1"]
+    n3 = indexes["N3"]
+    try:
+        cation_identity = (cation_elements[n1], cation_elements[c2], cation_elements[n3])
+        neutral_identity = (neutral_elements[n1], neutral_elements[c2], neutral_elements[n3])
+    except IndexError as exc:
+        raise AutofillError("atom-map index exceeds endpoint atom count") from exc
+    if cation_identity != ("N", "C", "N") or neutral_identity != ("N", "C", "N"):
+        raise AutofillError("atom-map reaction-centre element identity mismatch")
+    acidic_hydrogen = binding["acidic_hydrogen_index"]
+    if type(acidic_hydrogen) is not int or not 0 <= acidic_hydrogen < len(cation_elements):
+        raise AutofillError("acidic-hydrogen index is invalid")
+    if cation_elements[acidic_hydrogen] != "H":
+        raise AutofillError("acidic-hydrogen index does not identify hydrogen")
+    if (
+        tuple(element for index, element in enumerate(cation_elements) if index != acidic_hydrogen)
+        != neutral_elements
+    ):
+        raise AutofillError("removing bound acidic hydrogen does not reproduce neutral order")
+    distance = math.dist(cation_coordinates[c2], cation_coordinates[acidic_hydrogen])
+    if not 0.8 <= distance <= 1.3:
+        raise AutofillError("acidic hydrogen is not bonded to frozen C2")
 
 
 def load_queue(path: Path) -> dict[str, Any]:
@@ -175,10 +244,10 @@ def load_queue(path: Path) -> dict[str, Any]:
             raise AutofillError("candidate exceeds rotatable-bond bound")
         if rigidity.get("ring_count", 0) < 1:
             raise AutofillError("candidate is not cyclic")
-        cation, _ = _profile_endpoint(
+        cation, cation_coordinates, _ = _profile_endpoint(
             profile=profile, endpoint="cation", charge=1, input_root=input_root
         )
-        neutral, _ = _profile_endpoint(
+        neutral, _, _ = _profile_endpoint(
             profile=profile, endpoint="neutral", charge=0, input_root=input_root
         )
         if len(cation) != len(neutral) + 1:
@@ -189,6 +258,13 @@ def load_queue(path: Path) -> dict[str, Any]:
             raise AutofillError("endpoint heavy-element order mismatch")
         if cation.count("H") != neutral.count("H") + 1:
             raise AutofillError("cation does not contain exactly one extra hydrogen")
+        _validate_atom_map(
+            profile=profile,
+            input_root=input_root,
+            cation_elements=cation,
+            cation_coordinates=cation_coordinates,
+            neutral_elements=neutral,
+        )
     return payload
 
 

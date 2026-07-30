@@ -13,7 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 AUDIT_PATH = ROOT / "scripts/phase9b_parent_level_protocol_audit.py"
 BENCHMARK_PATH = ROOT / "scripts/phase9b_parent_level_paired_benchmark.py"
 TRAINING_PATH = ROOT / "scripts/phase9b_parent_level_training_data.py"
-SPLIT_PATH = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_SPLIT_V001.json"
+SPLIT_PATH = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_SPLIT_V002.json"
+REJECTED_SPLIT_PATH = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_SPLIT_V001_REJECTION.json"
 
 
 def _load(path: Path, name: str):
@@ -325,18 +326,20 @@ def test_parent_geometric_callback_records_after_convergence_check() -> None:
 
 def test_finetune_split_is_molecule_disjoint_and_final_test_is_locked() -> None:
     payload = json.loads(SPLIT_PATH.read_text())
-    candidates = payload["force_aware_candidates"]
-    identities = [item["candidate"] for item in candidates]
-    assert len(identities) == len(set(identities))
     by_split = {
-        name: {item["candidate"] for item in candidates if item["split"] == name}
+        name: {item["candidate"] for item in payload[name]}
         for name in ("train", "validation", "final_test")
     }
+    identities = [candidate for candidates in by_split.values() for candidate in candidates]
+    assert len(identities) == len(set(identities))
     assert all(by_split.values())
     assert not (by_split["train"] & by_split["validation"])
     assert not (by_split["train"] & by_split["final_test"])
     assert not (by_split["validation"] & by_split["final_test"])
     assert payload["leakage_rules"]["final_test_excluded_from_training_and_model_selection"]
+    rejected = json.loads(REJECTED_SPLIT_PATH.read_text())
+    assert rejected["classification"] == "rejected_before_launch"
+    assert rejected["candidate_launched"] is False
 
 
 def test_no_disallowed_rescue_program_or_batch_framework() -> None:
