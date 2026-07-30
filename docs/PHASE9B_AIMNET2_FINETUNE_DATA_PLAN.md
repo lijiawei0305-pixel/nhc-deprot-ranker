@@ -41,6 +41,21 @@ energies remain useful for geometry and endpoint-energy analysis, but they do
 not contain complete per-atom gradient vectors and therefore cannot by
 themselves support force-aware fine-tuning.
 
+The audited training projection converts coordinates from Bohr to Angstrom,
+energies from Hartree to eV, and forces from Hartree/Bohr to eV/Angstrom.  These
+are the native input/target units expected by the installed AIMNet2 training
+stack.  The model inputs are `coord`, `numbers`, and molecular `charge`; the
+supervised targets are total `energy` and complete atomic `forces`.  No
+unavailable atomic-charge target is fabricated.
+
+The NPZ projection stores `coord`, molecular `charge`, and `forces` as
+`float32`, and `numbers` as `int64`, matching the installed model's training
+tensor path.  Total energy is retained as `float64` on disk while applying the
+training-only atomic self-energy shift; AIMNet's loader then casts the shifted
+energy target to `float32`.  Candidate and endpoint provenance arrays are
+stored in the files for audit but excluded by the explicit training `x`/`y`
+key lists.
+
 ## Split and leakage contract
 
 The split unit is the InChIKey, never an individual geometry.  The cation,
@@ -65,4 +80,3 @@ the reference dataset is audited.
 No current AIMNet2 energy enters the PySCF deprotonation label.  The final model
 will be benchmarked only after model freezing, on molecule-level held-out
 candidates and under an isolated, equal-resource timing protocol.
-
