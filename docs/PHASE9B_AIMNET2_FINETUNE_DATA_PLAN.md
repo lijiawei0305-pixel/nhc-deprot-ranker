@@ -79,12 +79,30 @@ under their original assignment and are not replaced after observing results.
 
 ## Fine-tuning boundary
 
-The installed `aimnet 0.2.0` package exposes its own `aimnet.train` modules.
-The future fine-tuning stage will use that implementation and the frozen local
-`aimnet2_wb97m_d3_0.pt` base weight.  Training configuration, loss weights,
-units, atomic reference treatment, random seeds, checkpoint selection, and
-model export identity must be frozen in a separate implementation step after
-the reference dataset is audited.
+The installed `aimnet 0.2.0` package exposes its own training primitives.  The
+one-shot V001 fine-tuning configuration is frozen in
+`PHASE9B_AIMNET2_FINETUNE_CONFIG_V001.json`; its model structure is frozen in
+`PHASE9B_AIMNET2_FINETUNE_MODEL_V001.yaml`.  It restores the base model's
+training-time long-range Coulomb module, excludes embedded D3 because D3 is
+already removed from the targets, and maps the trained Coulomb state back to
+the immutable export schema afterward.  A remote strict-load audit proved the
+37 base state entries migrate to the training model and back with no missing or
+unexpected keys.
+
+Only the energy output MLP is trainable in V001.  The pretrained representation,
+charge-producing path, atomic shift, AEV parameters, and Coulomb physics remain
+frozen.  The fixed seed is `20260730`; RAdam uses a learning rate of `1e-4`, and
+energy and force losses have equal frozen weights.  Validation weighted loss
+selects the earliest best checkpoint.  The final-test directory is not opened
+until the selected bundle has been serialized and SHA256-frozen, and final-test
+metrics cannot change that selection.
+
+`phase9b_aimnet2_finetune_watch.py` is the durable transition gate.  It waits for
+all nine preregistered candidates and all four lane terminals, stops on any
+candidate failure, assembles the D3-audited dataset once, waits for disk, host
+memory, and one idle V100, and then claims exactly one training attempt.  There
+is no retry, replacement candidate, extension cohort, production label write,
+or speed benchmark in this state machine.
 
 No current AIMNet2 energy enters the PySCF deprotonation label.  The final model
 will be benchmarked only after model freezing, on molecule-level held-out
