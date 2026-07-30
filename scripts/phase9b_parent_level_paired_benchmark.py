@@ -239,6 +239,7 @@ def build_parent_backend(
     threads: int = 4,
     memory_mb: int = 12000,
     expected_electron_count: int = ELECTRONS,
+    training_recorder: Any | None = None,
 ) -> Any:
     """Adapt the audited pilot backend without changing production source."""
 
@@ -256,6 +257,8 @@ def build_parent_backend(
                 return self._parent_modules
             modules = super()._load_modules()
             original_dftd3 = modules.dftd3
+            original_geometric_solver = modules.geometric_solver
+            backend = self
 
             class ParentD3Audit:
                 @staticmethod
@@ -270,7 +273,29 @@ def build_parent_backend(
                         atm=atm,
                     )
 
-            self._parent_modules = dataclasses.replace(modules, dftd3=ParentD3Audit)
+            class ParentGeometricSolver:
+                @staticmethod
+                def kernel(method: object, *positional: object, **kwargs: object) -> object:
+                    original_callback = kwargs.get("callback")
+
+                    def callback(environment: dict[str, object]) -> None:
+                        if callable(original_callback):
+                            original_callback(environment)
+                        if training_recorder is None:
+                            return
+                        context = backend._pilot_context
+                        if context is None or context[1] != "optimization":
+                            raise BenchmarkError("training callback context drifted")
+                        training_recorder.capture(environment, endpoint=context[0])
+
+                    kwargs["callback"] = callback
+                    return original_geometric_solver.kernel(method, *positional, **kwargs)
+
+            self._parent_modules = dataclasses.replace(
+                modules,
+                dftd3=ParentD3Audit,
+                geometric_solver=ParentGeometricSolver,
+            )
             return self._parent_modules
 
         def _mean_field(self, **kwargs: object) -> tuple[object, object, object]:
@@ -408,6 +433,18 @@ def parent_worker(args: argparse.Namespace) -> int:
     from nhc_deprot_ranker.quantum import two_endpoint
 
     root = Path(args.root).resolve(strict=True)
+    training_recorder: Any | None = None
+    if args.record_training_frames:
+        if args.route != "pure_pyscf" or not args.training_data_helper:
+            raise BenchmarkError("training frames require pure PySCF and an explicit helper")
+        training_module = load_module(
+            Path(args.training_data_helper).resolve(strict=True), "p01_training_data_helper"
+        )
+        training_recorder = training_module.TrainingFrameRecorder(
+            root=root / "training_data",
+            candidate=args.candidate,
+            source_sha256=sha256_bytes(Path(__file__).resolve(strict=True).read_bytes()),
+        )
     cpu_list = _parse_cpu_list(args.cpu_list)
     _configure_parent_resources(
         module=two_endpoint,
@@ -462,6 +499,7 @@ def parent_worker(args: argparse.Namespace) -> int:
         threads=args.threads,
         memory_mb=args.max_memory_mb,
         expected_electron_count=args.electron_count,
+        training_recorder=training_recorder,
     )
     energies: dict[str, float] = {}
     endpoint_results: dict[str, object] = {}
@@ -551,6 +589,9 @@ def parent_worker(args: argparse.Namespace) -> int:
             "production_accepted": False,
         }
         if optimization is not None:
+            training_endpoint_manifest: object = None
+            if training_recorder is not None:
+                training_endpoint_manifest = training_recorder.finalize_endpoint(endpoint)
             payload["geometry_optimization"] = {
                 "converged": bool(optimization.geometry_converged),
                 "last_energy_hartree": float(optimization.last_energy_hartree),
@@ -561,6 +602,7 @@ def parent_worker(args: argparse.Namespace) -> int:
                 "d3_gradient_calls": optimization.dispersion.gradient_hook_calls,
                 "final_xyz_sha256": sha256_bytes(optimized_raw),
                 "final_xyz_bytes": len(optimized_raw),
+                "training_endpoint_manifest": training_endpoint_manifest,
             }
         result_root = (
             output_root if args.route == "assisted" else root / "final_single_point" / endpoint
@@ -571,6 +613,9 @@ def parent_worker(args: argparse.Namespace) -> int:
 
     if set(energies) != set(ENDPOINTS):
         raise BenchmarkError("route did not produce both endpoint energies")
+    training_dataset_manifest: object = None
+    if training_recorder is not None:
+        training_dataset_manifest = training_recorder.finalize_dataset()
     terminal = {
         "schema_version": SCHEMA,
         "science_pilot_only": True,
@@ -582,6 +627,7 @@ def parent_worker(args: argparse.Namespace) -> int:
         "second_pure_pyscf_candidate": args.candidate != CANDIDATE,
         "batch": False,
         "retry": False,
+        "training_data": training_dataset_manifest,
         "protocol": protocol(
             threads=args.threads,
             cpu_affinity=cpu_list,
@@ -820,6 +866,8 @@ def parser() -> argparse.ArgumentParser:
     worker.add_argument("--neutral-atom-count", type=int, default=ATOM_COUNTS["neutral"])
     worker.add_argument("--cation-sha256", default=INPUT_SHA256["cation"])
     worker.add_argument("--neutral-sha256", default=INPUT_SHA256["neutral"])
+    worker.add_argument("--record-training-frames", action="store_true")
+    worker.add_argument("--training-data-helper")
     for name in (
         "root",
         "source-root",

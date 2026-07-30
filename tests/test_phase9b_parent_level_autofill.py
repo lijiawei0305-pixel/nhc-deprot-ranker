@@ -138,3 +138,29 @@ def test_watcher_claims_once_only_after_predecessor_terminal(
     assert len(claims) == 1
     assert len(assignments) == 1
     assert (tmp_path / "state" / "queue_exhausted.json").exists()
+
+
+def test_launcher_enables_parent_training_frame_writer(tmp_path: Path) -> None:
+    queue = _queue(tmp_path)
+    payload = autofill.load_queue(queue)
+    driver = tmp_path / "driver"
+    driver.mkdir()
+    args = argparse.Namespace(
+        queue=str(queue),
+        output_root=str(tmp_path / "out"),
+        driver=str(driver),
+        gpupyscf_python=sys.executable,
+        threads=2,
+        cpu_list="0-1",
+        max_memory_mb=1000,
+        route_limit_seconds=100,
+    )
+    args.candidate = payload["candidates"][0]["candidate"]
+    command = autofill._launcher_command(
+        argparse.Namespace(
+            **vars(args), run_root=str(tmp_path), state_root=str(tmp_path / "state")
+        ),
+        payload["candidates"][0],
+    )
+    assert "--record-training-frames" in command
+    assert "--training-data-helper" in command

@@ -232,6 +232,9 @@ def _launcher_command(args: argparse.Namespace, profile: dict[str, Any]) -> list
         str(args.max_memory_mb),
         "--route-limit-seconds",
         str(args.route_limit_seconds),
+        "--record-training-frames",
+        "--training-data-helper",
+        str(driver / "scripts/phase9b_parent_level_training_data.py"),
     ]
 
 
@@ -425,6 +428,16 @@ def launch_one(args: argparse.Namespace) -> int:
         "--neutral-input",
         profile["neutral"]["path"],
     ]
+    if args.record_training_frames:
+        if not args.training_data_helper:
+            raise AutofillError("training frame recording requires an explicit helper")
+        command.extend(
+            [
+                "--record-training-frames",
+                "--training-data-helper",
+                str(Path(args.training_data_helper).resolve(strict=True)),
+            ]
+        )
     started = time.monotonic()
     with (
         (root / "controller_stdout").open("xb", buffering=0) as stdout,
@@ -461,6 +474,8 @@ def parser() -> argparse.ArgumentParser:
     launcher.add_argument("--threads", type=int, required=True)
     launcher.add_argument("--max-memory-mb", type=int, required=True)
     launcher.add_argument("--route-limit-seconds", type=int, default=86400)
+    launcher.add_argument("--record-training-frames", action="store_true")
+    launcher.add_argument("--training-data-helper")
     return result
 
 

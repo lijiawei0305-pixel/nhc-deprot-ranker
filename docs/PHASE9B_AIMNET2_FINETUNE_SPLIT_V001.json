@@ -1,0 +1,99 @@
+{
+  "schema": "phase9b-aimnet2-finetune-split-v001",
+  "status": "preregistered_before_force_aware_launch",
+  "split_unit": "InChIKey",
+  "parent_protocol_sha256": "227c22a527e567bc4de873ab743fe9f493779eccbb1a698d2913c87695ebf87a",
+  "base_weight": {
+    "filename": "aimnet2_wb97m_d3_0.pt",
+    "sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28"
+  },
+  "existing_reference_candidates": {
+    "role": "training_pool_pending_dataset_audit",
+    "force_vector_status": "not_durably_recorded_by_existing_runs",
+    "candidates": [
+      "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+      "QXHIEGFUWOLQIJ-UHFFFAOYSA-N",
+      "IJWCXRPLHNQISE-UHFFFAOYSA-N",
+      "HQKHXILTVGYEGE-UHFFFAOYSA-N",
+      "LNZNSFNUVUFDTE-UHFFFAOYSA-N",
+      "GTHOEAZLMAMKTA-UHFFFAOYSA-N"
+    ]
+  },
+  "force_aware_candidates": [
+    {
+      "candidate": "HQCVRJMETIHYLP-UHFFFAOYSA-N",
+      "split": "train",
+      "electron_count": 128,
+      "cation": {
+        "atom_count": 29,
+        "sha256": "6257f1717badf8474e4b28528222145fca6ac898cdbafcab9ede5d32f9513759"
+      },
+      "neutral": {
+        "atom_count": 28,
+        "sha256": "c0a22533769980d9a6ad140e398bb56e68150d89d854ae4d1898caf01235e823"
+      }
+    },
+    {
+      "candidate": "HKNCPUKCYBZCGS-UHFFFAOYSA-N",
+      "split": "train",
+      "electron_count": 132,
+      "cation": {
+        "atom_count": 26,
+        "sha256": "7803f0826257f93b272d38fa60f3756646d2797840fe7cfc49bb905f5838e2d5"
+      },
+      "neutral": {
+        "atom_count": 25,
+        "sha256": "866e123b841fa1d7a36b9cf3b393fe731fd10e73614d05074d89206545f5c1df"
+      }
+    },
+    {
+      "candidate": "LOKGRYJPGKAKIZ-UHFFFAOYSA-N",
+      "split": "validation",
+      "electron_count": 88,
+      "cation": {
+        "atom_count": 21,
+        "sha256": "c40d134b62957f9cc874452319cbb027e68a5395f5499195be206fe95e549351"
+      },
+      "neutral": {
+        "atom_count": 20,
+        "sha256": "2866a86573139d4a98d6a849fff8b4a83c3788bb1eb8dfe07e91a451574afaf2"
+      }
+    },
+    {
+      "candidate": "GUJFDVFKLYCWLN-UHFFFAOYSA-N",
+      "split": "final_test",
+      "electron_count": 100,
+      "cation": {
+        "atom_count": 25,
+        "sha256": "9630541910109779fdadc81bf7858d109f0193708022f702df366bc1e2a93e08"
+      },
+      "neutral": {
+        "atom_count": 24,
+        "sha256": "7c93021f867cd258c90acb41292e9ae22c7a1db9433395ef03ea18fdc7caf65e"
+      }
+    },
+    {
+      "candidate": "WRYASDRXZDLECU-UHFFFAOYSA-N",
+      "split": "final_test",
+      "electron_count": 118,
+      "cation": {
+        "atom_count": 22,
+        "sha256": "c534fd20994b16d5b8d03990a9e52646eb84f24bf52043b09001a591110b1894"
+      },
+      "neutral": {
+        "atom_count": 21,
+        "sha256": "6a64ccc13790738ccd347353aa81c61dc23d4a992ee59c96c4176c5a1571ca42"
+      }
+    }
+  ],
+  "leakage_rules": {
+    "cation_neutral_same_split": true,
+    "all_frames_same_split": true,
+    "validation_excluded_from_training_loss": true,
+    "final_test_excluded_from_training_and_model_selection": true,
+    "failed_candidates_not_replaced": true
+  },
+  "science_pilot_only": true,
+  "production_accepted": false,
+  "production_labels_modified": false
+}

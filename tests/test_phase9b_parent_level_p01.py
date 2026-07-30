@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import dataclasses
 import importlib.util
+import json
 import math
 import sys
 from pathlib import Path
@@ -10,6 +12,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 AUDIT_PATH = ROOT / "scripts/phase9b_parent_level_protocol_audit.py"
 BENCHMARK_PATH = ROOT / "scripts/phase9b_parent_level_paired_benchmark.py"
+TRAINING_PATH = ROOT / "scripts/phase9b_parent_level_training_data.py"
+SPLIT_PATH = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_SPLIT_V001.json"
 
 
 def _load(path: Path, name: str):
@@ -23,6 +27,7 @@ def _load(path: Path, name: str):
 
 audit = _load(AUDIT_PATH, "phase9b_parent_level_protocol_audit_test")
 benchmark = _load(BENCHMARK_PATH, "phase9b_parent_level_paired_benchmark_test")
+training = _load(TRAINING_PATH, "phase9b_parent_level_training_data_test")
 
 
 def test_parent_protocol_identity_is_exact() -> None:
@@ -173,6 +178,165 @@ def test_parent_worker_accepts_explicit_frozen_candidate_identity() -> None:
     assert args.neutral_atom_count == 21
     assert args.cation_sha256 == "a" * 64
     assert args.neutral_sha256 == "b" * 64
+
+
+def test_parent_worker_training_frames_are_explicit_opt_in() -> None:
+    args = benchmark.parser().parse_args(
+        [
+            "parent-worker",
+            "--route",
+            "pure_pyscf",
+            "--route-limit-seconds",
+            "100",
+            "--threads",
+            "1",
+            "--cpu-list",
+            "0",
+            "--max-memory-mb",
+            "1000",
+            "--record-training-frames",
+            "--training-data-helper",
+            str(TRAINING_PATH),
+            "--root",
+            "/tmp/root",
+            "--source-root",
+            "/tmp/src",
+            "--pilot-helper",
+            "/tmp/pilot.py",
+            "--sp-helper",
+            "/tmp/sp.py",
+            "--v006-helper",
+            "/tmp/v006.py",
+            "--cation-input",
+            "/tmp/cation.xyz",
+            "--neutral-input",
+            "/tmp/neutral.xyz",
+        ]
+    )
+    assert args.record_training_frames is True
+    assert args.training_data_helper == str(TRAINING_PATH)
+
+
+def test_training_recorder_writes_energy_gradient_and_force(tmp_path: Path) -> None:
+    class Array:
+        def __init__(self, value: list[list[float]]) -> None:
+            self.value = value
+
+        def tolist(self) -> list[list[float]]:
+            return self.value
+
+    class Molecule:
+        natm = 2
+        charge = 1
+        spin = 0
+        nelectron = 14
+
+        @staticmethod
+        def atom_symbol(index: int) -> str:
+            return ("C", "N")[index]
+
+        @staticmethod
+        def atom_coords(*, unit: str) -> Array:
+            assert unit == "Bohr"
+            return Array([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]])
+
+    class Scanner:
+        converged = True
+
+    recorder = training.TrainingFrameRecorder(
+        root=tmp_path / "training", candidate="AAAAAAAAAAAAAA-BBBBBBBBBB-C", source_sha256="a" * 64
+    )
+    receipt = recorder.capture(
+        {
+            "g_scanner": Scanner(),
+            "mol": Molecule(),
+            "energy": -10.0,
+            "gradients": Array([[0.1, 0.2, 0.3], [-0.1, -0.2, -0.3]]),
+        },
+        endpoint="cation",
+    )
+    payload = json.loads((tmp_path / "training/cation/frame_0000.json").read_text())
+    assert receipt["frame_index"] == 0
+    assert payload["energy_hartree"] == -10.0
+    assert payload["gradient_hartree_per_bohr"][0] == [0.1, 0.2, 0.3]
+    assert payload["forces_hartree_per_bohr"][0] == [-0.1, -0.2, -0.3]
+    assert payload["total_energy_includes_two_body_d3_bj"] is True
+
+
+def test_parent_geometric_callback_records_after_convergence_check() -> None:
+    calls: list[str] = []
+
+    class OriginalD3:
+        @staticmethod
+        def DFTD3Dispersion(*_: object, **__: object) -> object:
+            return object()
+
+    class OriginalSolver:
+        @staticmethod
+        def kernel(method: object, *positional: object, **kwargs: object) -> object:
+            del method, positional
+            callback = kwargs["callback"]
+            assert callable(callback)
+            callback({"frame": 1})
+            return "complete"
+
+    @dataclasses.dataclass(frozen=True)
+    class Modules:
+        dftd3: object
+        geometric_solver: object
+
+    class Base:
+        def __init__(self) -> None:
+            self._pilot_context: tuple[str, str, str] | None = None
+
+        @staticmethod
+        def _load_modules() -> Modules:
+            return Modules(OriginalD3, OriginalSolver)
+
+    class Factory:
+        @staticmethod
+        def build(module: object) -> Base:
+            del module
+            return Base()
+
+    class Pilot:
+        _SciencePilotPySCFBackend = Factory
+
+    class Recorder:
+        @staticmethod
+        def capture(environment: dict[str, object], *, endpoint: str) -> None:
+            assert environment == {"frame": 1}
+            assert endpoint == "cation"
+            calls.append("recorded")
+
+    backend = benchmark.build_parent_backend(
+        pilot=Pilot(), module=object(), training_recorder=Recorder()
+    )
+    backend._pilot_context = ("cation", "optimization", "standard")
+    modules = backend._load_modules()
+
+    def convergence_check(environment: dict[str, object]) -> None:
+        assert environment == {"frame": 1}
+        calls.append("checked")
+
+    assert modules.geometric_solver.kernel(object(), callback=convergence_check) == "complete"
+    assert calls == ["checked", "recorded"]
+
+
+def test_finetune_split_is_molecule_disjoint_and_final_test_is_locked() -> None:
+    payload = json.loads(SPLIT_PATH.read_text())
+    candidates = payload["force_aware_candidates"]
+    identities = [item["candidate"] for item in candidates]
+    assert len(identities) == len(set(identities))
+    by_split = {
+        name: {item["candidate"] for item in candidates if item["split"] == name}
+        for name in ("train", "validation", "final_test")
+    }
+    assert all(by_split.values())
+    assert not (by_split["train"] & by_split["validation"])
+    assert not (by_split["train"] & by_split["final_test"])
+    assert not (by_split["validation"] & by_split["final_test"])
+    assert payload["leakage_rules"]["final_test_excluded_from_training_and_model_selection"]
 
 
 def test_no_disallowed_rescue_program_or_batch_framework() -> None:
