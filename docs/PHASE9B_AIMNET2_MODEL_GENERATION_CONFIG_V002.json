@@ -1,0 +1,107 @@
+{
+  "schema": "phase9b-aimnet2-model-generation-config-v002",
+  "generation_id": "phase9b-aimnet2-nhc-p01-v002",
+  "science_pilot_only": true,
+  "production_accepted": false,
+  "single_training_attempt": true,
+  "retry": false,
+  "readiness": {
+    "state": "BLOCKED_BEFORE_TRAINING",
+    "final_test_isolation_implemented": true,
+    "final_test_evaluator_scientifically_complete": false,
+    "epoch_zero_selection_implemented": false,
+    "validation_selection_gates_frozen": false,
+    "baseline_eligibility_gates_frozen": false,
+    "final_test_acceptance_gates_frozen": false,
+    "stopping_handoff_promotion_gates_frozen": false,
+    "blocking_reason_codes": [
+      "EPOCH_ZERO_SELECTION_NOT_IMPLEMENTED",
+      "FINAL_TEST_EVALUATOR_INCOMPLETE",
+      "VALIDATION_SELECTION_GATES_NOT_FROZEN",
+      "BASELINE_ELIGIBILITY_GATES_NOT_FROZEN",
+      "FINAL_TEST_ACCEPTANCE_GATES_NOT_FROZEN",
+      "STOPPING_HANDOFF_PROMOTION_GATES_NOT_FROZEN"
+    ]
+  },
+  "base_bundle": {
+    "path": "/home/plab/.cache/aimnet/aimnet2_wb97m_d3_0.pt",
+    "sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28",
+    "embedded_model_yaml_sha256": "f3a374cb0824f522b03a2f423980d5c7121c10fe49718e08782af47e7259b3b1"
+  },
+  "training_model": {
+    "path": "docs/PHASE9B_AIMNET2_FINETUNE_MODEL_V001.yaml",
+    "sha256": "0bc0a560f1215cde1033b6b2685d70406310edb81ee81e6fd82076a731164909"
+  },
+  "data": {
+    "split_unit": "InChIKey",
+    "development_candidate_count": 7,
+    "development_candidate_count_by_split": {"train": 5, "validation": 2},
+    "sealed_final_test_commitment": {
+      "split_registry_sha256": "772094bc08012f8f40c76994a1600985f11a1956bef66d2c7710006b3aa0b995",
+      "candidate_count": 2
+    },
+    "x": ["coord", "numbers", "charge"],
+    "y": ["energy", "forces"],
+    "atomic_charge_target": false,
+    "train_directory": "train",
+    "validation_directory": "validation"
+  },
+  "training": {
+    "seed": 20260730,
+    "epochs": 200,
+    "batch_size": 32,
+    "batch_mode": "molecules",
+    "batches_per_epoch": -1,
+    "shuffle_train": true,
+    "shuffle_validation": false,
+    "num_workers": 0,
+    "pin_memory": true,
+    "trainable_parameter_regex": ["^outputs\\.energy_mlp\\."],
+    "all_other_parameters_frozen": true,
+    "optimizer": "torch.optim.RAdam",
+    "learning_rate": 0.0001,
+    "weight_decay": 1e-8,
+    "gradient_clip_value": 0.4,
+    "loss": {
+      "energy_weight": 1.0,
+      "forces_weight": 1.0,
+      "energy_normalization": "sqrt_atom_count",
+      "force_normalization": "per_atom"
+    },
+    "scheduler": {
+      "type": "ReduceLROnPlateau",
+      "factor": 0.5,
+      "patience_epochs": 15,
+      "minimum_learning_rate": 1e-7
+    },
+    "checkpoint_selection": {
+      "metric": "validation_weighted_loss",
+      "direction": "minimum",
+      "tie_break": "earliest_epoch",
+      "final_test_involved": false
+    }
+  },
+  "environment": {
+    "python": "/home/plab/test/WJW/env/conda/mlff/bin/python",
+    "python_version": "3.11.15",
+    "aimnet_version": "0.2.0",
+    "torch_version": "2.8.0",
+    "cuda_version": "12.8",
+    "numpy_version": "2.4.6",
+    "pytorch_ignite_version": "0.5.4",
+    "omegaconf_version": "2.3.1",
+    "nvalchemi_toolkit_ops_version": "0.4.0",
+    "ase_version": "3.29.0"
+  },
+  "resource_preflight": {
+    "minimum_free_disk_bytes": 21474836480,
+    "minimum_available_host_memory_bytes": 34359738368,
+    "minimum_free_gpu_memory_bytes": 21474836480,
+    "maximum_gpu_utilization_percent": 10
+  },
+  "paths": {
+    "dataset_root": "/home/plab/test/WJW/data/runs/phase9b_aimnet2_development_dataset_v002",
+    "training_root": "/home/plab/test/WJW/data/runs/phase9b_aimnet2_model_freeze_v002",
+    "final_bundle_name": "aimnet2_wb97m_d3_0_nhc_p01_v002.pt"
+  }
+}

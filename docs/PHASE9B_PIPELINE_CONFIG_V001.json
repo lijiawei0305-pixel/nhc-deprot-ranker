@@ -1,0 +1,141 @@
+{
+  "schema": "phase9b-continuous-pipeline-config-v001",
+  "science_pilot_only": true,
+  "production_accepted": false,
+  "production_label_insertion": false,
+  "production_permit": false,
+  "retry": false,
+  "candidate_replacement": false,
+  "speed_benchmark_after_freeze": false,
+  "identities": {
+    "parent_protocol_sha256": "227c22a527e567bc4de873ab743fe9f493779eccbb1a698d2913c87695ebf87a",
+    "base_weight_sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28",
+    "required_candidate_count": 9,
+    "required_lane_count": 4
+  },
+  "programs": {
+    "autofill": {
+      "path": "scripts/phase9b_parent_level_autofill.py",
+      "sha256": "12a670ff42ecfca1140a66ffd3ecc00c5198049d433874ebd4385f5cabee4d25",
+      "adopt_compatible_sha256": [
+        "ee1f57e42d01ef0d51f6881a4b4053bb9809eee886ce29e8d9b48fc9b2feedf9"
+      ]
+    },
+    "finetune_watch": {
+      "path": "scripts/phase9b_aimnet2_finetune_watch.py",
+      "sha256": "c1b9e4082c871f674796b9f20f8a152ecaf5afd1c6108465b49636f0a2cf86f0",
+      "adopt_compatible_sha256": [
+        "74e17b125f61a3f4570e562708386ce175ca12f330bbd0c1a3605daaa13db0fb"
+      ]
+    },
+    "dataset": {
+      "path": "scripts/phase9b_aimnet2_training_dataset.py",
+      "sha256": "98cf42829c01076a2c65c21c0976dacf857884bc599f969e0f3f205264cb7d53"
+    },
+    "finetune": {
+      "path": "scripts/phase9b_aimnet2_finetune.py",
+      "sha256": "88bc384fac084a460ece4ba72a6522ce14b7742d320e3af0b79f18e325ea3bbf"
+    },
+    "final_test": {
+      "path": "scripts/phase9b_aimnet2_final_test.py",
+      "sha256": "ad84fa461d26a88179f56694bc16cd8abbba27b292b7e38f3b3c110abde2f6a1"
+    }
+  },
+  "deployment": {
+    "orchestrator_state_root_name": "phase9b_continuous_pipeline_orchestrator_v001",
+    "autofill_driver_name": "phase9b_continuous_pipeline_autofill_driver_v001",
+    "finetune_driver_name": "phase9b_continuous_pipeline_finetune_driver_v001",
+    "adopt_compatible_autofill_driver_names": [
+      "phase9b_parent_level_training_driver_d287ef7"
+    ],
+    "adopt_compatible_finetune_driver_names": [
+      "phase9b_aimnet2_finetune_driver_befa889"
+    ],
+    "poll_seconds": 60,
+    "route_limit_seconds": 86400
+  },
+  "lanes": [
+    {
+      "lane_id": "a",
+      "queue_relative_path": "queues/phase9b_parent_level_finetune_lane_a_v002.json",
+      "queue_sha256": "20ba326dd920d40cb8ac319d431a923fe94b5c312965505c77dffc65042ab72a",
+      "state_root_name": "phase9b_parent_level_finetune_lane_a_state_v002",
+      "initial_watch_root_name": "autofill_gthoeazlmamkta-uhfffaoysa-n_v001",
+      "cpu_list": "0,2-27",
+      "threads": 27,
+      "max_memory_mb": 64000,
+      "candidates": [
+        "VNYHGZAUUQMMDL-UHFFFAOYSA-N",
+        "VPAFDQIFHJWCBK-UHFFFAOYSA-N",
+        "RBKFFSUUCLDQER-UHFFFAOYSA-N"
+      ]
+    },
+    {
+      "lane_id": "b",
+      "queue_relative_path": "queues/phase9b_parent_level_finetune_lane_b_v002.json",
+      "queue_sha256": "a91b43e4a46d7d4f02de8012bfc465e0bf6cb5a0cd4f921708d78d282745e007",
+      "state_root_name": "phase9b_parent_level_finetune_lane_b_state_v002",
+      "initial_watch_root_name": "phase9b_parent_level_throughput_qxh_v001",
+      "cpu_list": "28-55",
+      "threads": 28,
+      "max_memory_mb": 64000,
+      "candidates": [
+        "ACGCNTKELWXJPN-UHFFFAOYSA-N",
+        "RATKDJDMBGPDPZ-UHFFFAOYSA-N"
+      ]
+    },
+    {
+      "lane_id": "c",
+      "queue_relative_path": "queues/phase9b_parent_level_finetune_lane_c_v002.json",
+      "queue_sha256": "d7a515a3cd44fe3faa9d8bc407bbe27de9e34bd92327013bbf796a887f661f77",
+      "state_root_name": "phase9b_parent_level_finetune_lane_c_state_v002",
+      "initial_watch_root_name": "phase9b_parent_level_throughput_ijw_v001",
+      "cpu_list": "1,56-83",
+      "threads": 29,
+      "max_memory_mb": 40000,
+      "candidates": [
+        "CLXFIGGGSODORK-UHFFFAOYSA-N",
+        "KZYKDQNIIMATMJ-UHFFFAOYSA-N"
+      ]
+    },
+    {
+      "lane_id": "d",
+      "queue_relative_path": "queues/phase9b_parent_level_finetune_lane_d_v002.json",
+      "queue_sha256": "45e091c32afcbf33f93c752aab617032ea35a40759358b9ab7dd7d5e38a9e94e",
+      "state_root_name": "phase9b_parent_level_finetune_lane_d_state_v002",
+      "initial_watch_root_name": "phase9b_parent_level_throughput_hqk_v001",
+      "cpu_list": "84-111",
+      "threads": 28,
+      "max_memory_mb": 40000,
+      "candidates": [
+        "PDIYCCLDBKWBTK-UHFFFAOYSA-N",
+        "RMEQTBVGGNKAEQ-UHFFFAOYSA-N"
+      ]
+    }
+  ],
+  "fine_tune": {
+    "config_relative_path": "docs/PHASE9B_AIMNET2_FINETUNE_ORCHESTRATION_V002.json",
+    "config_sha256": "09d18c62d34465679ae648956f84db11050f203d058f59eca5d4ea589b38347a",
+    "training_config_relative_path": "docs/PHASE9B_AIMNET2_MODEL_GENERATION_CONFIG_V002.json",
+    "training_config_sha256": "22b377edae2e57f1857f712b9212ac56d5d3d940ef0b325fe06e05c4245fe5af",
+    "watch_state_root_name": "phase9b_aimnet2_finetune_watch_v002",
+    "dataset_root_name": "phase9b_aimnet2_development_dataset_v002",
+    "training_root_name": "phase9b_aimnet2_model_freeze_v002",
+    "final_test_root_name": "phase9b_aimnet2_final_test_v002",
+    "poll_seconds": 300,
+    "single_training_attempt": true,
+    "retry": false,
+    "speed_benchmark": false
+  },
+  "expected_candidates": [
+    "ACGCNTKELWXJPN-UHFFFAOYSA-N",
+    "CLXFIGGGSODORK-UHFFFAOYSA-N",
+    "KZYKDQNIIMATMJ-UHFFFAOYSA-N",
+    "PDIYCCLDBKWBTK-UHFFFAOYSA-N",
+    "RATKDJDMBGPDPZ-UHFFFAOYSA-N",
+    "RBKFFSUUCLDQER-UHFFFAOYSA-N",
+    "RMEQTBVGGNKAEQ-UHFFFAOYSA-N",
+    "VNYHGZAUUQMMDL-UHFFFAOYSA-N",
+    "VPAFDQIFHJWCBK-UHFFFAOYSA-N"
+  ]
+}

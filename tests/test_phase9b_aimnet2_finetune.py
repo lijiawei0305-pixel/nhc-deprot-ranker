@@ -10,7 +10,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/phase9b_aimnet2_finetune.py"
-CONFIG = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_CONFIG_V001.json"
+CONFIG = ROOT / "docs/PHASE9B_AIMNET2_MODEL_GENERATION_CONFIG_V002.json"
 MODEL = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_MODEL_V001.yaml"
 SPLIT = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_SPLIT_V002.json"
 
@@ -28,10 +28,12 @@ finetune = _load()
 
 
 def test_frozen_config_and_model_hashes_are_exact() -> None:
-    config, _ = finetune.load_frozen_config(CONFIG, ROOT)
+    config = json.loads(CONFIG.read_text())
     assert config["base_bundle"]["sha256"] == finetune.BASE_SHA256
     assert finetune.sha256_bytes(SPLIT.read_bytes()) == finetune.SPLIT_SHA256
     assert config["training_model"]["sha256"] == finetune.sha256_bytes(MODEL.read_bytes())
+    with pytest.raises(finetune.FineTuneError, match="BLOCKED_BEFORE_TRAINING"):
+        finetune.load_frozen_config(CONFIG, ROOT)
 
 
 def test_training_model_restores_lr_coulomb_but_excludes_external_d3() -> None:
@@ -55,11 +57,22 @@ def test_config_is_one_shot_molecule_disjoint_and_final_test_locked() -> None:
     assert config["single_training_attempt"] is True
     assert config["retry"] is False
     assert config["data"]["split_unit"] == "InChIKey"
-    assert config["data"]["required_candidate_count"] == 9
-    assert config["data"]["final_test_visible_before_model_freeze"] is False
+    assert config["data"]["development_candidate_count"] == 7
+    assert config["data"]["sealed_final_test_commitment"]["candidate_count"] == 2
+    assert "split_path" not in config["data"]
+    assert "final_test_directory" not in config["data"]
+    assert config["readiness"]["state"] == "BLOCKED_BEFORE_TRAINING"
+    assert config["readiness"]["final_test_isolation_implemented"] is True
+    assert config["readiness"]["final_test_evaluator_scientifically_complete"] is False
+    assert config["readiness"]["final_test_acceptance_gates_frozen"] is False
     assert config["training"]["checkpoint_selection"]["final_test_involved"] is False
-    assert config["post_freeze_evaluation"]["final_test_may_change_selected_model"] is False
-    assert config["post_freeze_evaluation"]["speed_benchmark"] is False
+
+
+def test_trainer_source_has_no_final_test_payload_access() -> None:
+    source = SCRIPT.read_text()
+    assert 'dataset_root / "final_test"' not in source
+    assert 'for split in ("train", "validation", "final_test")' not in source
+    assert '"final_test": final_test' not in source
 
 
 def test_state_key_migration_is_exact_and_reversible() -> None:

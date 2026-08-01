@@ -87,6 +87,183 @@ def write_new(path: Path, raw: bytes) -> None:
         raise AutofillError("evidence reread mismatch")
 
 
+def read_json(path: Path) -> tuple[dict[str, Any], bytes]:
+    raw = read_regular(path)
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise AutofillError(f"invalid JSON: {path.name}") from exc
+    if not isinstance(value, dict):
+        raise AutofillError(f"JSON root is not an object: {path.name}")
+    return cast(dict[str, Any], value), raw
+
+
+def _residual_processes(root: Path) -> list[int]:
+    proc = Path("/proc")
+    if not proc.is_dir():
+        return []
+    root_text = str(root.resolve(strict=True))
+    result: list[int] = []
+    for entry in proc.iterdir():
+        if not entry.name.isdigit() or int(entry.name) == os.getpid():
+            continue
+        try:
+            cmdline = (
+                (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode("utf-8", "replace")
+            )
+            cwd = str((entry / "cwd").resolve(strict=True))
+        except (FileNotFoundError, PermissionError, ProcessLookupError, OSError):
+            continue
+        if root_text in cmdline or cwd == root_text or cwd.startswith(root_text + os.sep):
+            result.append(int(entry.name))
+    return sorted(result)
+
+
+def _wait_for_process_cleanup(root: Path, *, maximum_seconds: float = 30.0) -> list[int]:
+    deadline = time.monotonic() + maximum_seconds
+    while True:
+        residual = _residual_processes(root)
+        if not residual or time.monotonic() >= deadline:
+            return residual
+        time.sleep(0.25)
+
+
+def audit_successful_route(root: Path, *, expected_candidate: str | None) -> dict[str, object]:
+    resolved = root.resolve(strict=True)
+    exit_raw = read_regular(resolved / "controller_exit_code", maximum=32)
+    try:
+        exit_code = int(exit_raw.decode().strip())
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise AutofillError("predecessor controller exit code is invalid") from exc
+    if exit_code != 0:
+        raise AutofillError("predecessor controller exit code is not zero")
+    result, result_raw = read_json(resolved / "result.json")
+    candidate = result.get("candidate")
+    if not isinstance(candidate, str) or not INCHIKEY.fullmatch(candidate):
+        raise AutofillError("predecessor candidate identity is invalid")
+    if expected_candidate is not None and candidate != expected_candidate:
+        raise AutofillError("predecessor candidate differs from lane assignment")
+    if result.get("final_outcome") != "PASS":
+        raise AutofillError("predecessor result is not PASS")
+    if result.get("science_pilot_only") is not True:
+        raise AutofillError("predecessor is not science-pilot-only")
+    if result.get("production_accepted") is not False or result.get("retry") is not False:
+        raise AutofillError("predecessor safety flags are invalid")
+    if result.get("route") != "pure_pyscf":
+        raise AutofillError("predecessor route identity is invalid")
+    deprotonation = result.get("deprotonation")
+    if (
+        not isinstance(deprotonation, dict)
+        or deprotonation.get("aimnet2_energy_used") is not False
+        or isinstance(deprotonation.get("value_kcal_per_mol"), bool)
+        or not isinstance(deprotonation.get("value_kcal_per_mol"), (int, float))
+        or not math.isfinite(float(deprotonation["value_kcal_per_mol"]))
+    ):
+        raise AutofillError("predecessor deprotonation result is invalid")
+    endpoint_results = result.get("endpoint_results")
+    if not isinstance(endpoint_results, dict) or set(endpoint_results) != {"cation", "neutral"}:
+        raise AutofillError("predecessor endpoint results are incomplete")
+    endpoint_records: dict[str, dict[str, object]] = {}
+    for endpoint in ("cation", "neutral"):
+        endpoint_result = endpoint_results[endpoint]
+        if not isinstance(endpoint_result, dict):
+            raise AutofillError("predecessor endpoint result is invalid")
+        geometry = endpoint_result.get("geometry_optimization")
+        if (
+            endpoint_result.get("candidate") != candidate
+            or endpoint_result.get("endpoint") != endpoint
+            or endpoint_result.get("scf_converged") is not True
+            or endpoint_result.get("production_accepted") is not False
+            or endpoint_result.get("retry") is not False
+            or isinstance(endpoint_result.get("energy_hartree"), bool)
+            or not isinstance(endpoint_result.get("energy_hartree"), (int, float))
+            or not math.isfinite(float(endpoint_result["energy_hartree"]))
+            or not isinstance(geometry, dict)
+            or geometry.get("converged") is not True
+        ):
+            raise AutofillError(f"predecessor {endpoint} endpoint is incomplete")
+        manifest_path = resolved / "training_data" / endpoint / "manifest.json"
+        manifest, manifest_raw = read_json(manifest_path)
+        if (
+            manifest.get("schema") != "phase9b-parent-level-training-endpoint-v1"
+            or manifest.get("candidate") != candidate
+            or manifest.get("endpoint") != endpoint
+            or manifest.get("complete_geometry_optimization") is not True
+            or manifest.get("parent_protocol_sha256") != PARENT_PROTOCOL_SHA256
+            or manifest.get("production_accepted") is not False
+        ):
+            raise AutofillError(f"predecessor {endpoint} manifest is invalid")
+        frames = manifest.get("frames")
+        if not isinstance(frames, list) or manifest.get("frame_count") != len(frames):
+            raise AutofillError(f"predecessor {endpoint} frame set is invalid")
+        registered_names: list[str] = []
+        for index, frame in enumerate(frames):
+            if not isinstance(frame, dict) or frame.get("frame_index") != index:
+                raise AutofillError(f"predecessor {endpoint} frame order is invalid")
+            name = str(frame.get("path"))
+            if name != f"frame_{index:04d}.json":
+                raise AutofillError(f"predecessor {endpoint} frame path is invalid")
+            frame_raw = read_regular(manifest_path.parent / name)
+            if frame.get("bytes") != len(frame_raw) or frame.get("sha256") != sha256_bytes(
+                frame_raw
+            ):
+                raise AutofillError(f"predecessor {endpoint} frame binding is invalid")
+            registered_names.append(name)
+        actual_names = sorted(path.name for path in manifest_path.parent.glob("frame_*.json"))
+        if actual_names != registered_names:
+            raise AutofillError(f"predecessor {endpoint} frame exact set mismatch")
+        endpoint_records[endpoint] = {
+            "bytes": len(manifest_raw),
+            "sha256": sha256_bytes(manifest_raw),
+            "frame_count": len(frames),
+        }
+    route_manifest, route_raw = read_json(resolved / "training_data" / "manifest.json")
+    if (
+        route_manifest.get("schema") != "phase9b-parent-level-training-route-v1"
+        or route_manifest.get("candidate") != candidate
+        or route_manifest.get("parent_protocol_sha256") != PARENT_PROTOCOL_SHA256
+        or route_manifest.get("production_accepted") is not False
+    ):
+        raise AutofillError("predecessor route manifest is invalid")
+    manifest_endpoints = route_manifest.get("endpoint_manifests")
+    if not isinstance(manifest_endpoints, dict) or set(manifest_endpoints) != {"cation", "neutral"}:
+        raise AutofillError("predecessor route manifest endpoints are incomplete")
+    for endpoint, record in endpoint_records.items():
+        bound = manifest_endpoints[endpoint]
+        if (
+            not isinstance(bound, dict)
+            or bound.get("path") != "manifest.json"
+            or bound.get("endpoint") != endpoint
+            or bound.get("bytes") != record["bytes"]
+            or bound.get("sha256") != record["sha256"]
+            or bound.get("frame_count") != record["frame_count"]
+        ):
+            raise AutofillError(f"predecessor {endpoint} route binding mismatch")
+    result_manifest = result.get("training_data")
+    if (
+        not isinstance(result_manifest, dict)
+        or result_manifest.get("path") != "manifest.json"
+        or result_manifest.get("bytes") != len(route_raw)
+        or result_manifest.get("sha256") != sha256_bytes(route_raw)
+    ):
+        raise AutofillError("predecessor result does not bind the route manifest")
+    residual = _wait_for_process_cleanup(resolved)
+    if residual:
+        raise AutofillError("predecessor has residual processes")
+    return {
+        "schema": SCHEMA,
+        "candidate": candidate,
+        "root": str(resolved),
+        "controller_exit_code": exit_code,
+        "result_sha256": sha256_bytes(result_raw),
+        "route_manifest_sha256": sha256_bytes(route_raw),
+        "endpoint_manifests": endpoint_records,
+        "residual_processes": [],
+        "audited_monotonic_ns": time.monotonic_ns(),
+        "production_accepted": False,
+    }
+
+
 def _parse_xyz(raw: bytes) -> tuple[tuple[str, ...], tuple[tuple[float, float, float], ...]]:
     try:
         lines = raw.decode("utf-8").splitlines()
@@ -321,6 +498,7 @@ def watch(args: argparse.Namespace) -> int:
     state_root.mkdir(mode=0o700, parents=False, exist_ok=False)
     (state_root / "claims").mkdir(mode=0o700)
     (state_root / "assignments").mkdir(mode=0o700)
+    (state_root / "audits").mkdir(mode=0o700)
     write_new(
         state_root / "queue_binding.json",
         canonical_json(
@@ -339,10 +517,32 @@ def watch(args: argparse.Namespace) -> int:
         ),
     )
     watched = Path(args.initial_watch_root).resolve(strict=True)
+    expected_predecessor: str | None = None
     for index, profile in enumerate(queue["candidates"]):
         terminal = watched / "controller_exit_code"
         while not terminal.exists():
             time.sleep(args.poll_seconds)
+        try:
+            audit = audit_successful_route(watched, expected_candidate=expected_predecessor)
+        except (AutofillError, OSError) as exc:
+            write_new(
+                state_root / "lane_terminal.json",
+                canonical_json(
+                    {
+                        "schema": SCHEMA,
+                        "outcome": "PREDECESSOR_AUDIT_FAILED",
+                        "predecessor_root": str(watched),
+                        "expected_candidate": expected_predecessor,
+                        "next_candidate_started": False,
+                        "error": str(exc),
+                        "retry": False,
+                        "production_accepted": False,
+                    }
+                ),
+            )
+            return 2
+        audit_raw = canonical_json(audit)
+        write_new(state_root / "audits" / f"{index:03d}_predecessor.json", audit_raw)
         claim = state_root / "claims" / f"{index:03d}_{profile['candidate']}.json"
         command = _launcher_command(args, profile)
         output_root = Path(command[command.index("--output-root") + 1])
@@ -355,7 +555,8 @@ def watch(args: argparse.Namespace) -> int:
                     "schema": SCHEMA,
                     "candidate": profile["candidate"],
                     "predecessor_root": str(watched),
-                    "predecessor_exit_code": int(terminal.read_text().strip()),
+                    "predecessor_exit_code": 0,
+                    "predecessor_audit_sha256": sha256_bytes(audit_raw),
                     "output_root": str(output_root),
                     "claim_index": index,
                     "claimed_monotonic_ns": time.monotonic_ns(),
@@ -385,8 +586,33 @@ def watch(args: argparse.Namespace) -> int:
             ),
         )
         watched = output_root
+        expected_predecessor = profile["candidate"]
     while not (watched / "controller_exit_code").exists():
         time.sleep(args.poll_seconds)
+    try:
+        final_audit = audit_successful_route(watched, expected_candidate=expected_predecessor)
+    except (AutofillError, OSError) as exc:
+        write_new(
+            state_root / "lane_terminal.json",
+            canonical_json(
+                {
+                    "schema": SCHEMA,
+                    "outcome": "FINAL_CANDIDATE_AUDIT_FAILED",
+                    "predecessor_root": str(watched),
+                    "expected_candidate": expected_predecessor,
+                    "queue_exhausted": False,
+                    "error": str(exc),
+                    "retry": False,
+                    "production_accepted": False,
+                }
+            ),
+        )
+        return 2
+    final_audit_raw = canonical_json(final_audit)
+    write_new(
+        state_root / "audits" / f"{len(queue['candidates']):03d}_final.json",
+        final_audit_raw,
+    )
     write_new(
         state_root / "queue_exhausted.json",
         canonical_json(
@@ -394,6 +620,7 @@ def watch(args: argparse.Namespace) -> int:
                 "schema": SCHEMA,
                 "candidate_count": len(queue["candidates"]),
                 "last_root": str(watched),
+                "final_audit_sha256": sha256_bytes(final_audit_raw),
                 "queue_exhausted": True,
                 "retry": False,
             }

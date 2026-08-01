@@ -72,6 +72,83 @@ def _queue(tmp_path: Path) -> Path:
     return path
 
 
+def _successful_route(root: Path, candidate: str) -> None:
+    endpoint_records: dict[str, dict[str, object]] = {}
+    endpoint_results: dict[str, dict[str, object]] = {}
+    for endpoint in ("cation", "neutral"):
+        endpoint_root = root / "training_data" / endpoint
+        endpoint_root.mkdir(parents=True, exist_ok=True)
+        frame_raw = autofill.canonical_json({"frame_index": 0})
+        (endpoint_root / "frame_0000.json").write_bytes(frame_raw)
+        manifest = {
+            "schema": "phase9b-parent-level-training-endpoint-v1",
+            "candidate": candidate,
+            "endpoint": endpoint,
+            "complete_geometry_optimization": True,
+            "parent_protocol_sha256": autofill.PARENT_PROTOCOL_SHA256,
+            "production_accepted": False,
+            "frame_count": 1,
+            "frames": [
+                {
+                    "frame_index": 0,
+                    "path": "frame_0000.json",
+                    "bytes": len(frame_raw),
+                    "sha256": autofill.sha256_bytes(frame_raw),
+                }
+            ],
+        }
+        manifest_raw = autofill.canonical_json(manifest)
+        (endpoint_root / "manifest.json").write_bytes(manifest_raw)
+        endpoint_records[endpoint] = {
+            "path": "manifest.json",
+            "bytes": len(manifest_raw),
+            "sha256": autofill.sha256_bytes(manifest_raw),
+            "frame_count": 1,
+            "endpoint": endpoint,
+        }
+        endpoint_results[endpoint] = {
+            "candidate": candidate,
+            "endpoint": endpoint,
+            "scf_converged": True,
+            "energy_hartree": -100.0 if endpoint == "cation" else -99.5,
+            "geometry_optimization": {"converged": True},
+            "production_accepted": False,
+            "retry": False,
+        }
+    route = {
+        "schema": "phase9b-parent-level-training-route-v1",
+        "candidate": candidate,
+        "parent_protocol_sha256": autofill.PARENT_PROTOCOL_SHA256,
+        "production_accepted": False,
+        "endpoint_manifests": endpoint_records,
+    }
+    route_raw = autofill.canonical_json(route)
+    (root / "training_data" / "manifest.json").write_bytes(route_raw)
+    (root / "result.json").write_bytes(
+        autofill.canonical_json(
+            {
+                "candidate": candidate,
+                "final_outcome": "PASS",
+                "route": "pure_pyscf",
+                "science_pilot_only": True,
+                "production_accepted": False,
+                "retry": False,
+                "endpoint_results": endpoint_results,
+                "deprotonation": {
+                    "aimnet2_energy_used": False,
+                    "value_kcal_per_mol": 300.0,
+                },
+                "training_data": {
+                    "path": "manifest.json",
+                    "bytes": len(route_raw),
+                    "sha256": autofill.sha256_bytes(route_raw),
+                },
+            }
+        )
+    )
+    (root / "controller_exit_code").write_text("0\n")
+
+
 def test_queue_validates_frozen_rigid_small_identity(tmp_path: Path) -> None:
     payload = autofill.load_queue(_queue(tmp_path))
     assert payload["candidates"][0]["electron_count"] == 14
@@ -147,7 +224,7 @@ def test_watcher_claims_once_only_after_predecessor_terminal(
     queue = _queue(tmp_path)
     predecessor = tmp_path / "predecessor"
     predecessor.mkdir()
-    (predecessor / "controller_exit_code").write_text("0\n")
+    _successful_route(predecessor, "ZZZZZZZZZZZZZZ-YYYYYYYYYY-X")
     run_root = tmp_path / "runs"
     run_root.mkdir()
     driver = tmp_path / "driver"
@@ -159,7 +236,7 @@ def test_watcher_claims_once_only_after_predecessor_terminal(
         def __init__(self, command: list[str], **_: object) -> None:
             output = Path(command[command.index("--output-root") + 1])
             output.mkdir()
-            (output / "controller_exit_code").write_text("0\n")
+            _successful_route(output, command[command.index("--candidate") + 1])
 
     monkeypatch.setattr(autofill.subprocess, "Popen", FakeProcess)
     args = argparse.Namespace(
@@ -181,6 +258,63 @@ def test_watcher_claims_once_only_after_predecessor_terminal(
     assert len(claims) == 1
     assert len(assignments) == 1
     assert (tmp_path / "state" / "queue_exhausted.json").exists()
+
+
+def test_watcher_stops_lane_when_predecessor_is_not_pass(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    queue = _queue(tmp_path)
+    predecessor = tmp_path / "predecessor"
+    predecessor.mkdir()
+    _successful_route(predecessor, "ZZZZZZZZZZZZZZ-YYYYYYYYYY-X")
+    result = json.loads((predecessor / "result.json").read_text())
+    result["final_outcome"] = "FAIL"
+    (predecessor / "result.json").write_bytes(autofill.canonical_json(result))
+    run_root = tmp_path / "runs"
+    run_root.mkdir()
+    driver = tmp_path / "driver"
+    driver.mkdir()
+
+    def forbidden_spawn(*_: object, **__: object) -> None:
+        raise AssertionError("a failed predecessor must not launch the next candidate")
+
+    monkeypatch.setattr(autofill.subprocess, "Popen", forbidden_spawn)
+    args = argparse.Namespace(
+        queue=str(queue),
+        state_root=str(tmp_path / "state"),
+        initial_watch_root=str(predecessor),
+        run_root=str(run_root),
+        driver=str(driver),
+        gpupyscf_python=sys.executable,
+        cpu_list="0-1",
+        threads=2,
+        max_memory_mb=1000,
+        route_limit_seconds=100,
+        poll_seconds=0.0,
+    )
+    assert autofill.watch(args) == 2
+    terminal = json.loads((tmp_path / "state" / "lane_terminal.json").read_text())
+    assert terminal["outcome"] == "PREDECESSOR_AUDIT_FAILED"
+    assert terminal["next_candidate_started"] is False
+    assert not list((tmp_path / "state" / "claims").iterdir())
+
+
+def test_route_audit_rejects_unregistered_frame_and_residual_process(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    candidate = "ZZZZZZZZZZZZZZ-YYYYYYYYYY-X"
+    root = tmp_path / "route"
+    root.mkdir()
+    _successful_route(root, candidate)
+    audit = autofill.audit_successful_route(root, expected_candidate=candidate)
+    assert audit["candidate"] == candidate
+    (root / "training_data" / "cation" / "frame_9999.json").write_text("{}\n")
+    with pytest.raises(autofill.AutofillError, match="exact set"):
+        autofill.audit_successful_route(root, expected_candidate=candidate)
+    (root / "training_data" / "cation" / "frame_9999.json").unlink()
+    monkeypatch.setattr(autofill, "_wait_for_process_cleanup", lambda _: [12345])
+    with pytest.raises(autofill.AutofillError, match="residual"):
+        autofill.audit_successful_route(root, expected_candidate=candidate)
 
 
 def test_launcher_enables_parent_training_frame_writer(tmp_path: Path) -> None:

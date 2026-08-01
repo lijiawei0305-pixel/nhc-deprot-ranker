@@ -1,6 +1,6 @@
 # Phase Status
 
-Updated: 2026-07-29
+Updated: 2026-07-31
 
 | Phase | Status | Gate |
 | --- | --- | --- |
@@ -39,6 +39,8 @@ Updated: 2026-07-29
 | Phase 9B Parent-Level P01-R1 | `INCONCLUSIVE`; grid audit passed, paired benchmark stopped in Group A environment bootstrap | 2026-07-29; grid 4 frozen on 27 safe physical cores; NVRTC rejected an overlong private temp path before the first AIMNet2 frame; no retry or Group B |
 | Phase 9B Parent-Level P01-R2 | `INCONCLUSIVE`; short environment passed, one-evaluation smoke driver failed before CUDA evaluation | 2026-07-29; short root propagated and cleaned; formal replacement Group A and Group B not started; no retry |
 | Phase 9B Parent-Level P01-R3 | `INCONCLUSIVE`; corrected smoke passed, formal Group A failed in cache-root verifier before model load | 2026-07-29; one replacement attempt consumed, no retry or Group B; short root cleaned |
+| Phase 9B continuous compute + AIMNet2 fine-tune automation | Active; 2/9 candidates PASS and 135 independently valid frames observed | 2026-07-31; Lane B exhausted; C/D active; training remains gated; no production label, permit, runner change, or benchmark |
+| Phase 9B GTHO neutral continuation v001 | Authorized and armed; awaiting the immutable original 24-hour terminal | 2026-07-31; legacy Lane A watcher retired before any claim; one supervisor will continue only after timeout 124, or use the original result if it completes; no second continuation |
 
 ## Current completed work
 
@@ -552,3 +554,15 @@ new formal Group A attempt using the already-patched effective short-cache-root
 verifier. The corrected smoke must not be repeated and Group B may not start
 unless that future Group A completes. P01-R3 did not retry or start Group B, an
 extension cohort, a second candidate or production.
+
+The AIMNet2 fine-tuning path is locally remediated before any training attempt.
+V001 is rejected pre-execution because its trainer could validate and read
+final-test payloads.  V002 creates a train/validation-only development dataset,
+freezes the model in a process that receives only a sealed final-test
+commitment/count, and moves final-test consumption into a separate post-freeze
+evaluator with an irreversible pre-read claim.  This local change did not start
+dataset assembly, training, final-test consumption, promotion, a remote watcher,
+or any production runner/gate/label mutation.  V002 remains
+`BLOCKED_BEFORE_TRAINING` because epoch-0 selection and the numerical
+validation, baseline-eligibility, final-test, and stopping/handoff gates are not
+yet frozen; no threshold was invented from the unopened final-test cohort.

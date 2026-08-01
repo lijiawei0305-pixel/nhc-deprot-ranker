@@ -1,0 +1,58 @@
+{
+  "schema": "phase9b-aimnet2-finetune-orchestration-v002",
+  "science_pilot_only": true,
+  "production_accepted": false,
+  "single_training_attempt": true,
+  "retry": false,
+  "base_bundle": {
+    "path": "/home/plab/.cache/aimnet/aimnet2_wb97m_d3_0.pt",
+    "sha256": "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28"
+  },
+  "training_model": {
+    "path": "docs/PHASE9B_AIMNET2_FINETUNE_MODEL_V001.yaml",
+    "sha256": "0bc0a560f1215cde1033b6b2685d70406310edb81ee81e6fd82076a731164909"
+  },
+  "data": {
+    "split_path": "docs/PHASE9B_AIMNET2_FINETUNE_SPLIT_V002.json",
+    "split_sha256": "772094bc08012f8f40c76994a1600985f11a1956bef66d2c7710006b3aa0b995",
+    "required_candidate_count": 9
+  },
+  "resource_preflight": {
+    "minimum_free_disk_bytes": 21474836480,
+    "minimum_available_host_memory_bytes": 34359738368,
+    "minimum_free_gpu_memory_bytes": 21474836480,
+    "maximum_gpu_utilization_percent": 10
+  },
+  "collection": {
+    "run_name_template": "autofill_{candidate_lower}_v001",
+    "required_queue_state_roots": [
+      "/home/plab/test/WJW/data/runs/phase9b_parent_level_finetune_lane_a_state_v002",
+      "/home/plab/test/WJW/data/runs/phase9b_parent_level_finetune_lane_b_state_v002",
+      "/home/plab/test/WJW/data/runs/phase9b_parent_level_finetune_lane_c_state_v002",
+      "/home/plab/test/WJW/data/runs/phase9b_parent_level_finetune_lane_d_state_v002"
+    ],
+    "required_queue_sha256": [
+      "20ba326dd920d40cb8ac319d431a923fe94b5c312965505c77dffc65042ab72a",
+      "a91b43e4a46d7d4f02de8012bfc465e0bf6cb5a0cd4f921708d78d282745e007",
+      "d7a515a3cd44fe3faa9d8bc407bbe27de9e34bd92327013bbf796a887f661f77",
+      "45e091c32afcbf33f93c752aab617032ea35a40759358b9ab7dd7d5e38a9e94e"
+    ]
+  },
+  "paths": {
+    "runs_root": "/home/plab/test/WJW/data/runs",
+    "watch_state_root": "/home/plab/test/WJW/data/runs/phase9b_aimnet2_finetune_watch_v002"
+  },
+  "post_freeze_evaluation": {
+    "separate_process": true,
+    "final_test_may_change_selected_model": false,
+    "speed_benchmark": false
+  },
+  "forbidden": [
+    "retry",
+    "candidate_replacement",
+    "final_test_model_selection",
+    "production_label_insertion",
+    "production_runner_change",
+    "speed_benchmark"
+  ]
+}

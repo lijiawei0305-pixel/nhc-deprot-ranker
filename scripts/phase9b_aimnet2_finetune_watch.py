@@ -16,7 +16,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Final, cast
 
-CONFIG_SCHEMA: Final = "phase9b-aimnet2-finetune-config-v001"
+CONFIG_SCHEMA: Final = "phase9b-aimnet2-finetune-orchestration-v002"
 WATCH_SCHEMA: Final = "phase9b-aimnet2-finetune-watch-v001"
 PASS: Final = "PASS"
 TEMP_PREFIXES: Final = ("/dev/shm/p9bft.", "/tmp/p9bft.")
@@ -171,6 +171,7 @@ def collection_snapshot(config: dict[str, Any], repo_root: Path) -> dict[str, An
                 complete += 1
         candidates.append(item)
     queue_states: list[dict[str, Any]] = []
+    failed_queue_states: list[dict[str, Any]] = []
     expected_queue_hashes = list(collection["required_queue_sha256"])
     state_roots = list(collection["required_queue_state_roots"])
     if len(expected_queue_hashes) != len(state_roots):
@@ -180,11 +181,22 @@ def collection_snapshot(config: dict[str, Any], repo_root: Path) -> dict[str, An
         binding, _ = read_json(state_root / "queue_binding.json")
         if binding.get("queue_sha256") != expected_hash:
             raise FineTuneWatchError("queue binding SHA256 mismatch")
+        lane_terminal = None
+        if (state_root / "lane_terminal.json").exists():
+            lane_terminal, _ = read_json(state_root / "lane_terminal.json")
+            failed_queue_states.append(
+                {
+                    "root": str(state_root),
+                    "outcome": lane_terminal.get("outcome"),
+                    "expected_candidate": lane_terminal.get("expected_candidate"),
+                }
+            )
         queue_states.append(
             {
                 "root": str(state_root),
                 "queue_sha256": expected_hash,
                 "exhausted": (state_root / "queue_exhausted.json").exists(),
+                "lane_terminal": lane_terminal,
             }
         )
     return {
@@ -194,9 +206,11 @@ def collection_snapshot(config: dict[str, Any], repo_root: Path) -> dict[str, An
         "complete_candidate_count": complete,
         "required_candidate_count": len(candidates),
         "failed_candidates": failed,
+        "failed_queue_states": failed_queue_states,
         "frame_count_by_split": frame_counts,
         "queues": queue_states,
-        "collection_complete": complete == len(candidates)
+        "collection_complete": not failed_queue_states
+        and complete == len(candidates)
         and all(item["exhausted"] for item in queue_states),
     }
 
@@ -376,6 +390,11 @@ def watch(args: argparse.Namespace) -> int:
     (state_root / "snapshots").mkdir(mode=0o700)
     dataset_helper = Path(args.dataset_helper).resolve(strict=True)
     finetune_helper = Path(args.finetune_helper).resolve(strict=True)
+    final_test_helper = Path(args.final_test_helper).resolve(strict=True)
+    training_config_path = Path(args.training_config).resolve(strict=True)
+    training_config, training_config_raw = read_json(training_config_path)
+    if training_config.get("schema") != "phase9b-aimnet2-model-generation-config-v002":
+        raise FineTuneWatchError("model-generation config identity mismatch")
     write_new(
         state_root / "binding.json",
         canonical_json(
@@ -385,12 +404,30 @@ def watch(args: argparse.Namespace) -> int:
                 "split_sha256": cast(dict[str, Any], config["data"])["split_sha256"],
                 "dataset_helper_sha256": sha256_bytes(read_regular(dataset_helper)),
                 "finetune_helper_sha256": sha256_bytes(read_regular(finetune_helper)),
+                "final_test_helper_sha256": sha256_bytes(read_regular(final_test_helper)),
+                "training_config_sha256": sha256_bytes(training_config_raw),
                 "single_training_attempt": True,
                 "retry": False,
                 "production_accepted": False,
             }
         ),
     )
+    readiness = training_config.get("readiness")
+    if not isinstance(readiness, dict) or readiness.get("state") != "REGISTERED":
+        terminal(
+            state_root,
+            outcome="BLOCKED_BEFORE_TRAINING",
+            details={
+                "training_started": False,
+                "final_test_consumed": False,
+                "blocking_reason_codes": (
+                    readiness.get("blocking_reason_codes")
+                    if isinstance(readiness, dict)
+                    else ["GENERATION_READINESS_MISSING"]
+                ),
+            },
+        )
+        return 9
     poll_seconds = float(args.poll_seconds)
     snapshot_index = 0
     while True:
@@ -401,12 +438,13 @@ def watch(args: argparse.Namespace) -> int:
             canonical_json(snapshot),
         )
         snapshot_index += 1
-        if snapshot["failed_candidates"]:
+        if snapshot["failed_candidates"] or snapshot["failed_queue_states"]:
             terminal(
                 state_root,
                 outcome="COLLECTION_FAILED",
                 details={
                     "failed_candidates": snapshot["failed_candidates"],
+                    "failed_queue_states": snapshot["failed_queue_states"],
                     "training_started": False,
                 },
             )
@@ -415,9 +453,11 @@ def watch(args: argparse.Namespace) -> int:
             break
         time.sleep(poll_seconds)
 
-    dataset_root = Path(str(paths["dataset_root"]))
-    training_root = Path(str(paths["training_root"]))
-    if dataset_root.exists() or training_root.exists():
+    generation_paths = cast(dict[str, Any], training_config["paths"])
+    dataset_root = Path(str(generation_paths["dataset_root"]))
+    training_root = Path(str(generation_paths["training_root"]))
+    final_test_root = training_root.parent / "phase9b_aimnet2_final_test_v002"
+    if dataset_root.exists() or training_root.exists() or final_test_root.exists():
         terminal(
             state_root,
             outcome="OUTPUT_ROOT_ALREADY_EXISTS",
@@ -444,6 +484,8 @@ def watch(args: argparse.Namespace) -> int:
         str(paths["runs_root"]),
         "--output-root",
         str(dataset_root),
+        "--scope",
+        "development",
     ]
     write_new(
         state_root / "dataset_claim.json",
@@ -498,7 +540,7 @@ def watch(args: argparse.Namespace) -> int:
         "-B",
         str(finetune_helper),
         "--config",
-        str(config_path),
+        str(training_config_path),
         "--repo-root",
         str(repo_root),
         "--dataset-root",
@@ -532,10 +574,10 @@ def watch(args: argparse.Namespace) -> int:
         stdout_path=state_root / "training_stdout",
         stderr_path=state_root / "training_stderr",
     )
-    cleanup = cleanup_short_cache(short_root)
-    write_new(state_root / "short_cache_cleanup.json", canonical_json(cleanup))
     write_new(state_root / "training_exit_code", f"{training_exit}\n".encode())
     if training_exit != 0 or not (training_root / "result.json").exists():
+        cleanup = cleanup_short_cache(short_root)
+        write_new(state_root / "short_cache_cleanup.json", canonical_json(cleanup))
         terminal(
             state_root,
             outcome="TRAINING_FAILED",
@@ -543,19 +585,87 @@ def watch(args: argparse.Namespace) -> int:
         )
         return 5
     result, result_raw = read_json(training_root / "result.json")
-    if result.get("final_outcome") != PASS:
+    if result.get("final_outcome") != "MODEL_FROZEN":
+        cleanup = cleanup_short_cache(short_root)
+        write_new(state_root / "short_cache_cleanup.json", canonical_json(cleanup))
         terminal(
             state_root,
             outcome="TRAINING_RESULT_INVALID",
             details={"training_result_sha256": sha256_bytes(result_raw)},
         )
         return 6
+    final_test_command = [
+        args.mlff_python,
+        "-I",
+        "-B",
+        str(final_test_helper),
+        "--training-config",
+        str(training_config_path),
+        "--repo-root",
+        str(repo_root),
+        "--split",
+        str((repo_root / str(cast(dict[str, Any], config["data"])["split_path"])).resolve()),
+        "--runs-root",
+        str(paths["runs_root"]),
+        "--dataset-helper",
+        str(dataset_helper),
+        "--finetune-helper",
+        str(finetune_helper),
+        "--model-freeze-root",
+        str(training_root),
+        "--output-root",
+        str(final_test_root),
+        "--base-bundle",
+        str(cast(dict[str, Any], training_config["base_bundle"])["path"]),
+        "--gpupyscf-python",
+        args.gpupyscf_python,
+        "--gpu-index",
+        str(gpu["index"]),
+    ]
+    write_new(
+        state_root / "final_test_claim.json",
+        canonical_json(
+            {
+                "schema": WATCH_SCHEMA,
+                "command_sha256": sha256_bytes("\0".join(final_test_command).encode()),
+                "model_freeze_result_sha256": sha256_bytes(result_raw),
+                "separate_evaluator_process": True,
+                "retry": False,
+            }
+        ),
+    )
+    final_test_exit = _run_captured(
+        final_test_command,
+        environment=training_environment,
+        stdout_path=state_root / "final_test_stdout",
+        stderr_path=state_root / "final_test_stderr",
+    )
+    cleanup = cleanup_short_cache(short_root)
+    write_new(state_root / "short_cache_cleanup.json", canonical_json(cleanup))
+    write_new(state_root / "final_test_exit_code", f"{final_test_exit}\n".encode())
+    if final_test_exit != 0 or not (final_test_root / "result.json").exists():
+        terminal(
+            state_root,
+            outcome="FINAL_TEST_EVALUATION_FAILED_CONSUMED",
+            details={"exit_code": final_test_exit, "cleanup": cleanup},
+        )
+        return 7
+    final_test_result, final_test_raw = read_json(final_test_root / "result.json")
+    if final_test_result.get("final_outcome") != "FINAL_TEST_EVALUATED":
+        terminal(
+            state_root,
+            outcome="FINAL_TEST_RESULT_INVALID_CONSUMED",
+            details={"final_test_result_sha256": sha256_bytes(final_test_raw)},
+        )
+        return 8
     terminal(
         state_root,
         outcome="PASS",
         details={
             "training_result_sha256": sha256_bytes(result_raw),
             "frozen_bundle": result.get("frozen_bundle"),
+            "final_test_result_sha256": sha256_bytes(final_test_raw),
+            "final_test_decision": final_test_result.get("final_test_decision"),
             "cleanup": cleanup,
         },
     )
@@ -569,6 +679,8 @@ def parser() -> argparse.ArgumentParser:
         "repo-root",
         "dataset-helper",
         "finetune-helper",
+        "final-test-helper",
+        "training-config",
         "gpupyscf-python",
         "mlff-python",
     ):

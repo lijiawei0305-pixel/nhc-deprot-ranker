@@ -21,7 +21,8 @@ SPLIT_SCHEMA: Final = "phase9b-aimnet2-finetune-split-v002"
 FRAME_SCHEMA: Final = "phase9b-parent-level-training-frame-v1"
 ENDPOINT_MANIFEST_SCHEMA: Final = "phase9b-parent-level-training-endpoint-v1"
 DATASET_MANIFEST_SCHEMA: Final = "phase9b-parent-level-training-route-v1"
-OUTPUT_SCHEMA: Final = "phase9b-aimnet2-training-dataset-v1"
+DEVELOPMENT_OUTPUT_SCHEMA: Final = "phase9b-aimnet2-development-dataset-v2"
+FINAL_TEST_OUTPUT_SCHEMA: Final = "phase9b-aimnet2-final-test-dataset-v1"
 D3_PROJECTION_SCHEMA: Final = "phase9b-aimnet2-training-d3-projection-v1"
 PARENT_PROTOCOL_SHA256: Final = "227c22a527e567bc4de873ab743fe9f493779eccbb1a698d2913c87695ebf87a"
 HARTREE_TO_EV: Final = 27.211386245988
@@ -451,17 +452,23 @@ def assemble(
     split_path: Path,
     runs_root: Path,
     output_root: Path,
+    scope: str = "development",
     projector: D3Projector | None = None,
 ) -> dict[str, object]:
+    if scope not in {"development", "final_test"}:
+        raise DatasetAssemblyError("dataset scope must be development or final_test")
     assignments, profiles, split_sha256 = load_split(split_path)
     output_root.mkdir(mode=0o700, parents=False, exist_ok=False)
     effective_projector = projector or _pyscf_d3_projector
+    included_splits = ("train", "validation") if scope == "development" else ("final_test",)
     grouped: dict[str, dict[int, list[dict[str, np.ndarray | float | int | str]]]] = {
-        split: defaultdict(list) for split in ("train", "validation", "final_test")
+        split: defaultdict(list) for split in included_splits
     }
     candidates: list[dict[str, object]] = []
     geometry_owners: dict[str, tuple[str, str]] = {}
     for candidate, split in assignments.items():
+        if split not in included_splits:
+            continue
         records, evidence = load_candidate_frames(
             candidate=candidate,
             split=split,
@@ -496,12 +503,16 @@ def assemble(
             receipt.update({"atom_count": atom_count, "frame_count": len(records)})
             files[split].append(receipt)
             split_counts[split] += len(records)
+    included_candidate_count = sum(split in included_splits for split in assignments.values())
     manifest = {
-        "schema": OUTPUT_SCHEMA,
+        "schema": (
+            DEVELOPMENT_OUTPUT_SCHEMA if scope == "development" else FINAL_TEST_OUTPUT_SCHEMA
+        ),
+        "scope": scope,
         "parent_protocol_sha256": PARENT_PROTOCOL_SHA256,
         "split_sha256": split_sha256,
         "split_unit": "InChIKey",
-        "candidate_count": len(assignments),
+        "candidate_count": included_candidate_count,
         "candidate_evidence": candidates,
         "frame_count_by_split": split_counts,
         "files": files,
@@ -544,6 +555,11 @@ def assemble(
             "d3_damping": "d3bj",
             "atm": False,
         },
+        "sealed_final_test_commitment": {
+            "split_registry_sha256": split_sha256,
+            "candidate_count": sum(split == "final_test" for split in assignments.values()),
+        },
+        "final_test_payload_present": scope == "final_test",
         "final_test_used_for_training": False,
         "production_accepted": False,
     }
@@ -556,6 +572,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--split", required=True)
     result.add_argument("--runs-root", required=True)
     result.add_argument("--output-root", required=True)
+    result.add_argument("--scope", choices=("development", "final_test"), default="development")
     return result
 
 
@@ -565,6 +582,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         split_path=Path(args.split).resolve(strict=True),
         runs_root=Path(args.runs_root).resolve(strict=True),
         output_root=Path(args.output_root),
+        scope=args.scope,
     )
     return 0
 

@@ -80,7 +80,7 @@ under their original assignment and are not replaced after observing results.
 ## Fine-tuning boundary
 
 The installed `aimnet 0.2.0` package exposes its own training primitives.  The
-one-shot V001 fine-tuning configuration is frozen in
+V001 fine-tuning configuration is retained as a rejected pre-execution design in
 `PHASE9B_AIMNET2_FINETUNE_CONFIG_V001.json`; its model structure is frozen in
 `PHASE9B_AIMNET2_FINETUNE_MODEL_V001.yaml`.  It restores the base model's
 training-time long-range Coulomb module, excludes embedded D3 because D3 is
@@ -93,16 +93,48 @@ Only the energy output MLP is trainable in V001.  The pretrained representation,
 charge-producing path, atomic shift, AEV parameters, and Coulomb physics remain
 frozen.  The fixed seed is `20260730`; RAdam uses a learning rate of `1e-4`, and
 energy and force losses have equal frozen weights.  Validation weighted loss
-selects the earliest best checkpoint.  The final-test directory is not opened
-until the selected bundle has been serialized and SHA256-frozen, and final-test
-metrics cannot change that selection.
+selects the earliest best checkpoint.  Static audit found that V001 nevertheless
+placed final-test files under the development dataset root, validated their
+receipts in the trainer, and evaluated them in that same process.  V001 therefore
+fails the final-test isolation contract and must not be launched.
+
+V002 uses two frozen views.  `PHASE9B_AIMNET2_MODEL_GENERATION_CONFIG_V002.json`
+contains only train/validation settings plus a sealed final-test commitment and
+count; it has no split-registry path, final-test directory, candidate identity,
+receipt, or payload path.  Its development dataset contains exactly five train
+and two validation candidates.  The trainer validates only those directories
+and terminates at `MODEL_FROZEN` after serialization and runtime-load audit.
+
+Only after that process exits may `phase9b_aimnet2_final_test.py` run as a
+separate evaluator.  Before its first final-test route/frame read it writes an
+immutable consumption claim binding the generation, cohort commitment,
+candidate identities, frozen bundle, model-freeze result, and evaluator source.
+It then assembles a separate final-test-only dataset and evaluates the frozen
+bundle and unchanged base on identical inputs.  The evaluator cannot select a
+checkpoint, change a threshold, promote a model, retry, or write a production
+label.  Because scientific validation/final-test acceptance thresholds and the
+epoch-0 selection path are not yet frozen, V002 is currently
+`BLOCKED_BEFORE_TRAINING`; neither training nor final-test consumption is
+permitted until a separately approved config registers those gates.
 
 `phase9b_aimnet2_finetune_watch.py` is the durable transition gate.  It waits for
 all nine preregistered candidates and all four lane terminals, stops on any
 candidate failure, assembles the D3-audited dataset once, waits for disk, host
 memory, and one idle V100, and then claims exactly one training attempt.  There
 is no retry, replacement candidate, extension cohort, production label write,
-or speed benchmark in this state machine.
+or speed benchmark in this state machine.  V002 launches dataset assembly with
+`--scope development`, passes the sanitized generation config to the trainer,
+verifies `MODEL_FROZEN`, and only then launches the evaluator.  Its current
+readiness guard stops before dataset assembly while V002 remains blocked.  The
+legacy V001 orchestration is historical and must not be resumed.
+
+The lane watcher now writes a structured `lane_terminal.json` and stops before
+the next claim if the completed route cannot independently prove exit code 0,
+PASS, two complete endpoint manifests, the route-manifest binding, the exact
+frame set, and process cleanup.  The fine-tune watcher treats any such lane
+terminal as a collection failure, so an initial-predecessor or mid-queue
+failure cannot leave the training gate waiting indefinitely or permit a
+replacement.
 
 No current AIMNet2 energy enters the PySCF deprotonation label.  The final model
 will be benchmarked only after model freezing, on molecule-level held-out

@@ -169,3 +169,52 @@ def test_frame_loader_rejects_force_gradient_sign_drift(tmp_path: Path) -> None:
             expected_endpoint="cation",
             expected_index=0,
         )
+
+
+def test_development_scope_never_writes_or_enumerates_final_test(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assignments = {"TRAIN": "train", "VALID": "validation", "SECRET": "final_test"}
+    profiles = {name: {} for name in assignments}
+    monkeypatch.setattr(
+        dataset,
+        "load_split",
+        lambda _: (assignments, profiles, "a" * 64),
+    )
+    loaded: list[str] = []
+
+    def fake_load_candidate_frames(**kwargs: object):
+        candidate = str(kwargs["candidate"])
+        split = str(kwargs["split"])
+        loaded.append(candidate)
+        offset = float(len(loaded))
+        record = {
+            "coord": np.asarray([[offset, 0.0, 0.0]]),
+            "numbers": np.asarray([6]),
+            "charge": 0,
+            "energy": -1.0,
+            "forces": np.zeros((1, 3)),
+            "total_energy": -1.1,
+            "total_forces": np.zeros((1, 3)),
+            "d3_energy": -0.1,
+            "d3_forces": np.zeros((1, 3)),
+            "candidate": candidate,
+            "endpoint": "neutral",
+            "frame_index": 0,
+        }
+        return [record], {"candidate": candidate, "split": split, "endpoints": {}}
+
+    monkeypatch.setattr(dataset, "load_candidate_frames", fake_load_candidate_frames)
+    result = dataset.assemble(
+        split_path=tmp_path / "split.json",
+        runs_root=tmp_path,
+        output_root=tmp_path / "development",
+        scope="development",
+        projector=lambda _: {},
+    )
+    manifest = result["manifest"]
+    assert loaded == ["TRAIN", "VALID"]
+    assert manifest["schema"] == dataset.DEVELOPMENT_OUTPUT_SCHEMA
+    assert set(manifest["files"]) == {"train", "validation"}
+    assert manifest["final_test_payload_present"] is False
+    assert not (tmp_path / "development" / "final_test").exists()

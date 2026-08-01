@@ -11,7 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/phase9b_aimnet2_finetune_watch.py"
-CONFIG = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_CONFIG_V001.json"
+CONFIG = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_ORCHESTRATION_V002.json"
 
 
 def _load():
@@ -99,6 +99,28 @@ def test_collection_failure_is_fail_closed_and_not_replaced(tmp_path: Path) -> N
     assert snapshot["required_candidate_count"] == 9
 
 
+def test_lane_terminal_blocks_collection_and_training(tmp_path: Path) -> None:
+    config, repo = _collection_fixture(tmp_path)
+    lane = Path(config["collection"]["required_queue_state_roots"][0])
+    _write_json(
+        lane / "lane_terminal.json",
+        {
+            "outcome": "FINAL_CANDIDATE_AUDIT_FAILED",
+            "expected_candidate": "TRAIN000000000AA-BBBBBBBBBB-C",
+            "retry": False,
+        },
+    )
+    snapshot = watcher.collection_snapshot(config, repo)
+    assert snapshot["collection_complete"] is False
+    assert snapshot["failed_queue_states"] == [
+        {
+            "root": str(lane),
+            "outcome": "FINAL_CANDIDATE_AUDIT_FAILED",
+            "expected_candidate": "TRAIN000000000AA-BBBBBBBBBB-C",
+        }
+    ]
+
+
 def test_gpu_selection_uses_lowest_idle_gpu_with_enough_memory(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -141,3 +163,20 @@ def test_frozen_config_disallows_retry_speed_benchmark_and_production() -> None:
     assert config["production_accepted"] is False
     assert config["post_freeze_evaluation"]["speed_benchmark"] is False
     assert "candidate_replacement" in config["forbidden"]
+
+
+def test_watcher_freezes_model_before_starting_separate_final_test_process() -> None:
+    source = SCRIPT.read_text()
+    frozen_gate = source.index('result.get("final_outcome") != "MODEL_FROZEN"')
+    evaluator_command = source.index("final_test_command = [")
+    assert frozen_gate < evaluator_command
+    assert '"separate_evaluator_process": True' in source
+    assert '"--scope",\n        "development"' in source
+
+
+def test_blocked_generation_stops_before_collection_or_dataset_assembly() -> None:
+    source = SCRIPT.read_text()
+    blocked = source.index('outcome="BLOCKED_BEFORE_TRAINING"')
+    collection = source.index("while True:", blocked)
+    dataset = source.index("dataset_command = [")
+    assert blocked < collection < dataset

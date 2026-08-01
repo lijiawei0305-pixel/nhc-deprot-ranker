@@ -23,9 +23,9 @@ from typing import Any, Final, cast
 import numpy as np
 import yaml
 
-CONFIG_SCHEMA: Final = "phase9b-aimnet2-finetune-config-v001"
-DATASET_SCHEMA: Final = "phase9b-aimnet2-training-dataset-v1"
-RESULT_SCHEMA: Final = "phase9b-aimnet2-finetune-result-v001"
+CONFIG_SCHEMA: Final = "phase9b-aimnet2-model-generation-config-v002"
+DATASET_SCHEMA: Final = "phase9b-aimnet2-development-dataset-v2"
+RESULT_SCHEMA: Final = "phase9b-aimnet2-model-freeze-result-v002"
 BASE_SHA256: Final = "f0f7c054539ad3261bd36f9b11c56d12f87cb723e25bea7521755bbd3ec24e28"
 MODEL_YAML_SHA256: Final = "f3a374cb0824f522b03a2f423980d5c7121c10fe49718e08782af47e7259b3b1"
 SPLIT_SHA256: Final = "772094bc08012f8f40c76994a1600985f11a1956bef66d2c7710006b3aa0b995"
@@ -108,6 +108,20 @@ def load_frozen_config(config_path: Path, repo_root: Path) -> tuple[dict[str, An
         raise FineTuneError("fine-tuning config identity mismatch")
     if config.get("retry") is not False or config.get("production_accepted") is not False:
         raise FineTuneError("fine-tuning config widened the one-shot boundary")
+    readiness = config.get("readiness")
+    if not isinstance(readiness, dict) or readiness.get("state") != "REGISTERED":
+        raise FineTuneError("generation is BLOCKED_BEFORE_TRAINING")
+    for gate in (
+        "final_test_isolation_implemented",
+        "final_test_evaluator_scientifically_complete",
+        "epoch_zero_selection_implemented",
+        "validation_selection_gates_frozen",
+        "baseline_eligibility_gates_frozen",
+        "final_test_acceptance_gates_frozen",
+        "stopping_handoff_promotion_gates_frozen",
+    ):
+        if readiness.get(gate) is not True:
+            raise FineTuneError(f"generation readiness gate is not frozen: {gate}")
     base = cast(dict[str, Any], config.get("base_bundle"))
     model = cast(dict[str, Any], config.get("training_model"))
     data = cast(dict[str, Any], config.get("data"))
@@ -116,17 +130,17 @@ def load_frozen_config(config_path: Path, repo_root: Path) -> tuple[dict[str, An
         or base.get("embedded_model_yaml_sha256") != MODEL_YAML_SHA256
     ):
         raise FineTuneError("base model identity drifted")
-    if (
-        data.get("split_sha256") != SPLIT_SHA256
-        or data.get("final_test_visible_before_model_freeze") is not False
-    ):
+    if data.get("sealed_final_test_commitment") != {
+        "split_registry_sha256": SPLIT_SHA256,
+        "candidate_count": 2,
+    }:
         raise FineTuneError("molecule split or final-test isolation drifted")
+    forbidden_final_test_keys = {"split_path", "final_test_directory", "final_test_candidates"}
+    if forbidden_final_test_keys.intersection(data):
+        raise FineTuneError("training config exposes final-test identity or path")
     model_path = (repo_root / str(model["path"])).resolve(strict=True)
     if sha256_bytes(read_regular(model_path)) != model.get("sha256"):
         raise FineTuneError("training model YAML SHA256 mismatch")
-    split_path = (repo_root / str(data["split_path"])).resolve(strict=True)
-    if sha256_bytes(read_regular(split_path)) != SPLIT_SHA256:
-        raise FineTuneError("fine-tuning split SHA256 mismatch")
     return config, raw
 
 
@@ -141,13 +155,15 @@ def _verify_receipt(receipt: object, *, root: Path) -> None:
         raise FineTuneError("dataset receipt binding mismatch")
 
 
-def validate_dataset(dataset_root: Path, config: dict[str, Any], repo_root: Path) -> dict[str, Any]:
+def validate_dataset(dataset_root: Path, config: dict[str, Any]) -> dict[str, Any]:
     root = dataset_root.resolve(strict=True)
     manifest, manifest_raw = read_json(root / "manifest.json")
     if (
         manifest.get("schema") != DATASET_SCHEMA
+        or manifest.get("scope") != "development"
         or manifest.get("split_sha256") != SPLIT_SHA256
-        or manifest.get("candidate_count") != 9
+        or manifest.get("candidate_count") != 7
+        or manifest.get("final_test_payload_present") is not False
         or manifest.get("final_test_used_for_training") is not False
     ):
         raise FineTuneError("training dataset manifest identity mismatch")
@@ -158,7 +174,11 @@ def validate_dataset(dataset_root: Path, config: dict[str, Any], repo_root: Path
     counts = manifest.get("frame_count_by_split")
     if not isinstance(files, dict) or not isinstance(counts, dict):
         raise FineTuneError("training dataset file set is missing")
-    for split in ("train", "validation", "final_test"):
+    if set(files) != {"train", "validation"} or set(counts) != {"train", "validation"}:
+        raise FineTuneError("development dataset exposes a non-development split")
+    if (root / "final_test").exists():
+        raise FineTuneError("final-test directory is visible to the training process")
+    for split in ("train", "validation"):
         receipts = files.get(split)
         if (
             not isinstance(receipts, list)
@@ -170,20 +190,27 @@ def validate_dataset(dataset_root: Path, config: dict[str, Any], repo_root: Path
         for receipt in receipts:
             _verify_receipt(receipt, root=root)
     candidates = manifest.get("candidate_evidence")
-    if not isinstance(candidates, list) or len(candidates) != 9:
+    if not isinstance(candidates, list) or len(candidates) != 7:
         raise FineTuneError("training dataset candidate evidence is incomplete")
     observed = {
         (item.get("candidate"), item.get("split")) for item in candidates if isinstance(item, dict)
     }
-    split_path = Path(str(cast(dict[str, Any], config["data"])["split_path"]))
-    expected_payload, _ = read_json((repo_root / split_path).resolve(strict=True))
-    expected = {
-        (profile["candidate"], split)
-        for split in ("train", "validation", "final_test")
-        for profile in cast(list[dict[str, Any]], expected_payload[split])
-    }
-    if observed != expected:
+    if {split for _, split in observed} != {"train", "validation"}:
         raise FineTuneError("training dataset candidate split drifted")
+    expected_counts = cast(
+        dict[str, int], cast(dict[str, Any], config["data"])["development_candidate_count_by_split"]
+    )
+    observed_counts = {
+        split: sum(observed_split == split for _, observed_split in observed)
+        for split in ("train", "validation")
+    }
+    if observed_counts != expected_counts:
+        raise FineTuneError("development candidate counts drifted")
+    if (
+        manifest.get("sealed_final_test_commitment")
+        != cast(dict[str, Any], config["data"])["sealed_final_test_commitment"]
+    ):
+        raise FineTuneError("sealed final-test commitment drifted")
     for item in candidates:
         endpoints = cast(dict[str, Any], cast(dict[str, Any], item)["endpoints"])
         if set(endpoints) != {"cation", "neutral"}:
@@ -352,6 +379,67 @@ def _evaluate(model: Any, loader: Any, loss_fn: Any, prepare_batch: Any) -> dict
     }
 
 
+def evaluate_frozen_bundle(
+    *,
+    bundle_path: Path,
+    dataset_split_root: Path,
+    config: dict[str, Any],
+    repo_root: Path,
+    gpu_index: int,
+) -> dict[str, float]:
+    """Evaluate one already-frozen bundle; called only by the separate evaluator process."""
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_index)
+    import torch  # type: ignore[import-not-found]
+    from aimnet.config import build_module  # type: ignore[import-not-found]
+    from aimnet.data import SizeGroupedDataset, SizeGroupedSampler  # type: ignore[import-not-found]
+    from aimnet.modules import Forces  # type: ignore[import-not-found]
+    from aimnet.train.loss import MTLoss  # type: ignore[import-not-found]
+    from aimnet.train.utils import prepare_batch  # type: ignore[import-not-found]
+
+    bundle_raw = read_regular(bundle_path)
+    bundle = torch.load(io.BytesIO(bundle_raw), map_location="cpu", weights_only=False)
+    if not isinstance(bundle, dict) or not isinstance(bundle.get("state_dict"), dict):
+        raise FineTuneError("evaluation bundle is invalid")
+    model_path = (repo_root / str(cast(dict[str, Any], config["training_model"])["path"])).resolve(
+        strict=True
+    )
+    core = build_module(copy.deepcopy(yaml.safe_load(read_regular(model_path))))
+    core.outputs.atomic_shift.double()
+    evaluation_state = migrate_base_state(dict(bundle["state_dict"]), to_training=True)
+    core.load_state_dict(evaluation_state, strict=True)
+    model = Forces(core).cuda()
+    data = cast(dict[str, Any], config["data"])
+    training = cast(dict[str, Any], config["training"])
+    x_keys = list(data["x"])
+    y_keys = list(data["y"])
+    dataset = SizeGroupedDataset(str(dataset_split_root), keys=x_keys + y_keys)
+    sampler = SizeGroupedSampler(
+        dataset,
+        batch_size=int(training["batch_size"]),
+        batch_mode=str(training["batch_mode"]),
+        shuffle=False,
+        batches_per_epoch=-1,
+        seed=int(training["seed"]),
+    )
+    loader = dataset.get_loader(sampler, x_keys, y_keys, num_workers=0, pin_memory=True)
+    loss_config = cast(dict[str, float], training["loss"])
+    loss_fn = MTLoss(
+        {
+            "energy": {
+                "fn": "aimnet.train.loss.energy_loss_fn",
+                "weight": float(loss_config["energy_weight"]),
+            },
+            "forces": {
+                "fn": "aimnet.train.loss.peratom_loss_fn",
+                "weight": float(loss_config["forces_weight"]),
+                "kwargs": {"key_true": "forces", "key_pred": "forces"},
+            },
+        }
+    )
+    return _evaluate(model, loader, loss_fn, prepare_batch)
+
+
 def _save_torch_new(path: Path, value: object, torch: Any) -> dict[str, object]:
     buffer = io.BytesIO()
     torch.save(value, buffer)
@@ -372,7 +460,7 @@ def run_training(args: argparse.Namespace) -> dict[str, Any]:
         raise FineTuneError("fine-tuning root differs from frozen config")
     if output_root.exists():
         raise FineTuneError("fine-tuning output root already exists")
-    dataset_evidence = validate_dataset(dataset_root, config, repo_root)
+    dataset_evidence = validate_dataset(dataset_root, config)
     base_path = Path(args.base_bundle).resolve(strict=True)
     base_raw = read_regular(base_path)
     if sha256_bytes(base_raw) != BASE_SHA256:
@@ -383,16 +471,16 @@ def run_training(args: argparse.Namespace) -> dict[str, Any]:
     model_raw = read_regular(model_path)
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_index)
-    import torch  # type: ignore[import-not-found]
-    from aimnet.config import build_module  # type: ignore[import-not-found]
-    from aimnet.data import (  # type: ignore[import-not-found]
+    import torch
+    from aimnet.config import build_module
+    from aimnet.data import (
         SizeGroupedDataset,
         SizeGroupedSampler,
     )
     from aimnet.models.base import load_model  # type: ignore[import-not-found]
-    from aimnet.modules import Forces  # type: ignore[import-not-found]
-    from aimnet.train.loss import MTLoss  # type: ignore[import-not-found]
-    from aimnet.train.utils import prepare_batch  # type: ignore[import-not-found]
+    from aimnet.modules import Forces
+    from aimnet.train.loss import MTLoss
+    from aimnet.train.utils import prepare_batch
 
     versions = _package_versions(config)
     resources = resource_preflight(config, output_root.parent, torch, args.gpu_index)
@@ -574,21 +662,6 @@ def run_training(args: argparse.Namespace) -> dict[str, Any]:
     ):
         raise FineTuneError("frozen bundle runtime load audit failed")
 
-    final_test_ds = SizeGroupedDataset(str(dataset_root / "final_test"), keys=keys)
-    final_test_sampler = SizeGroupedSampler(
-        final_test_ds,
-        batch_size=batch_size,
-        batch_mode=str(training["batch_mode"]),
-        shuffle=False,
-        batches_per_epoch=-1,
-        seed=seed,
-    )
-    final_test_loader = final_test_ds.get_loader(
-        final_test_sampler, x_keys, y_keys, num_workers=0, pin_memory=True
-    )
-    final_test = _evaluate(model, final_test_loader, loss_fn, prepare_batch)
-    if sha256_bytes(read_regular(final_bundle_path)) != frozen_bundle_sha256:
-        raise FineTuneError("frozen model changed during final-test evaluation")
     result: dict[str, Any] = {
         "schema": RESULT_SCHEMA,
         "science_pilot_only": True,
@@ -613,12 +686,15 @@ def run_training(args: argparse.Namespace) -> dict[str, Any]:
         "checkpoints": checkpoints,
         "frozen_bundle": final_bundle_receipt,
         "frozen_bundle_runtime_metadata": runtime_metadata_dict,
-        "frozen_bundle_sha256_before_final_test": frozen_bundle_sha256,
-        "final_test": final_test,
-        "final_test_changed_model_selection": False,
+        "frozen_bundle_sha256": frozen_bundle_sha256,
+        "final_test_access": "not_mounted_not_read_not_enumerated",
+        "final_test_commitment": cast(dict[str, Any], config["data"])[
+            "sealed_final_test_commitment"
+        ],
+        "final_test_consumed": False,
         "speed_benchmark_run": False,
         "wall_seconds": time.monotonic() - started,
-        "final_outcome": "PASS",
+        "final_outcome": "MODEL_FROZEN",
     }
     write_new(output_root / "training_history.json", canonical_json(history))
     write_new(output_root / "result.json", canonical_json(result))
