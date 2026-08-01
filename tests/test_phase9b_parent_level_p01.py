@@ -6,6 +6,7 @@ import json
 import math
 import sys
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -17,7 +18,7 @@ SPLIT_PATH = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_SPLIT_V002.json"
 REJECTED_SPLIT_PATH = ROOT / "docs/PHASE9B_AIMNET2_FINETUNE_SPLIT_V001_REJECTION.json"
 
 
-def _load(path: Path, name: str):
+def _load(path: Path, name: str) -> ModuleType:
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -362,6 +363,15 @@ def test_group_b_worker_requires_full_optimization_call() -> None:
     assert "two_endpoint._call_optimize(" in source
     assert "single_point.run_single_point(" in source
     assert "geometry_steps_definition" in source
+
+
+def test_assisted_worker_also_requires_full_optimization_before_single_point() -> None:
+    source = BENCHMARK_PATH.read_text()
+    assert 'worker.add_argument("--route", choices=("assisted", "pure_pyscf")' in source
+    assert "two_endpoint._call_optimize(" in source
+    assert "final_parent_state(" in source
+    assert '"first_parent_observation"' in source
+    assert '"profile": "GAU"' in source
 
 
 def test_extension_is_not_implemented_as_automatic_batch() -> None:

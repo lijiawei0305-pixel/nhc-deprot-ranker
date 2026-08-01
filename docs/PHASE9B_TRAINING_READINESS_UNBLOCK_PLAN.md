@@ -1,5 +1,21 @@
 # Phase 9B AIMNet2 Training-Readiness Unblock Implementation Plan
 
+> **2026-08-01 route amendment:** the current user-selected target is
+> `PRECONDITIONER_FULL_PARENT_OPT`, not `SINGLE_POINT_ONLY_CANDIDATE`. AIMNet2
+> reaches the frozen five-metric AIMNet2 `GAU_LOOSE` profile plus its `Fmax <=
+> 0.10 eV/Angstrom` cap within at most 100 ASE-LBFGS steps, then hands the exact
+> geometry bytes to a mandatory full Parent-Level P01 PySCF/geomeTRIC
+> optimization. Its first successful parent energy/analytic gradient is only
+> `PARENT_GAU_LOOSE_GRADIENT_CHECK`; PASS and MISS both continue to final
+> parent `GAU`. The single-point-only promotion tasks below are
+> retained as a historical analysis of the stronger route, but they are not the
+> current implementation authority. The new route remains blocked until its
+> parent-gradient reduction, compute-burden reduction, and signed final-label
+> invariance gates are preregistered; neither Fmax nor the first parent gradient
+> alone can satisfy those gates. Sections below that describe a static
+> single-point intended-use route are historical stronger-route analysis and
+> are not active implementation authority.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Clear all six `blocking_reason_codes` that hold the AIMNet2 fine-tuning generation at `BLOCKED_BEFORE_TRAINING`, so that a registered generation can legally enter `TRAINING_CLAIMED` without any threshold being invented, inherited, or chosen after seeing results.

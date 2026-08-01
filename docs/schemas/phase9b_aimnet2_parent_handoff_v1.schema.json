@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "phase9b-aimnet2-parent-handoff-v1",
+  "type": "object",
+  "required": [
+    "check",
+    "profile",
+    "classification",
+    "first_parent_scf_converged",
+    "first_parent_analytic_gradient_available",
+    "first_parent_energy_Eh",
+    "first_parent_gradient_rms_Eh_Bohr",
+    "first_parent_gradient_max_Eh_Bohr",
+    "full_gau_loose_convergence_claimed",
+    "continue_same_parent_optimization"
+  ],
+  "properties": {
+    "check": {"const": "PARENT_GAU_LOOSE_GRADIENT_CHECK"},
+    "profile": {"const": "GAU_LOOSE"},
+    "classification": {
+      "enum": [
+        "HANDOFF_CALIBRATION_PASS",
+        "HANDOFF_CALIBRATION_MISS",
+        "FAILED_PARENT_HANDOFF"
+      ]
+    },
+    "first_parent_scf_converged": {"type": "boolean"},
+    "first_parent_analytic_gradient_available": {"type": "boolean"},
+    "first_parent_energy_Eh": {"type": ["number", "null"]},
+    "first_parent_gradient_rms_Eh_Bohr": {"type": ["number", "null"]},
+    "first_parent_gradient_max_Eh_Bohr": {"type": ["number", "null"]},
+    "full_gau_loose_convergence_claimed": {"const": false},
+    "continue_same_parent_optimization": {"type": "boolean"},
+    "failure_types": {"type": "array", "items": {"type": "string"}},
+    "failure_detail": {"type": ["string", "null"]},
+    "candidate": {"type": "string", "minLength": 1},
+    "endpoint": {"enum": ["cation", "neutral"]},
+    "route": {"enum": ["assisted", "pure_pyscf"]},
+    "atom_count": {"type": "integer", "minimum": 1},
+    "element_order_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "role": {"type": "string"},
+    "handoff_calibration_not_applicable": {"type": "boolean"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "classification": {"const": "FAILED_PARENT_HANDOFF"}
+        }
+      },
+      "then": {
+        "properties": {
+          "continue_same_parent_optimization": {"const": false}
+        }
+      },
+      "else": {
+        "properties": {
+          "continue_same_parent_optimization": {"const": true}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

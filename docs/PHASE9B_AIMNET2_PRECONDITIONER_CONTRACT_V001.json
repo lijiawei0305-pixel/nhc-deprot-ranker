@@ -1,0 +1,108 @@
+{
+  "schema": "phase9b-aimnet2-preconditioner-contract-v001",
+  "science_pilot_only": true,
+  "production_accepted": false,
+  "route_mode": "PRECONDITIONER_FULL_PARENT_OPT",
+  "gau_loose_contract": {
+    "path": "docs/PHASE9B_AIMNET2_GAU_LOOSE_V001.yaml",
+    "sha256": "0af9a6a28df9c653b95be63ba8bdea0d79187db092d6438c499fe175fc9aa75b",
+    "profile": "GAU_LOOSE",
+    "require_all_five": true
+  },
+  "aimnet2_preoptimization": {
+    "role": "preconditioner_for_parent_pyscf_optimization",
+    "optimizer": "ASE_LBFGS",
+    "fmax_eV_A": 0.1,
+    "fmax_comparison": "less_than_or_equal",
+    "max_steps": 100,
+    "retry": false,
+    "fallback": false,
+    "energy_change": "required_by_GAU_LOOSE"
+  },
+  "preconditioner_ready_requires": [
+    "finite_energy",
+    "finite_coordinates",
+    "finite_complete_forces",
+    "gau_loose_energy_change_pass",
+    "gau_loose_gradient_rms_pass",
+    "gau_loose_gradient_max_pass",
+    "gau_loose_displacement_rms_pass",
+    "gau_loose_displacement_max_pass",
+    "fmax_eV_A_less_than_or_equal_0.10",
+    "accepted_step_index_less_than_or_equal_100",
+    "atom_order_preserved",
+    "element_order_preserved",
+    "charge_preserved",
+    "multiplicity_preserved",
+    "proton_identity_preserved",
+    "connectivity_preserved",
+    "no_collision",
+    "no_fragmentation"
+  ],
+  "handoff": {
+    "next_stage": "full_parent_level_pyscf_geometric_optimization",
+    "exact_byte_geometry": true,
+    "single_point_only": false,
+    "single_point_only_eligible": false
+  },
+  "parent_handoff_calibration": {
+    "check": "PARENT_GAU_LOOSE_GRADIENT_CHECK",
+    "public_profile": "GAU_LOOSE",
+    "first_successful_energy_and_analytic_gradient_from_continuing_optimization": true,
+    "separate_static_job": false,
+    "full_gau_loose_convergence_claimed": false,
+    "internal_fixed_expansion": {
+      "gradient_rms_Eh_Bohr": 0.0017,
+      "gradient_max_Eh_Bohr": 0.0025,
+      "require_both": true
+    },
+    "pass_state": "HANDOFF_CALIBRATION_PASS",
+    "miss_state": "HANDOFF_CALIBRATION_MISS",
+    "failure_state": "FAILED_PARENT_HANDOFF",
+    "continue_after_pass": true,
+    "continue_after_miss": true
+  },
+  "parent_final_route": {
+    "geometry_optimizer": "geomeTRIC",
+    "final_profile": "GAU",
+    "final_state": "FINAL_PARENT_GAU_CONVERGED",
+    "final_single_point_required": true
+  },
+  "parent_protocol": {
+    "protocol_id": "Parent-Level Protocol P01",
+    "protocol_sha256": "227c22a527e567bc4de873ab743fe9f493779eccbb1a698d2913c87695ebf87a"
+  },
+  "comparison_baselines": {
+    "parent_gradient": "same_endpoint_frozen_initial_geometry",
+    "fine_tuned_model": "epoch_0000_unchanged_base_aimnet2",
+    "pyscf_compute_burden": "pure_parent_pyscf_optimization_from_identical_frozen_initial_bytes",
+    "final_label": "pure_parent_pyscf_optimized_protocol_level_reference"
+  },
+  "validation_objectives": {
+    "topology_and_local_basin_preserved": true,
+    "parent_initial_gradient_reduced": true,
+    "pyscf_geometry_steps_reduced": true,
+    "pyscf_energy_and_gradient_calls_reduced": true,
+    "pyscf_cumulative_scf_cycles_reduced": true,
+    "end_to_end_wall_time_reduced": true,
+    "signed_final_parent_label_difference_bounded": true
+  },
+  "threshold_readiness": {
+    "gau_loose_five_metrics_and_step_budget_frozen": true,
+    "identity_gates_frozen": true,
+    "minimum_parent_gradient_reduction_not_yet_frozen": true,
+    "minimum_compute_burden_reduction_not_yet_frozen": true,
+    "wall_time_acceptance_margin_not_yet_frozen": true,
+    "maximum_signed_label_difference_not_yet_frozen": true,
+    "state": "BLOCKED_BEFORE_TRAINING"
+  },
+  "claims_forbidden": [
+    "parent_level_geometry_converged_at_aimnet2_handoff",
+    "single_point_only_eligible",
+    "pyscf_geometry_optimization_may_be_skipped",
+    "aimnet2_energy_used_in_label",
+    "production_accepted"
+  ],
+  "maximum_reachable_terminal": "FINAL_TEST_ACCEPTED",
+  "promotion_blocked_reason": "PRECONDITIONER_ROUTE_REQUIRES_FULL_PARENT_OPTIMIZATION"
+}

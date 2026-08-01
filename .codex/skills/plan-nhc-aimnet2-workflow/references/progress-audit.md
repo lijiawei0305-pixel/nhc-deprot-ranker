@@ -34,7 +34,7 @@ affected controller, worker, training, and evaluation processes:
 - PID/PPID/SID, elapsed and CPU time, state, RSS, command digest, and affinity;
 - assigned logical CPUs, unique physical cores, SMT-sibling collisions, NUMA nodes, and actual threads;
 - load, available memory, memory pressure, swap activity, major faults, disk bytes/inodes, and projected runway when measurable;
-- GPU identity projection, memory, utilization, active processes, and VASP occupancy without disturbing them.
+- GPU identity projection, memory, utilization, and active processes without disturbing them.
 
 Take a second sample 10–30 seconds later only when needed to measure CPU-time, step, cycle, frame, or byte-count deltas. Thread count is not utilization. CPU wall multiplied by threads is not measured CPU time. GPU allocation wall is not utilization.
 

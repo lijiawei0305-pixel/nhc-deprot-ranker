@@ -19,7 +19,7 @@ import resource
 import subprocess
 import sys
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Final, cast
 
@@ -146,6 +146,11 @@ def protocol(
         "initial_guess": "minao",
         "dm0": False,
         "geometry_optimizer": "geomeTRIC",
+        "aimnet2_handoff_profile": "GAU_LOOSE",
+        "parent_first_observation": "PARENT_GAU_LOOSE_GRADIENT_CHECK",
+        "parent_first_observation_is_full_gau_loose": False,
+        "parent_final_convergence_profile": "GAU",
+        "single_point_only": False,
         "geometry_max_steps": 100,
         "threads": threads,
         "cpu_affinity": list(cpu_affinity),
@@ -240,6 +245,7 @@ def build_parent_backend(
     memory_mb: int = 12000,
     expected_electron_count: int = ELECTRONS,
     training_recorder: Any | None = None,
+    first_parent_observation: Callable[[Mapping[str, object], str], None] | None = None,
 ) -> Any:
     """Adapt the audited pilot backend without changing production source."""
 
@@ -251,6 +257,7 @@ def build_parent_backend(
             super().__init__()
             self._parent_modules: Any = None
             self.parent_identity: dict[str, object] = {}
+            self.parent_optimization_metrics: dict[str, dict[str, object]] = {}
 
         def _load_modules(self) -> object:
             if self._parent_modules is not None:
@@ -279,16 +286,45 @@ def build_parent_backend(
                     original_callback = kwargs.get("callback")
 
                     def callback(environment: dict[str, object]) -> None:
-                        if callable(original_callback):
-                            original_callback(environment)
-                        if training_recorder is None:
-                            return
                         context = backend._pilot_context
                         if context is None or context[1] != "optimization":
-                            raise BenchmarkError("training callback context drifted")
-                        training_recorder.capture(environment, endpoint=context[0])
+                            raise BenchmarkError("parent callback context drifted")
+                        endpoint = context[0]
+                        record = backend.parent_optimization_metrics.setdefault(
+                            endpoint,
+                            {
+                                "parent_energy_evaluations": 0,
+                                "parent_gradient_evaluations": 0,
+                                "cumulative_scf_cycles": 0,
+                                "scf_cycle_measurement_complete": True,
+                            },
+                        )
+                        record["parent_energy_evaluations"] = (
+                            cast(int, record["parent_energy_evaluations"]) + 1
+                        )
+                        record["parent_gradient_evaluations"] = (
+                            cast(int, record["parent_gradient_evaluations"]) + 1
+                        )
+                        scanner = environment.get("g_scanner")
+                        raw_cycles = getattr(scanner, "cycles", None)
+                        if type(raw_cycles) is int and raw_cycles >= 0:
+                            record["cumulative_scf_cycles"] = (
+                                cast(int, record["cumulative_scf_cycles"]) + raw_cycles
+                            )
+                        else:
+                            record["scf_cycle_measurement_complete"] = False
+                        if first_parent_observation is not None:
+                            first_parent_observation(environment, endpoint)
+                        if callable(original_callback):
+                            original_callback(environment)
+                        if training_recorder is not None:
+                            training_recorder.capture(environment, endpoint=endpoint)
 
                     kwargs["callback"] = callback
+                    requested_profile = kwargs.get("convergence_set")
+                    if requested_profile not in {None, "GAU"}:
+                        raise BenchmarkError("parent geometry convergence profile drifted")
+                    kwargs["convergence_set"] = "GAU"
                     return original_geometric_solver.kernel(method, *positional, **kwargs)
 
             self._parent_modules = dataclasses.replace(
@@ -424,13 +460,103 @@ def _configure_parent_resources(
         (root / "runtime_tmp").mkdir(mode=0o700, exist_ok=False)
 
 
+def _array_rows(value: object, *, label: str) -> list[list[float]]:
+    projected = value.tolist() if hasattr(value, "tolist") else value
+    if not isinstance(projected, (list, tuple)):
+        raise BenchmarkError(f"{label} is not an array")
+    rows: list[list[float]] = []
+    for raw_row in projected:
+        if not isinstance(raw_row, (list, tuple)) or len(raw_row) != 3:
+            raise BenchmarkError(f"{label} shape drifted")
+        rows.append([float(component) for component in raw_row])
+    if not rows:
+        raise BenchmarkError(f"{label} is empty")
+    return rows
+
+
+def _first_parent_payload(
+    *,
+    handoff_module: Any,
+    environment: Mapping[str, object],
+    candidate: str,
+    endpoint: str,
+    route: str,
+    expected_elements: tuple[str, ...],
+    topology_valid: bool,
+    profile: Any,
+) -> dict[str, object]:
+    scanner = environment.get("g_scanner")
+    molecule = environment.get("mol")
+    energy_raw = environment.get("energy")
+    gradient_raw = environment.get("gradients")
+    energy = float(energy_raw) if isinstance(energy_raw, (int, float)) else None
+    gradients: list[list[float]] | None
+    try:
+        gradients = _array_rows(gradient_raw, label="first parent analytic gradient")
+    except (BenchmarkError, TypeError, ValueError):
+        gradients = None
+    elements: tuple[str, ...] = ()
+    coordinates_finite = False
+    charge_multiplicity_preserved = False
+    if molecule is not None:
+        try:
+            molecule_any = cast(Any, molecule)
+            natm = int(molecule_any.natm)
+            elements = tuple(str(molecule_any.atom_symbol(index)) for index in range(natm))
+            coordinates = _array_rows(
+                molecule_any.atom_coords(unit="Angstrom"), label="first parent coordinates"
+            )
+            coordinates_finite = all(
+                math.isfinite(component) for row in coordinates for component in row
+            )
+            charge_multiplicity_preserved = (
+                int(molecule_any.charge) == CHARGES[endpoint]
+                and int(molecule_any.spin) == MULTIPLICITIES[endpoint] - 1
+            )
+        except (AttributeError, BenchmarkError, TypeError, ValueError):
+            coordinates_finite = False
+    classification = handoff_module.classify_first_parent_gradient(
+        profile=profile,
+        scf_converged=getattr(scanner, "converged", None) is True,
+        energy_hartree=energy,
+        gradient_hartree_bohr=gradients,
+        coordinates_finite=coordinates_finite,
+        atom_identity_preserved=elements == expected_elements,
+        charge_multiplicity_preserved=charge_multiplicity_preserved,
+        topology_valid=topology_valid,
+    )
+    classification.update(
+        {
+            "candidate": candidate,
+            "endpoint": endpoint,
+            "route": route,
+            "atom_count": len(elements),
+            "element_order_sha256": sha256_bytes(" ".join(elements).encode()),
+        }
+    )
+    if route == "pure_pyscf" and classification["classification"] != "FAILED_PARENT_HANDOFF":
+        classification["role"] = "FROZEN_INITIAL_PARENT_GRADIENT_BASELINE"
+        classification["handoff_calibration_not_applicable"] = True
+    return cast(dict[str, object], classification)
+
+
 def parent_worker(args: argparse.Namespace) -> int:
     helper = load_module(Path(args.v006_helper).resolve(strict=True), "p01_v006_helper")
     pilot = load_module(Path(args.pilot_helper).resolve(strict=True), "p01_pilot_helper")
     single_point = load_module(Path(args.sp_helper).resolve(strict=True), "p01_sp_helper")
+    handoff_helper_path = Path(args.handoff_helper).resolve(strict=True)
+    gau_loose_contract_path = Path(args.gau_loose_contract).resolve(strict=True)
+    handoff_module = load_module(handoff_helper_path, "p01_parent_handoff_helper")
+    profile = handoff_module.load_gau_loose_profile(gau_loose_contract_path)
     source_root = Path(args.source_root).resolve(strict=True)
     pilot._add_source_root(source_root)
     from nhc_deprot_ranker.quantum import two_endpoint
+
+    handoff_contract_identity = {
+        "profile": "GAU_LOOSE",
+        "contract_sha256": sha256_bytes(helper.read_regular(gau_loose_contract_path)),
+        "helper_sha256": sha256_bytes(helper.read_regular(handoff_helper_path)),
+    }
 
     root = Path(args.root).resolve(strict=True)
     training_recorder: Any | None = None
@@ -455,21 +581,15 @@ def parent_worker(args: argparse.Namespace) -> int:
     )
     started = time.monotonic()
     deadline = started + float(args.route_limit_seconds)
-    for name in ("input", "handoff"):
+    for name in ("input", "handoff", "optimization", "final_single_point"):
         helper.make_directory(root / name)
-    if args.route == "assisted":
-        helper.make_directory(root / "pyscf")
-        for endpoint in ENDPOINTS:
-            helper.make_directory(root / "pyscf" / endpoint)
-    else:
-        helper.make_directory(root / "optimization")
-        helper.make_directory(root / "final_single_point")
-        for endpoint in ENDPOINTS:
-            helper.make_directory(root / "optimization" / endpoint)
-            helper.make_directory(root / "final_single_point" / endpoint)
+    for endpoint in ENDPOINTS:
+        helper.make_directory(root / "optimization" / endpoint)
+        helper.make_directory(root / "final_single_point" / endpoint)
 
     requests: dict[str, Any] = {}
     handoffs: dict[str, object] = {}
+    expected_elements: dict[str, tuple[str, ...]] = {}
     for endpoint in ENDPOINTS:
         source = Path(getattr(args, f"{endpoint}_input")).resolve(strict=True)
         raw = helper.read_regular(source)
@@ -491,7 +611,44 @@ def parent_worker(args: argparse.Namespace) -> int:
         )
         requests[endpoint] = request
         handoffs[endpoint] = handoff
+        expected_elements[endpoint] = tuple(atom.element for atom in request.geometry.atoms)
         helper.write_json_new(root / "handoff" / f"{endpoint}.json", handoff)
+
+    topology_valid = args.route == "pure_pyscf"
+    if args.route == "assisted":
+        if not args.structure_review_path:
+            raise BenchmarkError("assisted route omitted the frozen structure review")
+        review = json.loads(
+            helper.read_regular(Path(args.structure_review_path).resolve(strict=True))
+        )
+        topology_valid = review.get("classification") == "SAME_BASIN_LIKELY"
+        if not topology_valid:
+            raise BenchmarkError("assisted structure review did not pass")
+
+    first_parent_observations: dict[str, dict[str, object]] = {}
+
+    def record_first_parent(environment: Mapping[str, object], endpoint: str) -> None:
+        if endpoint in first_parent_observations:
+            return
+        payload = _first_parent_payload(
+            handoff_module=handoff_module,
+            environment=environment,
+            candidate=args.candidate,
+            endpoint=endpoint,
+            route=args.route,
+            expected_elements=expected_elements[endpoint],
+            topology_valid=topology_valid,
+            profile=profile,
+        )
+        first_parent_observations[endpoint] = payload
+        destination = (
+            root / "handoff" / f"{endpoint}_parent_gradient_check.json"
+            if args.route == "assisted"
+            else root / "optimization" / endpoint / "initial_parent_gradient.json"
+        )
+        helper.write_json_new(destination, payload)
+        if payload["classification"] == "FAILED_PARENT_HANDOFF":
+            raise BenchmarkError(f"{endpoint} failed parent handoff validation")
 
     backend = build_parent_backend(
         pilot=pilot,
@@ -500,6 +657,7 @@ def parent_worker(args: argparse.Namespace) -> int:
         memory_mb=args.max_memory_mb,
         expected_electron_count=args.electron_count,
         training_recorder=training_recorder,
+        first_parent_observation=record_first_parent,
     )
     energies: dict[str, float] = {}
     endpoint_results: dict[str, object] = {}
@@ -508,55 +666,46 @@ def parent_worker(args: argparse.Namespace) -> int:
             break
         endpoint_started = time.monotonic()
         before_user, before_system, _ = _rusage()
-        if args.route == "assisted":
-            output_root = root / "pyscf" / endpoint
-            with (
-                helper._capture(output_root / "stdout", output_root / "stderr"),
-                helper._cwd(output_root),
-            ):
-                result, strategy, attempts = single_point.run_single_point(
-                    module=two_endpoint,
-                    backend=backend,
-                    endpoint=requests[endpoint],
-                    deadline=deadline,
-                )
-            optimization = None
-        else:
-            output_root = root / "optimization" / endpoint
-            with (
-                helper._capture(output_root / "stdout", output_root / "stderr"),
-                helper._cwd(output_root),
-            ):
-                optimization = two_endpoint._call_optimize(
-                    backend=backend,
-                    endpoint=requests[endpoint],
-                    strategy="standard",
-                    deadline=deadline,
-                )
-            optimized_raw = optimization.geometry.to_xyz_bytes(
-                comment=f"P01 pure PySCF optimized {endpoint}"
+        output_root = root / "optimization" / endpoint
+        with (
+            helper._capture(output_root / "stdout", output_root / "stderr"),
+            helper._cwd(output_root),
+        ):
+            optimization = two_endpoint._call_optimize(
+                backend=backend,
+                endpoint=requests[endpoint],
+                strategy="standard",
+                deadline=deadline,
             )
-            helper.write_new(output_root / "final.xyz", optimized_raw)
-            final_root = root / "final_single_point" / endpoint
-            optimized_request = dataclasses.replace(
-                requests[endpoint],
-                xyz_relative_path="final.xyz",
-                xyz_path=output_root / "final.xyz",
-                xyz_sha256=sha256_bytes(optimized_raw),
-                geometry=optimization.geometry,
+        if endpoint not in first_parent_observations:
+            raise BenchmarkError(f"{endpoint} optimization omitted its first parent gradient")
+        optimized_raw = optimization.geometry.to_xyz_bytes(
+            comment=f"P01 {args.route} optimized {endpoint}"
+        )
+        helper.write_new(output_root / "final.xyz", optimized_raw)
+        final_root = root / "final_single_point" / endpoint
+        optimized_request = dataclasses.replace(
+            requests[endpoint],
+            xyz_relative_path="final.xyz",
+            xyz_path=output_root / "final.xyz",
+            xyz_sha256=sha256_bytes(optimized_raw),
+            geometry=optimization.geometry,
+        )
+        with (
+            helper._capture(final_root / "stdout", final_root / "stderr"),
+            helper._cwd(final_root),
+        ):
+            result, strategy, attempts = single_point.run_single_point(
+                module=two_endpoint,
+                backend=backend,
+                endpoint=optimized_request,
+                deadline=deadline,
             )
-            with (
-                helper._capture(final_root / "stdout", final_root / "stderr"),
-                helper._cwd(final_root),
-            ):
-                result, strategy, attempts = single_point.run_single_point(
-                    module=two_endpoint,
-                    backend=backend,
-                    endpoint=optimized_request,
-                    deadline=deadline,
-                )
         after_user, after_system, maximum_rss = _rusage()
         metrics = cast(dict[str, object], backend.pilot_metrics.get(endpoint, {}))
+        optimization_metrics = cast(
+            dict[str, object], backend.parent_optimization_metrics.get(endpoint, {})
+        )
         payload: dict[str, object] = {
             "schema_version": SCHEMA,
             "candidate": args.candidate,
@@ -585,28 +734,43 @@ def parent_worker(args: argparse.Namespace) -> int:
             "process_system_cpu_seconds": after_system - before_system,
             "maximum_rss": maximum_rss,
             "geometry_optimization": None,
+            "first_parent_observation": first_parent_observations[endpoint],
+            "handoff_calibration_contract": handoff_contract_identity,
             "retry": False,
             "production_accepted": False,
         }
-        if optimization is not None:
-            training_endpoint_manifest: object = None
-            if training_recorder is not None:
-                training_endpoint_manifest = training_recorder.finalize_endpoint(endpoint)
-            payload["geometry_optimization"] = {
-                "converged": bool(optimization.geometry_converged),
-                "last_energy_hartree": float(optimization.last_energy_hartree),
-                "wall_seconds": metrics.get("optimization_standard_wall_seconds", "unavailable"),
-                "geometry_steps": optimization.dispersion.gradient_hook_calls,
-                "geometry_steps_definition": "observed D3 gradient-hook evaluations",
-                "d3_energy_calls": optimization.dispersion.energy_hook_calls,
-                "d3_gradient_calls": optimization.dispersion.gradient_hook_calls,
-                "final_xyz_sha256": sha256_bytes(optimized_raw),
-                "final_xyz_bytes": len(optimized_raw),
-                "training_endpoint_manifest": training_endpoint_manifest,
-            }
-        result_root = (
-            output_root if args.route == "assisted" else root / "final_single_point" / endpoint
-        )
+        training_endpoint_manifest: object = None
+        if training_recorder is not None:
+            training_endpoint_manifest = training_recorder.finalize_endpoint(endpoint)
+        payload["geometry_optimization"] = {
+            "converged": bool(optimization.geometry_converged),
+            "final_state": handoff_module.final_parent_state(
+                geometry_converged=bool(optimization.geometry_converged),
+                final_single_point_converged=bool(result.converged),
+            ),
+            "profile": "GAU",
+            "last_energy_hartree": float(optimization.last_energy_hartree),
+            "wall_seconds": metrics.get("optimization_standard_wall_seconds", "unavailable"),
+            "geometry_steps": optimization.dispersion.gradient_hook_calls,
+            "geometry_steps_definition": "observed D3 gradient-hook evaluations",
+            "d3_energy_calls": optimization.dispersion.energy_hook_calls,
+            "d3_gradient_calls": optimization.dispersion.gradient_hook_calls,
+            "parent_energy_evaluations": optimization_metrics.get(
+                "parent_energy_evaluations", "unavailable"
+            ),
+            "parent_gradient_evaluations": optimization_metrics.get(
+                "parent_gradient_evaluations", "unavailable"
+            ),
+            "cumulative_scf_cycles": (
+                optimization_metrics.get("cumulative_scf_cycles", "unavailable")
+                if optimization_metrics.get("scf_cycle_measurement_complete") is True
+                else "unavailable"
+            ),
+            "final_xyz_sha256": sha256_bytes(optimized_raw),
+            "final_xyz_bytes": len(optimized_raw),
+            "training_endpoint_manifest": training_endpoint_manifest,
+        }
+        result_root = root / "final_single_point" / endpoint
         helper.write_json_new(result_root / "endpoint_result.json", payload)
         endpoint_results[endpoint] = payload
         energies[endpoint] = float(result.energy_hartree)
@@ -633,6 +797,7 @@ def parent_worker(args: argparse.Namespace) -> int:
             cpu_affinity=cpu_list,
             max_memory_mb=args.max_memory_mb,
         ),
+        "handoff_calibration_contract": handoff_contract_identity,
         "endpoint_results": endpoint_results,
         "deprotonation": deprotonation(energies["cation"], energies["neutral"]),
         "internal_wall_seconds": time.monotonic() - started,
@@ -672,6 +837,10 @@ def assisted_controller(args: argparse.Namespace) -> int:
                 str(args.gpu_index),
                 "--physical-gpu-uuid",
                 args.gpu_uuid,
+                "--gau-loose-helper",
+                str(repo / "scripts/phase9b_aimnet2_parent_handoff.py"),
+                "--gau-loose-contract",
+                str(repo / "docs/PHASE9B_AIMNET2_GAU_LOOSE_V001.yaml"),
             ],
             env=environment,
             stdin=subprocess.DEVNULL,
@@ -680,11 +849,16 @@ def assisted_controller(args: argparse.Namespace) -> int:
             timeout=1000,
             check=False,
         )
-    if result.returncode == 0:
-        raise BenchmarkError("AIMNet2 unexpectedly passed the unchanged production gate")
     summary = json.loads(helper.read_regular(aimnet_root / "aimnet2" / "summary.json"))
     if summary.get("model_load_count") != 1 or summary.get("endpoint_wrapper_count") != 2:
         raise BenchmarkError("AIMNet2 metrology drifted")
+    if result.returncode != 0:
+        failure = summary.get("failure")
+        if not isinstance(failure, dict) or failure.get("exception_class") != "ScientificFailure":
+            raise BenchmarkError("AIMNet2 route failed before a reviewable geometry was written")
+    for endpoint in ENDPOINTS:
+        if not (aimnet_root / "aimnet2" / endpoint / "final.xyz").is_file():
+            raise BenchmarkError(f"AIMNet2 omitted the {endpoint} review geometry")
     with (
         (root / "review_stdout").open("xb") as stdout,
         (root / "review_stderr").open("xb") as stderr,
@@ -742,6 +916,12 @@ def assisted_controller(args: argparse.Namespace) -> int:
                 str(repo / "scripts/phase9b_science_pilot_pyscf_continuation.py"),
                 "--v006-helper",
                 str(repo / "scripts/phase9b_science_pilot_timing_benchmark.py"),
+                "--handoff-helper",
+                str(repo / "scripts/phase9b_aimnet2_parent_handoff.py"),
+                "--gau-loose-contract",
+                str(repo / "docs/PHASE9B_AIMNET2_GAU_LOOSE_V001.yaml"),
+                "--structure-review-path",
+                str(aimnet_root / "review_v004" / "review_result.json"),
                 "--cation-input",
                 str(aimnet_root / "aimnet2" / "cation" / "final.xyz"),
                 "--neutral-input",
@@ -780,6 +960,38 @@ def final_result(args: argparse.Namespace) -> int:
         label_delta: object = float(group_a["deprotonation"]["value_kcal_per_mol"]) - float(
             group_b["deprotonation"]["value_kcal_per_mol"]
         )
+        handoff_module = load_module(
+            Path(args.handoff_helper).resolve(strict=True), "p01_final_handoff_helper"
+        )
+        parent_gradient_reduction: object = {
+            endpoint: {
+                "gradient_rms": handoff_module.gradient_reduction(
+                    float(
+                        group_b["endpoint_results"][endpoint]["first_parent_observation"][
+                            "first_parent_gradient_rms_Eh_Bohr"
+                        ]
+                    ),
+                    float(
+                        group_a["endpoint_results"][endpoint]["first_parent_observation"][
+                            "first_parent_gradient_rms_Eh_Bohr"
+                        ]
+                    ),
+                ),
+                "gradient_max": handoff_module.gradient_reduction(
+                    float(
+                        group_b["endpoint_results"][endpoint]["first_parent_observation"][
+                            "first_parent_gradient_max_Eh_Bohr"
+                        ]
+                    ),
+                    float(
+                        group_a["endpoint_results"][endpoint]["first_parent_observation"][
+                            "first_parent_gradient_max_Eh_Bohr"
+                        ]
+                    ),
+                ),
+            }
+            for endpoint in ENDPOINTS
+        }
     else:
         group_b = {
             "status": "TIMEOUT",
@@ -799,6 +1011,7 @@ def final_result(args: argparse.Namespace) -> int:
         )
         label_b = "unavailable_group_b_timeout"
         label_delta = "unavailable_group_b_timeout"
+        parent_gradient_reduction = "unavailable_group_b_timeout"
     old = json.loads(helper.read_regular(Path(args.old_assisted_result).resolve(strict=True)))
     old_label = float(old["deprotonation"]["value_kcal_per_mol"])
     label_a = float(group_a["deprotonation"]["value_kcal_per_mol"])
@@ -808,13 +1021,14 @@ def final_result(args: argparse.Namespace) -> int:
         "production_accepted": False,
         "production_label_inserted": False,
         "candidate": CANDIDATE,
-        "protocol": protocol(),
+        "protocol": group_a["protocol"],
         "group_a": group_a,
         "group_b": group_b,
         "timing": comparison,
         "label_a_kcal_per_mol": label_a,
         "label_b_kcal_per_mol": label_b,
         "label_a_minus_label_b_kcal_per_mol": label_delta,
+        "parent_gradient_reduction": parent_gradient_reduction,
         "old_b3lyp_svp_assisted_label_kcal_per_mol": old_label,
         "parent_minus_old_method_label_kcal_per_mol": label_a - old_label,
         "extension": {
@@ -868,6 +1082,17 @@ def parser() -> argparse.ArgumentParser:
     worker.add_argument("--neutral-sha256", default=INPUT_SHA256["neutral"])
     worker.add_argument("--record-training-frames", action="store_true")
     worker.add_argument("--training-data-helper")
+    worker.add_argument(
+        "--handoff-helper",
+        default=str(Path(__file__).resolve().with_name("phase9b_aimnet2_parent_handoff.py")),
+    )
+    worker.add_argument(
+        "--gau-loose-contract",
+        default=str(
+            Path(__file__).resolve().parents[1] / "docs" / "PHASE9B_AIMNET2_GAU_LOOSE_V001.yaml"
+        ),
+    )
+    worker.add_argument("--structure-review-path")
     for name in (
         "root",
         "source-root",
@@ -879,7 +1104,7 @@ def parser() -> argparse.ArgumentParser:
     ):
         worker.add_argument(f"--{name}", required=True)
     final = sub.add_parser("finalize")
-    for name in ("root", "v006-helper", "old-assisted-result"):
+    for name in ("root", "v006-helper", "old-assisted-result", "handoff-helper"):
         final.add_argument(f"--{name}", required=True)
     return result
 

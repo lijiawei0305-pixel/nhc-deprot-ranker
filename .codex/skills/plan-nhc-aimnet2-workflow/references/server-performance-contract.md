@@ -137,7 +137,7 @@ resize, or retry it as a backpressure mechanism. Require recovery across the fro
 number of consecutive samples before admitting more work. Never invent a threshold
 during collection.
 
-Protect VASP and unrelated workloads. Never signal their processes, change their
+Protect unrelated workloads. Never signal their processes, change their
 affinity, claim their observed CPUs or GPUs, traverse or modify their private run data,
 or delete, compress, move, or inspect `WAVECAR` or `CHGCAR` to obtain capacity. Treat
 their resource occupancy as unavailable capacity.

@@ -17,6 +17,24 @@ PySCF grid level 4, SCF conv_tol 1e-9
 This is a non-production research track.  It does not change the production
 runner, the 71 production labels, or any public execution gate.
 
+The current downstream role is `PRECONDITIONER_FULL_PARENT_OPT`. A frozen
+generation uses one ASE LBFGS trajectory for at most 100 steps and must satisfy
+all five AIMNet2-surface `GAU_LOOSE` metrics plus its `Fmax <= 0.10
+eV/Angstrom` cap. It then passes chemical-identity gates and hands the exact
+final XYZ bytes to a mandatory full Parent-Level P01 PySCF/geomeTRIC
+optimization. This stopping point means only that AIMNet2 preoptimization is
+complete. It is not a parent-level convergence claim and does not authorize
+skipping PySCF geometry optimization. See
+`PHASE9B_AIMNET2_GAU_LOOSE_V001.yaml` and
+`PHASE9B_AIMNET2_PRECONDITIONER_CONTRACT_V001.json`.
+
+The handoff check reuses the first successful parent energy and analytic
+gradient emitted by that continuing optimization; it does not launch a static
+duplicate job. It records `HANDOFF_CALIBRATION_PASS` only when both fixed
+GAU_LOOSE gradient components pass, otherwise a valid observation records
+`HANDOFF_CALIBRATION_MISS`. Both continue to final parent `GAU` and the final
+single point. Invalid parent evidence is `FAILED_PARENT_HANDOFF`.
+
 ## Data contract
 
 Every newly scheduled pure-PySCF geometry optimization must durably record the
@@ -138,4 +156,9 @@ replacement.
 
 No current AIMNet2 energy enters the PySCF deprotonation label.  The final model
 will be benchmarked only after model freezing, on molecule-level held-out
-candidates and under an isolated, equal-resource timing protocol.
+candidates and under an isolated, equal-resource timing protocol.  Parent
+gradient reduction is compared with the same frozen initial geometry;
+fine-tuning improvement is compared with epoch 0/base AIMNet2; and expensive
+PySCF-work reduction is compared with pure P01 optimization from identical
+initial bytes.  Both routes must complete full P01 optimization before their
+signed final labels are compared.

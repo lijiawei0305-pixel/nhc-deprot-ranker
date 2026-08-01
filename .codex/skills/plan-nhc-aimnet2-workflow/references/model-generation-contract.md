@@ -20,6 +20,18 @@ Assign a unique generation ID and freeze a manifest containing:
 - every validation, final-test, handoff, and promotion threshold already frozen
   by repository authority.
 
+Also bind the intended downstream route. A generation registered for
+`PRECONDITIONER_FULL_PARENT_OPT` may be validated only as a preconditioner and
+must carry `single_point_only_eligible=false`. Its AIMNet2 `GAU_LOOSE` handoff
+profile is not a parent-gradient, geometry-accuracy, label-accuracy, or single-point promotion
+threshold.
+
+The active preconditioner generation binds one GAU_LOOSE YAML identity. Its
+five AIMNet2-surface criteria are distinct from the parent handoff calibration,
+which reads only the first successful energy/analytic gradient emitted by the
+continuing full parent optimization. Neither handoff calibration outcome may
+select a single-point-only route.
+
 If any required threshold or identity is absent or conflicting, set the
 generation to `BLOCKED_BEFORE_TRAINING`. Do not infer or tune it.
 

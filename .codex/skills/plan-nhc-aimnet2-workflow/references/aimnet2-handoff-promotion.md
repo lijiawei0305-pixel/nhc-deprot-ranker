@@ -1,6 +1,82 @@
-# AIMNet2 Stopping, Handoff, and Single-Point Promotion Contract
+# AIMNet2 Stopping, Handoff, Preconditioner, and Single-Point Promotion Contract
 
 ## Purpose and scientific boundary
+
+Freeze one of two different route modes before optimizing any validation or
+final-test structure:
+
+```text
+PRECONDITIONER_FULL_PARENT_OPT
+SINGLE_POINT_ONLY_CANDIDATE
+```
+
+The first mode uses AIMNet2 only to condition the starting geometry for a
+mandatory full parent-level PySCF/geomeTRIC optimization. The second mode is the
+more demanding candidate route described below. A result from the first mode
+must never inherit the claims or stopping predicates of the second mode.
+
+For `PRECONDITIONER_FULL_PARENT_OPT`, the frozen Phase 9B pilot contract is:
+
+```text
+frozen initial XYZ
+-> AIMNet2 / ASE LBFGS, Fmax <= 0.10 eV/Angstrom, at most 100 steps
+-> exact-byte geometry handoff
+-> full Parent-Level P01 PySCF/geomeTRIC geometry optimization
+-> Parent-Level P01 final electronic-energy evaluation
+```
+
+The AIMNet2-side `GAU_LOOSE` profile requires all five quantities on the
+AIMNet2 potential-energy surface: absolute energy change, gradient RMS,
+gradient maximum, displacement RMS, and displacement maximum. The exact values
+and units are uniquely owned by `docs/PHASE9B_AIMNET2_GAU_LOOSE_V001.yaml`.
+The ASE force cap `Fmax <= 0.10 eV/Angstrom` is an additional frozen cap in the
+same profile, not a parent-level threshold.
+
+Passing this AIMNet2 profile means only `AIMNET2_PRECONDITIONER_READY`.
+It does not mean that the parent-level geometry is converged and it does not
+authorize skipping the parent-level optimization.
+
+The preconditioner handoff additionally requires finite energy, coordinates
+and complete forces; unchanged ordered atoms, charge, multiplicity and proton
+identity; unchanged allowed connectivity; no collision or fragmentation; a
+strictly sub-limit accepted step; and exact-byte handoff. Step-limit exhaustion
+without the force gate is `AIMNET2_LIMIT_REACHED` and cannot hand off.
+
+Assess preconditioner value with three non-interchangeable comparisons:
+
+- P01 gradient at the AIMNet2 handoff geometry versus P01 gradient at the same
+  frozen initial geometry;
+- fine-tuned AIMNet2 versus epoch 0/base AIMNet2 under the identical optimizer
+  and stopping contract;
+- full assisted P01 optimization versus pure P01 optimization starting from
+  the identical frozen initial bytes, using optimization steps, energy and
+  gradient calls, cumulative SCF cycles, and end-to-end wall time.
+
+Both routes must finish the same parent-level optimization/final-energy
+milestone before their labels are compared. The signed label difference is an
+accuracy check on the preconditioner path, not an AIMNet2 label. Promotion from
+this route is `PRECONDITIONER_VALIDATED`; `single_point_only_eligible` remains
+false.
+
+Do not launch a separate parent static calculation to judge the handoff. Reuse
+the first successful energy and analytic gradient produced by the same full
+PySCF/geomeTRIC optimization that continues to final convergence. Because that
+first observation has no preceding parent energy or displacement, call it only
+`PARENT_GAU_LOOSE_GRADIENT_CHECK`. Public evidence exposes `profile:
+GAU_LOOSE`; its fixed internal expansion is GRMS `1.7e-3 Eh/Bohr`, Gmax
+`2.5e-3 Eh/Bohr`, with both required.
+
+If both pass, record `HANDOFF_CALIBRATION_PASS`. If either misses while SCF,
+gradient, geometry, identity, topology, charge, and multiplicity remain valid,
+record `HANDOFF_CALIBRATION_MISS`. Both states continue the same optimization
+to final `GAU`, then the required final parent single point. Any invalid or
+unavailable parent SCF/gradient/geometry/identity condition is
+`FAILED_PARENT_HANDOFF`, with a specific reason, and stops. Only a completed
+final optimization plus final single point may record
+`FINAL_PARENT_GAU_CONVERGED`.
+
+The remainder of this contract applies to `SINGLE_POINT_ONLY_CANDIDATE` unless
+it explicitly says otherwise.
 
 Promote AIMNet2 only as a geometry generator for this path:
 
@@ -53,7 +129,8 @@ non-finite values, unsupported species, charge drift, optimizer error,
 connectivity change, proton migration, collision, atom reorder, or missing
 evidence as fail closed. Do not accept the last available frame as converged.
 
-Require all stopping predicates on the same accepted step:
+For `SINGLE_POINT_ONLY_CANDIDATE`, require all stopping predicates on the same
+accepted step:
 
 ~~~text
 finite energy, coordinates, and forces

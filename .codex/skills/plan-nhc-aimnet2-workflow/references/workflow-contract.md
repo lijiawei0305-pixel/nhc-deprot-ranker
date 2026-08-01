@@ -17,6 +17,7 @@ REFERENCE_COLLECTION
 -> MODEL_TRAINING
 -> FRAME_VALIDATION
 -> STOPPING_CONTRACT_CALIBRATION
+-> PRECONDITIONER_VALIDATION
 -> GEOMETRY_VALIDATION
 -> PARENT_GRADIENT_VALIDATION
 -> LABEL_VALIDATION
@@ -26,6 +27,18 @@ REFERENCE_COLLECTION
 ~~~
 
 No state authorizes its successor. Every transition requires immutable input identities, a unique writer, independently recomputable evidence, a terminal classification, and one exact next permitted action.
+
+`PRECONDITIONER_VALIDATION` may terminate with a mandatory full parent-level
+optimization route and `single_point_only_eligible=false`. It does not have to
+continue to `SINGLE_POINT_ONLY_PROMOTION`; that later route is a separate,
+strictly stronger scientific claim.
+
+Within `PRECONDITIONER_VALIDATION`, the first successful parent energy and
+analytic gradient are an observation of the continuing full optimization, not
+a separate static route. `HANDOFF_CALIBRATION_PASS` and
+`HANDOFF_CALIBRATION_MISS` both advance within that same optimization;
+`FAILED_PARENT_HANDOFF` stops it. Only final profile `GAU` convergence plus the
+required final single point closes as `FINAL_PARENT_GAU_CONVERGED`.
 
 Use these routed contracts:
 

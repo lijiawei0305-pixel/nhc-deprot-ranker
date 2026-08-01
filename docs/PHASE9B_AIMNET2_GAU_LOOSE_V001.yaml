@@ -1,0 +1,71 @@
+schema: phase9b-aimnet2-gau-loose-v001
+science_pilot_only: true
+production_accepted: false
+
+profile: GAU_LOOSE
+profile_source:
+  implementation: geomeTRIC
+  version: "1.1.1"
+  documentation: https://geometric.readthedocs.io/en/latest/how-it-works.html#convergence-criteria
+
+aimnet2_surface_convergence:
+  require_all_five: true
+  energy_change:
+    maximum_absolute_Eh: 1.0e-6
+  gradient_rms:
+    maximum_Eh_Bohr: 1.7e-3
+  gradient_max:
+    maximum_Eh_Bohr: 2.5e-3
+  displacement_rms:
+    maximum_Angstrom: 6.7e-3
+  displacement_max:
+    maximum_Angstrom: 1.0e-2
+
+ase_lbfgs:
+  maximum_force_eV_A: 0.10
+  maximum_steps: 100
+  require_accepted_step_index_less_than_or_equal_maximum: true
+  retry: false
+  fallback: false
+
+identity_and_legality_after_convergence:
+  require_finite_energy_coordinates_forces: true
+  require_atom_count_and_element_order_unchanged: true
+  require_charge_and_multiplicity_unchanged: true
+  require_proton_identity_unchanged: true
+  require_topology_valid: true
+  require_no_collision_or_fragmentation: true
+
+handoff:
+  exact_bytes: true
+  next_stage: full_parent_level_pyscf_geometric_optimization
+  single_point_only: false
+
+parent_first_gradient_check:
+  name: PARENT_GAU_LOOSE_GRADIENT_CHECK
+  public_profile: GAU_LOOSE
+  internal_fixed_expansion:
+    gradient_rms_Eh_Bohr: 1.7e-3
+    gradient_max_Eh_Bohr: 2.5e-3
+    require_both: true
+  full_gau_loose_convergence_claimed: false
+
+parent_final_convergence:
+  optimizer: geomeTRIC
+  profile: GAU
+  continue_after_handoff_calibration_pass: true
+  continue_after_handoff_calibration_miss: true
+  final_state: FINAL_PARENT_GAU_CONVERGED
+  final_single_point_required: true
+
+active_states:
+  - HANDOFF_CALIBRATION_PASS
+  - HANDOFF_CALIBRATION_MISS
+  - FAILED_PARENT_HANDOFF
+  - FINAL_PARENT_GAU_CONVERGED
+
+claims_forbidden:
+  - parent_level_converged_at_first_gradient
+  - skip_parent_geometry_optimization
+  - single_point_only
+  - aimnet2_energy_used_in_parent_label

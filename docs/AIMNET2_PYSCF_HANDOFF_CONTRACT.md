@@ -6,6 +6,39 @@
 > A2 rereads the same bytes before the shared PySCF parser. Item 11/12 must add
 > Postflight verification; no scientific execution occurred here.
 
+## Active science-pilot preconditioner amendment (2026-08-01)
+
+The active non-production preconditioner route is frozen as:
+
+```text
+frozen initial geometry
+-> AIMNet2 / ASE LBFGS to AIMNet2 GAU_LOOSE
+-> identity, topology, and finite-coordinate checks
+-> exact-byte handoff
+-> full parent-level PySCF/geomeTRIC cold-start optimization
+-> first successful parent energy and analytic gradient classified in place
+-> continue the same optimization to final GAU
+-> final parent-level single point
+```
+
+The authoritative AIMNet2 profile is
+`PHASE9B_AIMNET2_GAU_LOOSE_V001.yaml`. It requires all five AIMNet2-surface
+criteria and the ASE force cap. It is not a parent convergence statement.
+
+The first parent observation has no preceding parent energy or displacement,
+so it is only `PARENT_GAU_LOOSE_GRADIENT_CHECK`. The public profile is
+`GAU_LOOSE`, whose fixed internal gradient expansion requires GRMS `<= 1.7e-3`
+and Gmax `<= 2.5e-3 Eh/Bohr`, both. Valid observations classify as
+`HANDOFF_CALIBRATION_PASS` or `HANDOFF_CALIBRATION_MISS`; both continue the
+same optimization. Invalid SCF, analytic gradient, geometry, atom identity,
+topology, charge, or multiplicity is `FAILED_PARENT_HANDOFF` and stops. Only
+final `GAU` optimization convergence plus the required final single point may
+record `FINAL_PARENT_GAU_CONVERGED`.
+
+No duplicate parent static job is launched for calibration. `single_point_only`
+is always false for this route. Older route descriptions below remain retained
+as historical architecture and do not override this amendment.
+
 ## The boundary
 
 Only a structure that passed every gate in

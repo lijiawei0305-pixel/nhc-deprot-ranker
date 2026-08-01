@@ -566,3 +566,17 @@ or any production runner/gate/label mutation.  V002 remains
 `BLOCKED_BEFORE_TRAINING` because epoch-0 selection and the numerical
 validation, baseline-eligibility, final-test, and stopping/handoff gates are not
 yet frozen; no threshold was invented from the unopened final-test cohort.
+
+On 2026-08-01 the intended fine-tuned-model role was narrowed to
+`PRECONDITIONER_FULL_PARENT_OPT`: ASE LBFGS must reach the frozen five-metric
+AIMNet2 `GAU_LOOSE` profile plus its `Fmax <= 0.10 eV/Angstrom` cap within 100
+steps, then exact-byte handoff to mandatory full Parent-Level P01
+PySCF/geomeTRIC optimization. The first successful parent energy and analytic
+gradient are classified as `PARENT_GAU_LOOSE_GRADIENT_CHECK`; valid PASS and
+MISS outcomes both continue the same optimization to final `GAU` and a final
+single point. This does not claim parent convergence at handoff or
+single-point-only eligibility. The route contract is frozen, but training was
+not launched: the minimum parent-gradient/compute-burden reduction and signed
+label-invariance thresholds remain unratified, V002 is terminal blocked, one
+original train candidate timed out, and two parent-level collection jobs were
+still active at the audit snapshot.

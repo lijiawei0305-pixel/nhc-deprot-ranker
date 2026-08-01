@@ -13,6 +13,7 @@ import argparse
 import contextlib
 import hashlib
 import importlib
+import importlib.util
 import json
 import math
 import os
@@ -697,6 +698,16 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
 
     from nhc_deprot_ranker.quantum import phase9b_aimnet2_runtime as runtime
 
+    helper_path = Path(args.gau_loose_helper).resolve(strict=True)
+    helper_spec = importlib.util.spec_from_file_location("phase9b_gau_loose_runtime", helper_path)
+    if helper_spec is None or helper_spec.loader is None:
+        raise PilotError("cannot load the frozen GAU_LOOSE helper")
+    gau_loose = importlib.util.module_from_spec(helper_spec)
+    sys.modules[helper_spec.name] = gau_loose
+    helper_spec.loader.exec_module(gau_loose)
+    gau_loose_contract = Path(args.gau_loose_contract).resolve(strict=True)
+    profile = gau_loose.load_gau_loose_profile(gau_loose_contract)
+
     weight_path = Path(args.weight).resolve(strict=True)
     if (
         weight_path.name != WEIGHT_FILENAME
@@ -768,14 +779,16 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
                 calculator = base_model.calculator_for(
                     charge=CHARGES[endpoint], multiplicity=MULTIPLICITIES[endpoint]
                 )
-                optimizer = runtime.AseLBFGSOptimizer(logfile="-")
-                outcome = optimizer.optimize(
+                outcome = gau_loose.optimize_aimnet2_gau_loose(
                     calculator=calculator,
                     coordinates=coordinates,
                     elements=elements,
-                    fmax=runtime.FMAX_EV_PER_ANGSTROM,
-                    max_steps=runtime.MAX_STEPS,
+                    profile=profile,
                     deadline_monotonic=a1_deadline,
+                    read_energy_and_forces=lambda atoms, atom_count: runtime.read_energy_and_forces(
+                        atoms, atom_count=atom_count
+                    ),
+                    logfile="-",
                 )
             trajectory_receipt = _write_json_new(
                 endpoint_root / "trajectory.json", _trajectory_payload(outcome)
@@ -802,7 +815,8 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
             )
             accepted = (
                 outcome.converged
-                and outcome.final_max_force <= runtime.FMAX_EV_PER_ANGSTROM
+                and outcome.final_max_force <= profile.ase_fmax_ev_angstrom
+                and outcome.trajectory[-1].metrics["aimnet2_gau_loose_converged"] is True
                 and structure.all_gates_passed
                 and sanity_passed
             )
@@ -828,6 +842,8 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
                 "wall_seconds": outcome.elapsed_seconds,
                 "optimizer_terminal_state": outcome.terminal_state.value,
                 "optimizer_failure_reason": outcome.failure_reason,
+                "gau_loose_profile": "GAU_LOOSE",
+                "gau_loose_five_metrics": outcome.trajectory[-1].metrics,
                 "structure": asdict(structure),
                 "max_abs_coordinate_angstrom": max_abs_coordinate,
                 "minimum_pair_distance_angstrom": minimum_distance,
@@ -911,6 +927,11 @@ def _aimnet2_command(args: argparse.Namespace) -> int:
         "model_load_seconds": model_seconds,
         "endpoint_wrapper_count": wrapper_count,
         "base_model_forward_calls": "unmeasured",
+        "gau_loose_contract": {
+            "profile": "GAU_LOOSE",
+            "sha256": _sha256(_read_regular_file(gau_loose_contract)),
+            "helper_sha256": _sha256(_read_regular_file(helper_path)),
+        },
         "total_wall_seconds": time.monotonic() - a1_started,
         "endpoints": endpoint_results,
     }
@@ -1398,6 +1419,8 @@ def _parser() -> argparse.ArgumentParser:
     aimnet.add_argument("--weight", required=True)
     aimnet.add_argument("--physical-gpu-index", required=True, type=int)
     aimnet.add_argument("--physical-gpu-uuid", required=True)
+    aimnet.add_argument("--gau-loose-helper", required=True)
+    aimnet.add_argument("--gau-loose-contract", required=True)
     pyscf = subparsers.add_parser("pyscf")
     pyscf.add_argument("--pilot-root", required=True)
     pyscf.add_argument("--source-root", required=True)
