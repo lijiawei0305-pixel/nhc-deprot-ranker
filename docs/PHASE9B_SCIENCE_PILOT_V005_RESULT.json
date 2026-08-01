@@ -1,0 +1,297 @@
+{
+  "aimnet2_rerun": false,
+  "assisted_reference": {
+    "deprotonation_kcal_per_mol": 238.8477388721244,
+    "endpoints": {
+      "cation": {
+        "d3_contribution_hartree": -0.05010632135688259,
+        "energy_hartree": -1407.5280546795084,
+        "result_sha256": "1e881fbf50bc963ab3d23c1fa6942c5ea16d6f63eae9aed5f37b745bd43f1eb0",
+        "scf_cycles": 12,
+        "wall_seconds": 76.15011653210968
+      },
+      "neutral": {
+        "d3_contribution_hartree": -0.04812221393523744,
+        "energy_hartree": -1407.137418762397,
+        "result_sha256": "8e17664f5cadae807ac4f6bba672112f8c5fcaa014e28b98ce3b6cbe00060880",
+        "scf_cycles": 12,
+        "wall_seconds": 123.84613075200468
+      }
+    },
+    "geometry_provenance": "aimnet2_preoptimized",
+    "result_sha256": "dbb0a66fa937e97a19c947d69d409db9323702ba58666865482db80a76c0621c",
+    "v004_evidence_unchanged": true
+  },
+  "batch": false,
+  "branch": "agent/phase9b-science-pilot",
+  "candidate": "LBNPGYISTSLAHY-UHFFFAOYSA-N",
+  "commits": {
+    "execution_source_and_prepublication_head": "9b21236708b6f755335fcd2b11aec69adbf7e3eb",
+    "publication_commit_binding": "git_commit_containing_this_file",
+    "starting_public_commit": "07ed918ba8c8f410b91afb2cca8299086bac3573"
+  },
+  "comparison": {
+    "direction": "assisted_minus_direct",
+    "endpoints": {
+      "cation": {
+        "assisted_energy_hartree": -1407.5280546795084,
+        "assisted_scf_cycles": 12,
+        "assisted_wall_seconds": 76.15011653210968,
+        "cycle_delta_assisted_minus_direct": 0,
+        "direct_energy_hartree": -1407.5048562130542,
+        "direct_scf_cycles": 12,
+        "direct_wall_seconds": 67.53084422135726,
+        "energy_shift_assisted_minus_direct_hartree": -0.023198466454232403,
+        "energy_shift_assisted_minus_direct_kcal_per_mol": -14.557257482302019,
+        "wall_delta_assisted_minus_direct_seconds": 8.619272310752422,
+        "wall_ratio_direct_over_assisted": 0.886812092964848
+      },
+      "neutral": {
+        "assisted_energy_hartree": -1407.137418762397,
+        "assisted_scf_cycles": 12,
+        "assisted_wall_seconds": 123.84613075200468,
+        "cycle_delta_assisted_minus_direct": 0,
+        "direct_energy_hartree": -1407.07173196134,
+        "direct_scf_cycles": 12,
+        "direct_wall_seconds": 120.1861660159193,
+        "energy_shift_assisted_minus_direct_hartree": -0.06568680105692692,
+        "energy_shift_assisted_minus_direct_kcal_per_mol": -41.219089979974854,
+        "wall_delta_assisted_minus_direct_seconds": 3.659964736085385,
+        "wall_ratio_direct_over_assisted": 0.9704474841978368
+      }
+    },
+    "label_delta_assisted_minus_direct_kcal_per_mol": -26.66183249767289,
+    "scope": "fixed_protocol_single_point_behavior_only",
+    "supports_geometry_optimization_speedup_claim": false
+  },
+  "direct_deprotonation": {
+    "aimnet2_energy_used": false,
+    "cation_energy_hartree": -1407.5048562130542,
+    "conversion_factor_kcal_per_hartree": 627.509474,
+    "definition": "gas_phase_electronic_energy_on_frozen_initial_geometries_only",
+    "electronic_difference_kcal_per_mol": 271.7895713697973,
+    "formula": "((E_neutral_PySCF - E_cation_PySCF) * 627.509474) - 6.28",
+    "hartree_difference": 0.4331242517141618,
+    "lower_is_better": true,
+    "neutral_energy_hartree": -1407.07173196134,
+    "subtracted_proton_correction_magnitude_kcal_per_mol": 6.28,
+    "value_kcal_per_mol": 265.5095713697973
+  },
+  "direct_endpoints": {
+    "cation": {
+      "atom_count": 26,
+      "charge": 1,
+      "d3_contribution_hartree": -0.04847829087188403,
+      "d3_energy_audit_absolute_error_hartree": 0.0,
+      "d3_gradient_shape": [
+        26,
+        3
+      ],
+      "energy_hartree": -1407.5048562130542,
+      "five_term_reconstruction_absolute_error_hartree": 0.0,
+      "geometry_provenance": "frozen_initial",
+      "multiplicity": 1,
+      "process_system_cpu_seconds": 9.215022999999999,
+      "process_user_cpu_seconds": 242.67659700000002,
+      "scf_converged": true,
+      "scf_cycles": 12,
+      "spin": 0,
+      "strategy": "standard",
+      "wall_seconds": 67.53084422135726
+    },
+    "neutral": {
+      "atom_count": 25,
+      "charge": 0,
+      "d3_contribution_hartree": -0.04803336143861741,
+      "d3_energy_audit_absolute_error_hartree": 0.0,
+      "d3_gradient_shape": [
+        25,
+        3
+      ],
+      "energy_hartree": -1407.07173196134,
+      "five_term_reconstruction_absolute_error_hartree": 0.0,
+      "geometry_provenance": "frozen_initial",
+      "multiplicity": 1,
+      "process_system_cpu_seconds": 7.115072000000001,
+      "process_user_cpu_seconds": 452.085092,
+      "scf_converged": true,
+      "scf_cycles": 12,
+      "spin": 0,
+      "strategy": "standard",
+      "wall_seconds": 120.1861660159193
+    }
+  },
+  "evidence": {
+    "files": {
+      "comparison/assisted_result_binding.json": "807ba7f52a165059cd319c262635f8ec95d57e88feaef91600a49896a6ac11db",
+      "comparison/endpoint_comparison.json": "a0d048a8d81a692f79e17aa80866eeef5e6329c74dcf652cdb0bf4fe023f0be1",
+      "comparison/geometry_context.json": "c0b098639905042608aa2f1240ffed58f5aa5c9aab0ff087625eaf9219341b66",
+      "comparison/label_comparison.json": "560ab08d869e01998c19428d0448c5e3caf4f29f375bfa1b806679eca21a0d87",
+      "file_manifest.json": "6ca07832dbab16baed2dd6751ed39edf3e3490fd11df78cf05347701002f6b92",
+      "handoff/cation_handoff.json": "af668ec8819f6da5ba6db4997ae36c7aab8b6d42973ab459d5cd5d92fe01b46b",
+      "handoff/neutral_handoff.json": "1228a7adb0cca12e7282172e9f7f6a747ab75dd3e4c21a667edbe41b1cbd9830",
+      "input/cation_initial.xyz": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286",
+      "input/input_manifest.json": "26d5591a3ae54a83d534b9817a46ededeaa05dcc435e05176e1ba8a9425306f4",
+      "input/neutral_initial.xyz": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8",
+      "pyscf/cation/endpoint_result.json": "a0110b20495cfbc8408642a561adf4bd736849603920689d16da674b9600ff2d",
+      "pyscf/cation/input.xyz": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286",
+      "pyscf/cation/run_config.json": "87898dd9771bfb2cd820560093f6891422f642e6e54539d1cd2c2f34da72d7cc",
+      "pyscf/cation/stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pyscf/cation/stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pyscf/neutral/endpoint_result.json": "a8e3cff0d7f35aae9ba121ad4327a98051ab3e18918270622b8fabf2c2ca64f9",
+      "pyscf/neutral/input.xyz": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8",
+      "pyscf/neutral/run_config.json": "977958bef5c755e0b3c591c2bd3955cc804a1968fd1064e2aa9efbc4d752e196",
+      "pyscf/neutral/stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pyscf/neutral/stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result.json": "5b115a86341554e71c4f5ab491935a0777e735059fb39a0e7d132be20e0e554f"
+    },
+    "private_relative_root": "results/science_pilot_lbn_direct_sp_v005",
+    "required_science_evidence_complete": true
+  },
+  "endpoint_identity": {
+    "cation": {
+      "atom_count": 26,
+      "atom_order_sha256": "eb7439bedb2ecbc38e2a1dd214b5f4ed08c1cb775a88fe853bcc60ad23d13f4a",
+      "charge": 1,
+      "electron_count": 160,
+      "multiplicity": 1,
+      "spin": 0
+    },
+    "neutral": {
+      "atom_count": 25,
+      "atom_order_sha256": "8a81d92db63e3056908ad6e550f4193246b016bbfca7270f53a9eebd82675380",
+      "charge": 0,
+      "electron_count": 160,
+      "multiplicity": 1,
+      "spin": 0
+    }
+  },
+  "exact_byte_handoff": {
+    "cation": {
+      "atom_order_preserved": true,
+      "bytes": 1075,
+      "parser_sha256": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286",
+      "source_equals_copy_equals_parser": true,
+      "source_sha256": "543c6944233bb988483b309884c465150c9468798ff2eda0000a8e1273f3d286",
+      "status": "PASS"
+    },
+    "neutral": {
+      "atom_order_preserved": true,
+      "bytes": 1036,
+      "parser_sha256": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8",
+      "source_equals_copy_equals_parser": true,
+      "source_sha256": "af9c30640801eec3ab27538a33204186849303dd57592ca5c93320ec1390f4b8",
+      "status": "PASS"
+    }
+  },
+  "final_conclusion": "PASS — 同一候选原始冻结几何与AIMNet2预优化几何的PySCF单点对照已完成",
+  "final_outcome": "PASS",
+  "full_manifest_post_exit_stable": true,
+  "geometry_context": {
+    "cation": {
+      "aligned_rmsd_angstrom": 0.22118983983858956,
+      "c2_n1_change_assisted_minus_initial_angstrom": -0.008796125210505101,
+      "c2_n3_change_assisted_minus_initial_angstrom": -0.014209323925179707,
+      "connectivity_equal": true,
+      "maximum_displacement_angstrom": 0.4822986571519534,
+      "n1_c2_n3_change_assisted_minus_initial_degrees": 1.4731580525062213,
+      "same_basin_review": "v002_frozen_structure_gates_passed"
+    },
+    "neutral": {
+      "aligned_rmsd_angstrom": 0.6045917518869107,
+      "c2_n1_change_assisted_minus_initial_angstrom": -0.0914807374483122,
+      "c2_n3_change_assisted_minus_initial_angstrom": -0.09729257571701422,
+      "connectivity_equal": true,
+      "maximum_displacement_angstrom": 1.1702383727459489,
+      "n1_c2_n3_change_assisted_minus_initial_degrees": -12.366075263315366,
+      "same_basin_review": "SAME_BASIN_LIKELY"
+    },
+    "single_point_energies_do_not_establish_global_minima": true
+  },
+  "historical_results": {
+    "v001": {
+      "private_result_sha256": "769e64a20f5035866e2b17895746440c79c06d8b1758a46dff8540cbe5281915",
+      "terminal": "INCONCLUSIVE",
+      "unchanged": true
+    },
+    "v002": {
+      "private_result_sha256": "b1362a3b1df7ef7ba276bac0c91fd8002fd27123eca37d84a82b937edacd7071",
+      "terminal": "FAIL under frozen 10-degree gate",
+      "unchanged": true
+    },
+    "v004": {
+      "private_result_sha256": "dbb0a66fa937e97a19c947d69d409db9323702ba58666865482db80a76c0621c",
+      "terminal": "PASS, science_pilot_only",
+      "unchanged": true
+    }
+  },
+  "interpreter": {
+    "executable_sha256": "24a07a0a383fd666309acf92ad4e913dd372b3f2d4592d60f1f2f0ca7138fc61",
+    "geometric_version_present_but_not_invoked": "1.1.1",
+    "launcher_kind": "symlink_to_same_environment",
+    "pyscf": "2.13.1",
+    "pyscf_dispersion": "1.5.0",
+    "python": "3.11.15"
+  },
+  "manifest_post_exit_audit": {
+    "declared_durable_files": 19,
+    "durable_files_verified": 19,
+    "ephemeral_checkpoint_created": true,
+    "ephemeral_checkpoint_expected_to_disappear": true,
+    "ephemeral_checkpoint_files_remaining": 0,
+    "ephemeral_checkpoint_in_durable_manifest": false,
+    "manifest_sha256": "6ca07832dbab16baed2dd6751ed39edf3e3490fd11df78cf05347701002f6b92",
+    "mismatches": 0,
+    "post_exit_audit_method": "independent_read_only_hash_size_mode_link_count_recomputation",
+    "stable": true
+  },
+  "new_production_labels": 0,
+  "next_step": "根据本次同候选对照结果，决定是否值得对第二个候选进行同样的小规模science-pilot复现；本轮不得自动启动第二候选。",
+  "production_10_degree_gate_unchanged": true,
+  "production_accepted": false,
+  "production_label_count": 71,
+  "production_label_inserted": false,
+  "production_permit_consumed": false,
+  "production_permit_generated": false,
+  "protocol": {
+    "basis": "def2-SVP",
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "d3": "D3(BJ)",
+    "d3_owner_setting": "mf.disp=d3bj",
+    "final_scf_only": true,
+    "functional": "B3LYP",
+    "geometry_optimization": false,
+    "grid_level": 3,
+    "initial_guess": "minao",
+    "max_memory_mb": 12000,
+    "no_dm0": true,
+    "phase": "gas",
+    "scf_conv_tol": 1e-09,
+    "soscf_max_cycles": 200,
+    "soscf_policy": "once_only_after_typed_scf_nonconvergence",
+    "standard_max_cycles": 100,
+    "threads": 4
+  },
+  "public_execution_gates_false": 11,
+  "pyscf_geometry_optimization": false,
+  "required_science_evidence_complete": true,
+  "schema_version": "nhc-phase9b-science-pilot-v005-public-result-v1",
+  "science_pilot_only": true,
+  "second_candidate": false,
+  "source": {
+    "direct_wrapper_sha256": "9996444612a185e6b1fb5bce5b9ec628a98b0d8d0c79b700191d41e02fed0dd7",
+    "shared_v004_single_point_engine_sha256": "40029ba06bdf7109ab96ea1172c39af1445d1f7ca655dddefabe707bc1c69a73",
+    "test_sha256": "a7db0e7090d15c3caf10d5022696ffb94aa55ed48981fcb6b33cf02209300078",
+    "two_endpoint_backend_sha256": "44e16576ae37e52ff7b0d399a1b11d3932a9baa19b6a4aae8c603c8e29f9d977"
+  },
+  "total_wall_seconds": 188.2968279211782,
+  "v001_unchanged": true,
+  "v002_terminal": "FAIL under frozen 10-degree gate",
+  "v002_unchanged": true,
+  "v004_assisted_result_unchanged": true
+}

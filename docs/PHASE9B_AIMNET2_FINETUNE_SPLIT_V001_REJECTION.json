@@ -1,0 +1,27 @@
+{
+  "schema": "phase9b-aimnet2-finetune-split-rejection-v1",
+  "split_identity": "PHASE9B_AIMNET2_FINETUNE_SPLIT_V001",
+  "classification": "rejected_before_launch",
+  "reason_code": "CATION_NEUTRAL_ATOM_ORDER_MISMATCH",
+  "affected_candidates": [
+    "HQCVRJMETIHYLP-UHFFFAOYSA-N",
+    "HKNCPUKCYBZCGS-UHFFFAOYSA-N",
+    "LOKGRYJPGKAKIZ-UHFFFAOYSA-N",
+    "GUJFDVFKLYCWLN-UHFFFAOYSA-N",
+    "WRYASDRXZDLECU-UHFFFAOYSA-N"
+  ],
+  "queue_sha256": {
+    "lane_a": "999dfe7b304ff82e4d37514c4729aa44c18f5065bb7a5cba2667e5873b9ea3db",
+    "lane_b": "3f014fda67045a1076867af6ed6a372480c99de5bee76c8362591c4f02894b1e",
+    "lane_c": "b371d4962434baf3add53fb0fee340ea25fee3d276e12b4554ab526827026efc",
+    "lane_d": "516095710c1b37e28295cf10924f472032c60eb59d5a6db1d347d0c72714aa76"
+  },
+  "remote_queue_validation_passed": false,
+  "candidate_launched": false,
+  "output_root_created": false,
+  "calculation_started": false,
+  "input_reordered": false,
+  "input_rewritten": false,
+  "safety_action": "fail_closed_and_select_existing_order-preserving_pairs",
+  "production_accepted": false
+}

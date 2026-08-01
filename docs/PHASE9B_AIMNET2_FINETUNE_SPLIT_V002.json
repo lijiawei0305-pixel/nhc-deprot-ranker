@@ -1,0 +1,103 @@
+{
+  "schema": "phase9b-aimnet2-finetune-split-v002",
+  "status": "preregistered_before_force_aware_launch",
+  "supersedes_rejected_split": "PHASE9B_AIMNET2_FINETUNE_SPLIT_V001",
+  "split_unit": "InChIKey",
+  "parent_protocol_sha256": "227c22a527e567bc4de873ab743fe9f493779eccbb1a698d2913c87695ebf87a",
+  "input_cohort": "existing_order-preserving_rigid_small_nhc_pairs",
+  "train": [
+    {
+      "candidate": "ACGCNTKELWXJPN-UHFFFAOYSA-N",
+      "electron_count": 72,
+      "cation_atom_count": 19,
+      "neutral_atom_count": 18,
+      "cation_sha256": "e1df8b4d90d13407d3e87cca62992e40a1775ee7f396ad75abf6320489642d8b",
+      "neutral_sha256": "d5f90e1d7206f024d235c6e613e03cf913eb07b67ea5e5fcca8421d175cdde12"
+    },
+    {
+      "candidate": "CLXFIGGGSODORK-UHFFFAOYSA-N",
+      "electron_count": 114,
+      "cation_atom_count": 33,
+      "neutral_atom_count": 32,
+      "cation_sha256": "29595d34ceb7be3114a0217429be8c76771cfc495e2f1b8d090e8b12800ef665",
+      "neutral_sha256": "f50f80ae69d60bb6b20d368d991035a8744be8308ef852ef9eaa73b912c46ab0"
+    },
+    {
+      "candidate": "PDIYCCLDBKWBTK-UHFFFAOYSA-N",
+      "electron_count": 100,
+      "cation_atom_count": 29,
+      "neutral_atom_count": 28,
+      "cation_sha256": "605fd452438e07a2108e1b0a78e0937fdf2672c78f948a94c3f34da77bc3c53f",
+      "neutral_sha256": "4cf70a8efe1a6c23e657c301286b0ec51f2e3850eaa5064b3d66bd7ea015fe3b"
+    },
+    {
+      "candidate": "RBKFFSUUCLDQER-UHFFFAOYSA-N",
+      "electron_count": 120,
+      "cation_atom_count": 38,
+      "neutral_atom_count": 37,
+      "cation_sha256": "6d3b2d2678b30f5f90b1e140467f6261c9832191f3417eeeb102fb740f4d6f15",
+      "neutral_sha256": "653ae4c33b6a0a234529c9203b55087be6655c9d2b167d928a7bfa733fb5b385"
+    },
+    {
+      "candidate": "VNYHGZAUUQMMDL-UHFFFAOYSA-N",
+      "electron_count": 68,
+      "cation_atom_count": 16,
+      "neutral_atom_count": 15,
+      "cation_sha256": "8608c4c0d03d8771454c2898cd6db6185160d08e6a3d7571ba12f2449e7eb2b1",
+      "neutral_sha256": "327b52c550b988cb586a07bd299a4801572387ff86f595d2ae8d361f60f8cb92"
+    }
+  ],
+  "validation": [
+    {
+      "candidate": "KZYKDQNIIMATMJ-UHFFFAOYSA-N",
+      "electron_count": 100,
+      "cation_atom_count": 29,
+      "neutral_atom_count": 28,
+      "cation_sha256": "081954775b36b486a96318f2239f4294510a724bc19458168908b1a92816d2e8",
+      "neutral_sha256": "88010ed9acbb5c698e2baed359fc99e9e01c2981e9a5987fbd6a2766779d802f"
+    },
+    {
+      "candidate": "RMEQTBVGGNKAEQ-UHFFFAOYSA-N",
+      "electron_count": 76,
+      "cation_atom_count": 23,
+      "neutral_atom_count": 22,
+      "cation_sha256": "92e75667ca06125c4a3479660902e7257e06af2d4ea00720949644ee0d87765a",
+      "neutral_sha256": "02482abb2a39f404ba62d88ceda7a1aa363b4423b926b886d9e15c81c5fec6a7"
+    }
+  ],
+  "final_test": [
+    {
+      "candidate": "RATKDJDMBGPDPZ-UHFFFAOYSA-N",
+      "electron_count": 94,
+      "cation_atom_count": 17,
+      "neutral_atom_count": 16,
+      "cation_sha256": "e18628d067b82d608e6f6df69fd87292fcb2e52492356a7fde2dbc74b395ef49",
+      "neutral_sha256": "24e62f941e1ae9050e6871ee159151147432fafa72aa948fd287ac9b4c3509a4"
+    },
+    {
+      "candidate": "VPAFDQIFHJWCBK-UHFFFAOYSA-N",
+      "electron_count": 124,
+      "cation_atom_count": 36,
+      "neutral_atom_count": 35,
+      "cation_sha256": "abe7afde6b1d09f754656ee04efe2116599a83d5ed1def77c60c888ad01f9247",
+      "neutral_sha256": "d03467b44b477a33d09374cf883398f8e358168793d3acc49af5e09c2e9601f1"
+    }
+  ],
+  "identity_requirements": {
+    "cation_neutral_atom_order_preserved_after_exact_acidic_hydrogen_removal": true,
+    "frozen_atom_map_bound": true,
+    "acidic_hydrogen_bound_to_frozen_c2": true,
+    "input_reordering_forbidden": true,
+    "input_rewriting_forbidden": true
+  },
+  "leakage_rules": {
+    "cation_neutral_same_split": true,
+    "all_frames_same_split": true,
+    "validation_excluded_from_training_loss": true,
+    "final_test_excluded_from_training_and_model_selection": true,
+    "failed_candidates_not_replaced": true
+  },
+  "science_pilot_only": true,
+  "production_accepted": false,
+  "production_labels_modified": false
+}

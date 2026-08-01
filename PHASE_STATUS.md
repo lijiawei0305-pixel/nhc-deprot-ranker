@@ -1,6 +1,6 @@
 # Phase Status
 
-Updated: 2026-07-27
+Updated: 2026-07-31
 
 | Phase | Status | Gate |
 | --- | --- | --- |
@@ -32,6 +32,15 @@ Updated: 2026-07-27
 | Phase 9B-U3 — qualified metrology / v003 | Failed before environment creation; retained | 2026-07-27; helper rejected normal Conda Python symlinks as invalid; v003 resources never created |
 | Phase 9B-U4 — symlink-aware metrology / v004 | Failed before environment creation; retained | Q4 reached conda evidence then returned `CONDA_EXPLICIT_FAILED` for all six; v004 resources never created |
 | Phase 9B-U5 — metadata-native metrology / v005 | Failed before environment creation; retained | One Q5 SSH failed in remote helper bootstrap before all object captures; no v005 resource was created |
+| Phase 9B science pilot v004 — corrected geometry + PySCF single points | `PASS`, `science_pilot_only`; not production accepted | 2026-07-28; same candidate and retained v002 AIMNet2 XYZ; exact-byte cation/neutral PySCF single points converged; no production label or gate change |
+| Phase 9B science pilot v005 — frozen-initial PySCF single-point control | `PASS`, `science_pilot_only`; not production accepted | 2026-07-28; same candidate's frozen initial geometries compared with retained v004 assisted results; no AIMNet2 rerun, geometry optimization, permit, production label or gate change |
+| Phase 9B science pilot v006 — paired end-to-end timing | `PARTIAL_PASS`, `science_pilot_only`; not production accepted | 2026-07-28; assisted route complete; PySCF-only neutral timed out at 7190 s; speedup is a lower bound only |
+| Phase 9B Parent-Level Benchmark P01 | `INCONCLUSIVE` at mandatory protocol audit | 2026-07-28; static parent-method mapping established; grid-4 SCF timed out at 7190 s; Group A, Group B and extension not started |
+| Phase 9B Parent-Level P01-R1 | `INCONCLUSIVE`; grid audit passed, paired benchmark stopped in Group A environment bootstrap | 2026-07-29; grid 4 frozen on 27 safe physical cores; NVRTC rejected an overlong private temp path before the first AIMNet2 frame; no retry or Group B |
+| Phase 9B Parent-Level P01-R2 | `INCONCLUSIVE`; short environment passed, one-evaluation smoke driver failed before CUDA evaluation | 2026-07-29; short root propagated and cleaned; formal replacement Group A and Group B not started; no retry |
+| Phase 9B Parent-Level P01-R3 | `INCONCLUSIVE`; corrected smoke passed, formal Group A failed in cache-root verifier before model load | 2026-07-29; one replacement attempt consumed, no retry or Group B; short root cleaned |
+| Phase 9B continuous compute + AIMNet2 fine-tune automation | Active; 2/9 candidates PASS and 135 independently valid frames observed | 2026-07-31; Lane B exhausted; C/D active; training remains gated; no production label, permit, runner change, or benchmark |
+| Phase 9B GTHO neutral continuation v001 | Authorized and armed; awaiting the immutable original 24-hour terminal | 2026-07-31; legacy Lane A watcher retired before any claim; one supervisor will continue only after timeout 124, or use the original result if it completes; no second continuation |
 
 ## Current completed work
 
@@ -438,7 +447,136 @@ direct-v003 authority chain. The full matrix and gap
 classification are in `docs/PHASE9B_ITEM11_WRITER_READER_MATRIX.md` and
 `docs/PHASE9B_ITEM11_EVIDENCE_GAP_REPORT.md`.
 
+An independently authorized, non-production science pilot does not alter those
+control-plane states. v004 corrected the review-only signed-dihedral convention,
+classified the retained neutral v002 geometry `SAME_BASIN_LIKELY`, and ran one
+cation then one neutral PySCF final-SCF single point on the exact retained AIMNet2
+XYZ bytes. Both standard SCFs converged in 12 cycles. The resulting pilot-only
+gas-phase electronic value is `238.8477388721244 kcal/mol`; it was not inserted
+into the production table and is not equivalent to the production residual-
+optimization protocol. Details are in
+`docs/PHASE9B_SCIENCE_PILOT_V004_REPORT.md`.
+
+Science pilot v005 then used the same candidate's frozen initial cation and
+neutral geometries for the same final-SCF-only PySCF single-point protocol and
+compared them with the retained v004 AIMNet2-assisted evidence. Both direct
+standard SCFs converged in 12 cycles: cation
+`-1407.5048562130542 Eh` in `67.530844 s`, and neutral
+`-1407.07173196134 Eh` in `120.186166 s`. The direct pilot-only electronic
+value is `265.5095713697973 kcal/mol`; the retained assisted value is
+`238.8477388721244 kcal/mol`, so signed assisted-minus-direct delta is
+`-26.66183249767289 kcal/mol`. This was not an AIMNet2 rerun or PySCF geometry
+optimization and used no production permit or production-label insertion.
+The portable result and full comparison are in
+`docs/PHASE9B_SCIENCE_PILOT_V005_RESULT.json` and
+`docs/PHASE9B_SCIENCE_PILOT_V005_REPORT.md`.
+
+Science pilot v006 performed the separately authorized one-candidate,
+single-run end-to-end timing comparison. The complete AIMNet2-assisted route
+took `235.90 s`. The PySCF-only cation completed its frozen geomeTRIC
+optimization and final single point in `3907.332003 s`, but the neutral was
+still in geometry optimization at Step 17 when the one-shot route reached its
+`7190 s` hard deadline. The process exited with timeout status 124; it was not
+extended, restarted, or retried, and it produced no neutral final geometry,
+final single point, complete PySCF-only label, or label delta.
+
+V006 is therefore `PARTIAL_PASS`: the PySCF-only completion time is greater
+than the observed `7190.06 s`, giving a conservative AIMNet2-assisted speedup
+lower bound greater than `30.479271x`, minimum saved time `6954.16 s`, and
+minimum percent saving greater than `96.719082%` for this single candidate and
+resource configuration. These are lower bounds, not an exact completed-route
+ratio or a population claim. The post-exit durable manifest is stable and the
+raw timeout/partial trajectory evidence is retained outside production.
+Details are in `docs/PHASE9B_SCIENCE_PILOT_V006_RESULT.json` and
+`docs/PHASE9B_SCIENCE_PILOT_V006_REPORT.md`.
+
+Parent-Level Benchmark P01 then audited whether the installed AIMNet2 model and
+the proposed PySCF protocol represented the same parent method before starting
+either formal route.  The static mapping closed on dispersion-stripped
+omegaB97M/def2-TZVPP short-range labels plus explicit two-body D3(BJ), with ATM
+disabled; PySCF's `wb97m-d3bj` alias selected the omegaB97M-V LibXC base with
+VV10 disabled and the matching explicit D3(BJ) path.
+
+The fixed-geometry grid-3 PySCF audit converged and produced a finite analytic
+gradient.  The mandatory grid-4 audit reached only complete SCF cycle 11 before
+the one-shot `7190 s` boundary, so no converged grid comparison, final grid,
+finite-difference check or complete structured reconstruction receipt exists.
+P01 is therefore `INCONCLUSIVE`, classified as a resource/time limitation rather
+than scientific failure.  Group A, Group B and the extension cohort were not
+started; no parent-level route energy, label, geometry comparison or speedup was
+created.  See `docs/PHASE9B_PARENT_LEVEL_P01_PROTOCOL_AUDIT.json` and
+`docs/PHASE9B_PARENT_LEVEL_P01_REPORT.md`.
+
+P01-R1 then discovered 112 logical CPUs / 56 physical cores on a shared node,
+selected 27 safe socket-0 physical cores (`0,2-27`) after the 54-thread SMT
+variant was 5.28% slower, and set PySCF memory to 64,000 MB. The full grid-4
+audit converged in two cycles from the bound grid-3 density at
+`-1409.4738305457154 Eh`, with finite analytic gradient and D3. Grid 4 was
+frozen under protocol identity
+`227c22a527e567bc4de873ab743fe9f493779eccbb1a698d2913c87695ebf87a`.
+
+The only authorized Group A attempt then stopped before its first AIMNet2
+trajectory frame because NVRTC rejected the overlong private `TMPDIR` path.
+This was an environment/path failure, not a model, molecule, memory, grid or
+parent-method failure. No parent-level Group A PySCF calculation started; the
+no-retry rule was honored and Group B did not start. P01-R1 is therefore
+`INCONCLUSIVE`; see `docs/PHASE9B_PARENT_LEVEL_P01_R1_RESULT.json` and
+`docs/PHASE9B_PARENT_LEVEL_P01_R1_REPORT.md`.
+
+The only permissible next action under a separate authorization is to fix the
+single NVRTC temporary-path-length blocker and decide whether to authorize one
+new Group A attempt. Grid 4 is already frozen; P01-R1 did not retry, start Group
+B, an extension cohort, a second candidate or production.
+
+P01-R2 verified all R1 identities without rerunning CPU or grid work. It created
+and propagated a private 24-character `/dev/shm/p01r2.*` root, but its single
+technical smoke called the endpoint wrapper before binding the frozen element
+sequence. The wrapper rejected an empty atom identity before CUDA/NVRTC
+evaluation. Under the one-smoke/no-retry contract, the corrected helper was not
+executed and formal Group A/Group B did not start. P01-R2 is `INCONCLUSIVE`; see
+`docs/PHASE9B_PARENT_LEVEL_P01_R2_RESULT.json` and
+`docs/PHASE9B_PARENT_LEVEL_P01_R2_REPORT.md`.
+
+P01-R3's corrected smoke parsed and bound 26 atoms, executed the real CUDA
+kernel, and returned finite energy and 26x3 forces without optimizer, trajectory
+or label. The sole formal Group A replacement then stopped before model load:
+the offline-cache verifier still compared the valid short cache paths against
+the long attempt cache root. The verifier was statically corrected but not
+rerun. Group B remained blocked and P01-R3 is `INCONCLUSIVE`; see
+`docs/PHASE9B_PARENT_LEVEL_P01_R3_RESULT.json` and
+`docs/PHASE9B_PARENT_LEVEL_P01_R3_REPORT.md`.
+
 No Postflight source was implemented, no v9 leaf moved, and no v10 was created.
-Item 12/12 rehearsal cannot start. The only allowed next work is a separately
-authorized runner-remediation design that permits superseding v9 before
-execution and then requires a fresh evidence-sufficiency audit.
+Item 12/12 rehearsal cannot start. Runner remediation was the Item 11 closeout
+next action, but the later science-pilot priority explicitly paused that track.
+The current only permissible next work, under separate authorization, is one
+new formal Group A attempt using the already-patched effective short-cache-root
+verifier. The corrected smoke must not be repeated and Group B may not start
+unless that future Group A completes. P01-R3 did not retry or start Group B, an
+extension cohort, a second candidate or production.
+
+The AIMNet2 fine-tuning path is locally remediated before any training attempt.
+V001 is rejected pre-execution because its trainer could validate and read
+final-test payloads.  V002 creates a train/validation-only development dataset,
+freezes the model in a process that receives only a sealed final-test
+commitment/count, and moves final-test consumption into a separate post-freeze
+evaluator with an irreversible pre-read claim.  This local change did not start
+dataset assembly, training, final-test consumption, promotion, a remote watcher,
+or any production runner/gate/label mutation.  V002 remains
+`BLOCKED_BEFORE_TRAINING` because epoch-0 selection and the numerical
+validation, baseline-eligibility, final-test, and stopping/handoff gates are not
+yet frozen; no threshold was invented from the unopened final-test cohort.
+
+On 2026-08-01 the intended fine-tuned-model role was narrowed to
+`PRECONDITIONER_FULL_PARENT_OPT`: ASE LBFGS must reach the frozen five-metric
+AIMNet2 `GAU_LOOSE` profile plus its `Fmax <= 0.10 eV/Angstrom` cap within 100
+steps, then exact-byte handoff to mandatory full Parent-Level P01
+PySCF/geomeTRIC optimization. The first successful parent energy and analytic
+gradient are classified as `PARENT_GAU_LOOSE_GRADIENT_CHECK`; valid PASS and
+MISS outcomes both continue the same optimization to final `GAU` and a final
+single point. This does not claim parent convergence at handoff or
+single-point-only eligibility. The route contract is frozen, but training was
+not launched: the minimum parent-gradient/compute-burden reduction and signed
+label-invariance thresholds remain unratified, V002 is terminal blocked, one
+original train candidate timed out, and two parent-level collection jobs were
+still active at the audit snapshot.

@@ -541,7 +541,160 @@ dig +trace domain
 - runner v9 五个 leaf、dependency edge、deployment inventory、composite、paired v3
   request/manifest/resources 都必须保持不变；不得在 Item 11 内修 writer、生成 v10、
   弱化 Postflight 或用日志/mtime/remote bool补证。
-- Item 11 不 complete，Item 12 不得开始。下一项唯一允许工作是另行授权的
-  runner-remediation design：允许在执行前 supersede v9、补齐 durable writers 与
-  direct authority，再一次性冻结新 source/generation，并重新做 Evidence Sufficiency
-  Audit。11 个 public gates 持续 false，生产标签保持 71。
+- Item 11 不 complete，Item 12 不得开始。runner-remediation design 是当时的
+  closeout next action；后续 science-pilot 高优先级授权已暂停该支线。当前 next action
+  以第30节为准。11 个 public gates 持续 false，生产标签保持 71。
+
+## 30. Phase 9B science pilot v004 — non-production 科学可行性结果
+
+- 该 pilot 是独立的 `science_pilot_only` 实验，不是 Phase 9B campaign、permit、
+  deploy、Postflight 或 production accepted run；不改变 Item 11 的 blocked 状态。
+- v001 保持 `INCONCLUSIVE`；v002 冻结 result/input/final XYZ bytes 与
+  `FAIL under frozen 10-degree gate` 终态不变；新增 review evidence 不构成改判。
+  production 10° gate 未修改，AIMNet2 未重跑。
+- v004 只修正几何 review 的 signed-dihedral convention：到 `{0°, ±180°}` 的
+  最大距离从 initial `5.088289°` 变为 final `0.933197°`，与 best-fit-plane
+  结果一致；Stage A 为 `SAME_BASIN_LIKELY`，不是严格 basin 证明。
+- 同一候选的 cation(+1, singlet, 26 atoms) 与 neutral(0, singlet, 25 atoms)
+  exact-byte handoff 均通过。PySCF 2.13.1 的 B3LYP-D3(BJ)/def2-SVP final-SCF-only
+  single points 均用 standard strategy 在 12 cycles 收敛；未调用 geomeTRIC。
+- pilot-only 冻结公式值为 `238.8477388721244 kcal/mol`。该值不是 Gibbs、pKa、
+  溶液酸度或实验焓，也不是 production residual-optimization label；
+  `production_accepted=false`、未写生产标签、标签数仍 71、11 gates 仍 false。
+- 若获得新授权，唯一最小下一步是同一候选原始冻结几何的 cation/neutral PySCF
+  single-point 对照，只比较 SCF convergence、cycles 和 wall；不得启动第二候选或 batch。
+
+## 31. Phase 9B science pilot v005 — frozen-initial single-point control
+
+- v005 是同一候选 `LBNPGYISTSLAHY-UHFFFAOYSA-N` 的独立
+  `science_pilot_only` 对照：以冻结 initial cation/neutral XYZ 运行与 v004 相同的
+  PySCF final-SCF-only single-point protocol，并只读绑定 v004 AIMNet2-assisted 结果。
+- Direct cation 为 `-1407.5048562130542 Eh`、12 SCF cycles、`67.530844 s`；
+  direct neutral 为 `-1407.07173196134 Eh`、12 SCF cycles、`120.186166 s`。
+  Direct pilot-only 脱质子电子能为 `265.5095713697973 kcal/mol`。
+- Retained v004 assisted 值仍为 `238.8477388721244 kcal/mol`；signed
+  assisted-minus-direct delta 为 `-26.66183249767289 kcal/mol`。这是固定几何
+  single-point 对照，不是 PySCF geometry-optimization speedup 证明。
+- v001、v002 和 v004 历史结果不变；没有重跑或加载 AIMNet2，没有 PySCF geometry
+  optimization，没有 production permit、production acceptance 或 production label
+  insertion。Item 11 仍为 `blocked_by_v9_evidence_gap`，Item 12 未开始，11 个 public
+  execution gates 仍为 false，生产标签仍为 71。
+- 本轮没有启动第二候选或 batch。唯一下一步仅是根据同候选对照结果决定是否值得对
+  第二候选做同样的小规模 science-pilot 复现；必须另行授权后才能执行。
+- Portable evidence 已落盘于 `docs/PHASE9B_SCIENCE_PILOT_V005_RESULT.json`，
+  完整报告见 `docs/PHASE9B_SCIENCE_PILOT_V005_REPORT.md`。
+
+## 32. Phase 9B science pilot v006 — paired end-to-end timing benchmark
+
+- v006 仍是单候选、单次、`science_pilot_only` benchmark。Route A 从冻结 initial
+  XYZ 依次执行 AIMNet2 LBFGS 与两端 PySCF final single point；Route B 从相同 bytes
+  执行 PySCF/geomeTRIC geometry optimization 与 final single point。两条路线未并发，
+  中间使用预注册 60 秒 idle；没有 retry、第二候选或 batch。
+- Route A 完整结束，权威 end-to-end wall 为 `235.90 s`；AIMNet2 总 wall
+  `36.703092 s`，PySCF worker wall `192.052879 s`，pilot-only 脱质子电子能仍为
+  `238.847738874978 kcal/mol`。
+- Route B cation 完成 28 次 observed D3 gradient-hook evaluations，geometry wall
+  `3777.975027 s`，final single point `129.350269 s`、12 SCF cycles，最终能量
+  `-1407.531777257272 Eh`。Neutral 在 geomeTRIC Step 17 触及预注册 `7190 s`
+  hard timeout；未产生 neutral final geometry、final single point 或 label，也未延长或重跑。
+- 因此终态为 `PARTIAL_PASS`，不是完整精确 speedup：PySCF-only 完成时间
+  `>7190.06 s`，相对 Route A 的保守 speedup 下界为 `>30.479271x`，最少节省
+  `6954.16 s`、`>96.719082%`。Cation 完整 compute 比较为
+  `3907.332003 / 91.714461 = 42.603227x`，该 endpoint 数字不包含 Route A shared
+  model-load/route overhead，主要 route bound 包含全部端到端开销。
+- PySCF-only neutral 未完成，因此不存在其最终能量、完整路线 label、label delta 或
+  neutral geometry comparison；任何缺失计数均写为 `unavailable`，没有从 wall time
+  估算 CPU 或 GPU utilization。
+- Runtime checkpoint/partial trajectory 与 durable evidence 已分层；退出后 final
+  manifest 独立重算稳定，`full_manifest_post_exit_stable=true`，evidence grade 仍为
+  non-production。
+- Production runner/v9、10° gate、Item 11 blocked 状态和 Item 12 未开始状态不变；
+  没有 production permit 或 label insertion。11 个 public execution gates 持续 false，
+  生产标签仍为 71。
+- Portable evidence 位于 `docs/PHASE9B_SCIENCE_PILOT_V006_RESULT.json`，完整报告见
+  `docs/PHASE9B_SCIENCE_PILOT_V006_REPORT.md`。唯一后续动作只能是审查本次
+  PySCF-only 最后步骤与累计负担，再决定是否值得另行授权延长同一候选预算；不得
+  自动延长、重跑、启动第二候选或 batch。
+
+## 33. Phase 9B Parent-Level Benchmark P01 — protocol audit terminal
+
+- P01 是独立、non-production 的 parent-level 方法核验；没有改变 v001–v006、
+  production runner/v9、10° gate、Item 11/12 blocked 状态或 Item 12/12 未开始状态。
+- 静态方法映射已闭合：AIMNet2 0.2.0 权重对应 dispersion-stripped
+  omegaB97M/def2-TZVPP short-range labels加显式 two-body D3(BJ)，ATM=false；PySCF
+  `wb97m-d3bj` 使用 omegaB97M-V LibXC base、关闭 VV10，并调用匹配的显式
+  D3(BJ)/ATM=false 路径。不得只凭方法字符串相似推断这一结论。
+- 固定 AIMNet2 cation geometry 上的 grid-3 PySCF SCF与解析梯度完成且有限：
+  `E=-1409.47384591833 Eh`、13 cycles、346168 grid points。独立 AIMNet D3 为
+  `-0.042863715440034866 Eh`，gradient finite、two-body、ATM=false。
+- 强制 grid-4 audit 在 standard SCF complete cycle 11 后达到 `7190 s` one-shot
+  timeout；该能量未收敛，解析梯度和有限差分未运行，不能用于grid sensitivity比较，
+  final grid没有冻结。后续超时也使完整PySCF D3/reconstruction结构化receipt未发布。
+- P01终态为 `INCONCLUSIVE`，原因是resource/time限制，不是候选、D3、PySCF或
+  parent method的科学失败。没有retry或参数改变，远端audit process已消失。
+- Group A、Group B和assisted-only extension均未启动；没有parent-level geometry、
+  endpoint energy、label、speedup、第二个Pure PySCF候选或extension cohort。
+- 没有使用xTB类rescue，没有production permit、production accepted或label insertion。
+  11个public gates继续false，生产标签继续71。
+- Portable evidence见 `docs/PHASE9B_PARENT_LEVEL_P01_PROTOCOL_AUDIT.json` 和
+  `docs/PHASE9B_PARENT_LEVEL_P01_REPORT.md`。唯一允许的下一动作是另行决定是否为
+  同一fixed geometry的level-4 grid/gradient audit授权更大明确预算或更多CPU；在audit
+  闭合前不得启动Group A、Group B、extension、第二候选或production。
+
+## 34. Phase 9B Parent-Level P01-R1 — grid pass, paired bootstrap terminal
+
+- 服务器发现为112 logical CPU / 56 physical core，无scheduler allocation、cgroup
+  CPU quota或独占节点证明。共享节点策略只使用socket 0并避开观察到的活动core，最终
+  `ALLOWED_CPU_LIST=0,2-27`、27 physical threads、64,000 MB；54-thread SMT校准
+  慢5.28%，因此不使用SMT。
+- fixed cation geometry的grid-3重新收敛并持久化density；grid-4从该exact `dm0`
+  独立达到`conv_tol=1e-9`，结果为`E=-1409.4738305457154 Eh`、2 cycles、
+  679168 grid points、finite analytic gradient、D3=`-0.04286372842069901 Eh`。
+  grid-4已冻结，protocol identity为
+  `227c22a527e567bc4de873ab743fe9f493779eccbb1a698d2913c87695ebf87a`。
+- 唯一Group A attempt在第一个AIMNet2 cation trajectory frame前停止：Warp/NVRTC
+  拒绝过长的private `TMPDIR`绝对路径。模型加载一次、未进入PySCF；这是环境/路径
+  阻塞，不是模型、候选、内存、grid或parent method科学失败。
+- 严格遵守no-retry；没有缩短路径重跑，固定60秒idle和Group B均未启动。因此没有
+  paired energies、labels、time comparison、speedup或lower bound。
+- P01-R1终态为`INCONCLUSIVE`。没有xTB/GFN/低等级救援、未授权CPU、第二候选、
+  batch、production permit/accepted/label insertion；11个public gates仍false，
+  生产标签仍71。
+- Portable evidence见`docs/PHASE9B_PARENT_LEVEL_P01_R1_RESULT.json`和
+  `docs/PHASE9B_PARENT_LEVEL_P01_R1_REPORT.md`。唯一后续动作是另行修复NVRTC
+  临时路径长度阻塞并决定是否授权一个新的Group A attempt；不得自动retry或启动
+  Group B。
+
+## 35. Phase 9B Parent-Level P01-R2 — short path passed, smoke driver terminal
+
+- R1 Grid-4、protocol lock和manifest均按SHA复核且没有重跑。旧139-character
+  `TMPDIR`来源被闭合为science-pilot cache isolation。
+- P01-R2在`/dev/shm`以`mkdtemp`创建24-character private root，owner/mode/
+  non-symlink/available-space验证通过；8个cache/temp变量及`tempfile.gettempdir()`
+  在实际MLFF parent和`python -I -B` child中完全一致。
+- 唯一technical smoke的helper错误地在`new_atoms(elements=...)`之前调用通用
+  `energy_and_forces()`；真实wrapper以empty element binding拒绝，发生在CUDA/NVRTC
+  evaluation之前。无optimizer、trajectory或label。
+- helper已静态修正为先绑定冻结elements再调用shared finite reader，但one-smoke/
+  no-retry合同禁止本轮执行修正版。正式replacement Group A和Group B均未启动。
+- 短根已安全清理，residual files/processes均为0。没有Grid/CPU重跑、xTB/GFN、
+  retry、第三次Group A、第二候选、extension、batch或production动作；11 gates
+  false，production labels仍71。
+- P01-R2终态为`INCONCLUSIVE`。唯一后续动作是另行授权一次修正版one-evaluation
+  smoke；不得自动启动Group A或Group B。
+
+## 36. Phase 9B Parent-Level P01-R3 — corrected smoke pass, Group A verifier terminal
+
+- R1/R2五项历史SHA复核通过，无CPU/SMT/Grid/D3/method/protocol重跑。
+- corrected smoke从冻结parser取得26 elements与26x3 coordinates，经真实
+  `new_atoms`绑定后执行CUDA kernel；energy/forces finite，model load=1，optimizer/
+  trajectory/label均无。共享reader实测2 calculator invocations并如实保留。
+- 唯一正式replacement Group A在0.465秒、model load和首帧前停止：offline cache
+  verifier仍以长attempt cache root验证已审计的short cache路径。这是environment
+  integration失败，不是science/model/PySCF失败。
+- verifier已静态修正为opt-in时使用short root、默认仍使用历史attempt root，但本轮
+  严格no-retry。Group B未启动；无energies、labels、speedup或accuracy comparison。
+- short root已清理，residual files/processes为0；无额外smoke、retry、第二候选、
+  extension、batch、xTB/GFN或production动作。11 gates false，labels仍71。
+- P01-R3终态`INCONCLUSIVE`。唯一后续动作是另行授权一个使用已修正verifier的正式
+  Group A attempt；不得重复smoke或自动启动Group B。

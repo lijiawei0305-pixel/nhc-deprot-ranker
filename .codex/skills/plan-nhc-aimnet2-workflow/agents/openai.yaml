@@ -1,0 +1,4 @@
+interface:
+  display_name: "NHC AIMNet2 Workflow Planner"
+  short_description: "审计 NHC 科学流程、模型晋级与服务器性能"
+  default_prompt: "使用 $plan-nhc-aimnet2-workflow 按当前请求自动选择最小证据路由，审计 NHC parent-level 数据、AIMNet2 微调/晋级或服务器吞吐计划；先检查可发现事实，只对阻塞性的用户选择提一个问题，并保持只读。"
